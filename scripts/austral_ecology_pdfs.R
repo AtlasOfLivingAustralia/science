@@ -22,9 +22,8 @@ dois <- replace(dois, dois == "10.1046/j.1442-9993.2000.01056.x",
 
 # Have done DOIs up to 1811
 
-failed <- c()
 
-lapply(dois[1806:length(dois)], function(x) {
+failed <- lapply(dois[1768:length(dois)], function(x) {
   download_url <- paste0(
     "https://onlinelibrary.wiley.com/doi/pdfdirect/",
     x,
@@ -44,9 +43,13 @@ lapply(dois[1806:length(dois)], function(x) {
         "?download=true")
       tryCatch(
         download.file(download_url, destfile = paste0(out_dir, doi_str, ".pdf")),
+        warning = function(w) {
+          return(x)
+        },
         error = function(e) {
-          failed <- c(failed, x)
+          return(x)
         })
     })
-  
 })
+
+to_check <- unlist(failed)[unlist(failed) != "0"]
