@@ -9,6 +9,7 @@ library(galah)
 library(tidyr)
 library(ozmaps)
 library(sf)
+library(hexbin)
 
 # Download magpie occurrence records using `galah`
 # Note: need to set an email address using `ala_config()`
@@ -52,7 +53,7 @@ points <- lapply(1:nrow(filtered_occ), function(x) {
 })
 
 # Build hexagonal grid
-grid_all <- st_make_grid(aus, cellsize = 1, what = "polygons", square = FALSE)
+grid_all <- st_make_grid(aus, cellsize = 1, what = "polygons", square = FALSE)[aus]
 gridSF <- st_as_sf(grid_all)
 
 # Find which polygon each point is in
