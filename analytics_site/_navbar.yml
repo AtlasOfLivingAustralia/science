@@ -1,0 +1,18 @@
+name: "ALA analytics"
+title: "ALA analytics"
+left:
+  - text: "Apps"
+    menu:
+      - text: "SoE 2021"
+        href: apps/soe_app
+      - text: "Data trends"
+        href: apps/data_trends
+  - text: "Reports"
+    menu:
+       - text: "DNFC report"
+         href: apps/reports/DNFC_report.Rmd
+       - text: "galah usage report"
+         href: apps/reports/galah_usage.Rmd
+#right:
+#  - icon: fa-github fa-lg
+#    href: https://github.com/githubusername/mywebsite

@@ -1,0 +1,10 @@
+name: "ALA analytics"
+output_dir: 'docs'
+output:
+  html_document:
+    theme: yeti
+    highlight: zenburn
+    toc: true
+    toc_depth: 2
+    toc_float:
+      collapsed: false

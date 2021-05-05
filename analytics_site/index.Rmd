@@ -1,0 +1,16 @@
+---
+title: "ALA Analytics"
+output: 
+  html_document:
+    toc: FALSE
+---
+
+**Welcome to the homepage for ALA analytics**
+
+
+# About
+
+This server hosts apps we've created to visualise ALA data, and data-driven reports. Use the menu bar
+to navigate to the page you're looking for. 
+
+
