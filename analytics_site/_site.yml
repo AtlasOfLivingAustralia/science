@@ -1,5 +1,5 @@
 name: "ALA analytics"
-output_dir: '/srv/shiny-server/'
+output_dir: 'docs/'
 output:
   html_document:
     theme: yeti
