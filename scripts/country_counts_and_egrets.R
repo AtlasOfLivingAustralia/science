@@ -1,8 +1,8 @@
-## -------------------------------------#
-## Title: Occurence Counts by Country 
+## ------------------------------------------------------#
+## Title: Occurrence Counts by Country and Egrets Maps
 ## Author: Dax Kellie
 ## Date Created: 2021-05-4
-## -------------------------------------#
+## ------------------------------------------------------#
 
 rm(list = ls())
 
@@ -20,17 +20,17 @@ library(rnaturalearthdata)
 library(mapsf)
 
 #-------------------------------------#
-##          Country counts
+#           Country counts
 #-------------------------------------#
 
+# Get data
 
-search_fields("marine") # id = "countryCode", id = "biome"
-     
-counts_by_country <- ala_counts(group_by = "countryCode", limit = 20)
-counts_by_environment <- ala_counts(group_by = "biome", limit = 100)
+search_fields("countryCode") # id = "countryCode"
+counts_by_country <- ala_counts(group_by = "countryCode", limit = 20) # top 20 of >300
 
-#| so it looks like a lot of people use this as an open answer rather than a category.
+#| so it looks like a lot of people use this as an open answer rather than a category
 #| There is also a duplicate of "AU" & "Australia"
+
 
 # Excluding the mammoth amount of AU data, the countries with the most records are:
 ggplot(counts_by_country %>% filter(name != "AU")) + 
@@ -39,10 +39,23 @@ ggplot(counts_by_country %>% filter(name != "AU")) +
   labs(y = "Country") + 
   theme_minimal() + theme(legend.position = "none")
 
+
+
+#-------------------------------------#
+#         Environment counts
+#-------------------------------------#
+
+
+# Differences in terrestrial vs marine counts
+
+search_fields("marine") # id = "countryCode", id = "biome"
+counts_by_environment <- ala_counts(group_by = "biome", limit = 100)
+
 ggplot(counts_by_environment) + 
   geom_bar(aes(x = "", y = count, fill = name), stat = "identity") + 
   coord_polar("y") + 
   theme_void() + scale_fill_viridis_d(direction = -1)
+
 
 
 #-------------------------------------#
@@ -58,22 +71,30 @@ aus_ne <- rnaturalearth::ne_states(country = "australia", returnclass = "sf")
 
 mf_map(aus_ne)
 
-# Get Intermediate Egret data as example data
-# Counts of Egrets by state
 
+# Get data
+
+# Might need:
+# ala_config(email = "dax.kellie@csiro.au")
+
+
+# Get Intermediate Egret data as example data
+#   (a bird that was sadly determined to only be mid-tier from birth...
+
+# Counts of Egrets by state
 state_layers <- search_fields("australian states and territories") # id = "cl22"
-# shows layer ID - "cl22"
-sp_by_state <- ala_counts(taxa = select_taxa("Ardea intermedia"), group_by = "cl22")
+egret_by_state <- ala_counts(taxa = select_taxa("Ardea intermedia"), group_by = "cl22")
 
 # join with data from {ozmaps}
 state_map <- merge(
   ozmaps::ozmap_states,
-  sp_by_state,
+  egret_by_state,
   by.x = "NAME",
   by.y = "cl22"
 )
 
 state_map <- st_transform(state_map, crs = st_crs(3577))
+
 
 # Map using mf_map
 mf_map(x = state_map, var = "count", type = "choro",
@@ -95,27 +116,19 @@ mf_inset_off()
 
 
 #----------------------------------#
-#       BELOW HERE ARE NOTES
+#           Spherical map
 #----------------------------------#
 
 
-# Get data
-
-# Might need:
-# ala_config(email = "dax.kellie@csiro.au")
-
-# Extract data on Intermediate Egret 
-#   (a bird that was sadly determined to only be mid-tier from birth...
-egret_by_state <- ala_counts(taxa = select_taxa("Ardea intermedia"), group_by = "cl22")
+# Get Intermediate Egret occurences data
 egrets <- ala_occurrences(taxa = select_taxa("Ardea intermedia"))
 
-str(egrets)
-dt_egrets <- setDT(egrets)
+dt_egrets <- setDT(egrets) # convert to data.table
 dt_egrets <- egrets[1:1000,.(decimalLatitude, decimalLongitude)] # subset first 1000 values
 
 
+
 # Below makes a spherical map focused on AU
-# With some work, it seems possible to plot some gridded density data on it
 
 library(rworldmap)
 library(geosphere)
@@ -148,10 +161,10 @@ worldmap
 
 
 
-# Egret density distribution plot on world
+
+# Plot Egret density distribution on world map
 
 # Calculate densities
-
 # find density grid
 vmf_density_grid <- function(u, ngrid = 100) {
   # Translate to (0,180) and (0,360)
@@ -240,3 +253,7 @@ ggplot(data = world) +
   geom_sf(fill= "gray90") +
   labs( x = "Longitude", y = "Latitude") +
   coord_sf(xlim = c(100.00, 180.00), ylim = c(-50.00, -10.00), expand = FALSE)
+
+
+
+
