@@ -79,7 +79,7 @@ mf_map(aus_ne)
 
 
 # Get Intermediate Egret data as example data
-#   (a bird that was sadly determined to only be mid-tier from birth...
+#   (a bird that, compared to the great egret, was only determined to be intermediate...)
 
 # Counts of Egrets by state
 state_layers <- search_fields("australian states and territories") # id = "cl22"
@@ -112,6 +112,7 @@ mf_inset_off()
 # source
 # https://riatelab.github.io/mapsf/
 
+ 
 
 
 
@@ -121,7 +122,8 @@ mf_inset_off()
 
 
 # Get Intermediate Egret occurences data
-egrets <- ala_occurrences(taxa = select_taxa("Ardea intermedia"))
+# egrets <- ala_occurrences(taxa = select_taxa("Ardea intermedia"))
+egrets <- readRDS("egrets.rds")
 
 dt_egrets <- setDT(egrets) # convert to data.table
 dt_egrets <- egrets[1:1000,.(decimalLatitude, decimalLongitude)] # subset first 1000 values
@@ -200,11 +202,52 @@ dens_worldmap <- ggplot() +
 dens_worldmap
 
 
-  
-# alternatively
-data <- periodic(dt_, lon = c(0, 360))
 
 
+
+# Testing way to get coloured density geom onto sf map
+
+egrets_sf <- st_as_sf(egrets, coords = c("x", "y"), crs = 28992)
+
+map <- ggplot () +
+  geom_sf(
+    data = state_map,
+    mapping = aes(fill = sqrt(count)), color = "grey30") +
+  scale_fill_gradient(low = "#dbdbdb", high = "#E06E53") +
+  stat_density_2d(data = dt_egrets,
+                  mapping = ggplot2::aes(x = purrr::map_dbl(geometry, ~.[1]),
+                                         y = purrr::map_dbl(geometry, ~.[2]),
+                                         fill = stat(density)),
+                  geom = 'tile',
+                  contour = FALSE,
+                  alpha = 0.5) +
+  theme_void() +
+  theme(
+    legend.position = "none") 
+
+
+density <- ggplot(data = dt_egrets, 
+                  aes(x = decimalLongitude, y = decimalLatitude), fill = ..level..) + 
+  geom_sf(
+    data = state_map,
+    mapping = aes(fill = sqrt(count)), color = "grey30") +
+  scale_fill_gradient(low = "#dbdbdb", high = "#E06E53") +
+  theme_void() +
+  theme(
+    legend.position = "none") + 
+  stat_density2d(aes(fill = ..level..), geom = "polygon")
+
+density + map
+ggplot() + geom_density2d(data = dt_egrets,
+                     mapping = aes(x = decimalLongitude, y = decimalLatitude, fill=..level..),
+                     geom='polygon')
+
+
+
+
+#-------------------------------#
+#     Testing other methods
+#-------------------------------#
 
 
 # We can also make this hardcore map (using some weird matrix magic)
@@ -257,3 +300,15 @@ ggplot(data = world) +
 
 
 
+library(ggplot2)
+library(ggmap)
+data("crime")
+crime<- head(crime,1000)
+str(crime)
+gg <- ggplot(aes(x = lon, y = lat), data=crime) + 
+  stat_density2d(aes(alpha=..level.., color=..level.., fill=..level..),geom='polygon', bins = 10, size=0.5) +
+  scale_color_gradient(low = "grey", high = "#444444", guide = F)+
+  scale_fill_gradient(low = "yellow", high = "red", guide = F)+
+  scale_alpha( guide = F)+
+  coord_map()+
+  ggthemes::theme_map()
