@@ -193,7 +193,8 @@ dens_worldmap <- ggplot() +
   geom_point(data = dt_egrets,
              mapping = aes(x = decimalLongitude, y = decimalLatitude),
              color = "red", alpha = .2, size = .5, stroke = 0) + 
-  geom_contour(data = egret.densities, aes(x=Long, y=Lat, z=Density)) + 
+  geom_contour(data = egret.densities, aes(x=Long, y=Lat, z=Density)) + # this works
+  # geom_contour_fill(data = egret.densities, aes(x=Long, y=Lat, z=Density)) + # this doesn't work
   scale_y_continuous(breaks = (-2:2) * 30) +
   scale_x_continuous(breaks = (-4:4) * 45) +
   coord_map("ortho", orientation=c(-20, 135, 0)) + 
@@ -201,13 +202,17 @@ dens_worldmap <- ggplot() +
 
 dens_worldmap
 
+# Note that we would prefer the contours to be filled but I am getting an error
+# Something about vectors not liking what I have at the moment
+
 
 
 
 
 # Testing way to get coloured density geom onto sf map
-
-egrets_sf <- st_as_sf(egrets, coords = c("x", "y"), crs = 28992)
+str(dt_egrets)
+egrets <- as.data.frame(egrets)
+egrets_sf <- st_as_sf(dt_egrets, coords = c("x", "y"), crs = 28992)
 
 map <- ggplot () +
   geom_sf(
