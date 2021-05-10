@@ -17,6 +17,7 @@ library(tidyverse)
 library(lubridate) # for dates
 library(patchwork)
 
+
 #------------------------------------------------------#
 #   Trends in time of year of recording data in ALA
 #------------------------------------------------------#
@@ -51,26 +52,33 @@ occurrences_Tas <- readRDS(file=data_filepath)
 occurrences_Tas <- setDT(occurrences_Tas) # make data.table
 
 
-
 # add day, week
 occurrences_Tas$eventDate <- as_date(occurrences_Tas$eventDate)
-occurrences_Tas$weekday <- wday(occurrences_Tas$eventDate, label = TRUE) # add day column
-occurrences_Tas$week <- week(occurrences_Tas$eventDate) # add week
-occurrences_Tas$day <- yday(occurrences_Tas$eventDate) # add week
-occurrences_Tas$year <- year(occurrences_Tas$eventDate) # add week
 
-head(occurrences_Tas$day, 20L)
+occurrences_Tas$weekday <- wday(occurrences_Tas$eventDate, label = TRUE) # day (sun,mon,tues, etc)
+occurrences_Tas$week <- week(occurrences_Tas$eventDate) # week
+occurrences_Tas$day <- yday(occurrences_Tas$eventDate) # day (julian)
+occurrences_Tas$month <- month(occurrences_Tas$eventDate, label = TRUE) # month
+occurrences_Tas$year <- year(occurrences_Tas$eventDate) # year
+?month()
 
 # remove NAs
 occurrences_Tas <- occurrences_Tas %>% filter(!is.na(eventDate)) %>% as.data.table() # remove NA
 any(is.na(occurrences_Tas$day))
 
 
+#------------------------------------------------------#
+#     Time series of records over last 10 years
+#------------------------------------------------------#
+
+
 # every day
 everyday_counts <- occurrences_Tas[, .N, by = c("eventDate", "year")]
 
 # Over 10 years continuous
-occ_10years <-  everyday_counts[everyday_counts_by_year$year > 2011,] %>% ggplot(aes(x = eventDate, y = N)) + 
+occ_10years <-  everyday_counts[everyday_counts$year > 2011,] %>% 
+  ggplot(aes(x = eventDate, 
+             y = N)) + 
   geom_line(aes(colour = factor(year))) + 
   theme_minimal() + 
   scale_colour_viridis_d() + 
@@ -81,14 +89,20 @@ occ_10years <-  everyday_counts[everyday_counts_by_year$year > 2011,] %>% ggplot
 # Each year
 everyday_counts_by_year <- occurrences_Tas[, .N, by = c("day", "year")]
 
-occ_by_year <- everyday_counts_by_year[everyday_counts_by_year$year > 2011,] %>% ggplot(aes(x = day, y = N)) + 
-  geom_line(alpha = 0.9, colour = "#E06E53") + 
-  theme_minimal() + facet_wrap(.~year) + 
+occ_by_year <- everyday_counts_by_year[everyday_counts_by_year$year > 2011,] %>% 
+  ggplot(aes(x = day, 
+             y = N)) + 
+  geom_line(aes(colour = factor(year)), alpha = 0.9) + 
+  theme_minimal() + 
+  scale_colour_viridis_d() + 
+  facet_wrap(.~year) + 
   labs(x = "",
        y = "Number of Records\n") + 
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank())
+  theme(
+    legend.position = "none",
+    axis.title.x=element_blank(),
+    axis.text.x=element_blank(),
+    axis.ticks.x=element_blank())
 
 
 occ_by_year / occ_10years + plot_layout(ncol=1,heights=c(3,1))
@@ -99,11 +113,30 @@ occ_by_year / occ_10years + plot_layout(ncol=1,heights=c(3,1))
 #   Which days are most popular for records?
 #----------------------------------------------#
 
-# get day counts
+# get counts
 day_counts <- occurrences_Tas[, .N, by = c("weekday")]
 
 # Total number of occurrences on each day
-p_day_of_week <- day_counts %>% ggplot(aes(y = weekday, x = N)) + 
+p_day_of_week <- day_counts %>% ggplot(aes(y = N, x = weekday)) + 
+  geom_bar(stat = "identity", fill = "#E06E53", width = .8) +
+  labs(title = "Total number of records each day",
+       subtitle = "Tasmania (2010 - 2020)",
+       y = "Number of records\n",
+       x = "\nDay") +
+  theme_minimal() + scale_fill_viridis_d() + 
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5))
+p_day_of_week
+
+
+str(month_counts)
+# get day counts
+month_counts <- occurrences_Tas[, .N, by = c("month")]
+month_counts$month <- ordered(factor(month_counts$month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")))
+levels(month_counts$month)
+# Total number of occurrences on each day
+p_month_of_year <- day_month_counts %>% ggplot(aes(x = month, y = N)) + 
   geom_bar(stat = "identity", fill = "#E06E53", width = .8) +
   labs(title = "Total number of records each day",
        subtitle = "Tasmania (2010 - 2020)",
@@ -113,4 +146,20 @@ p_day_of_week <- day_counts %>% ggplot(aes(y = weekday, x = N)) +
   theme(
     plot.title = element_text(hjust = 0.5),
     plot.subtitle = element_text(hjust = 0.5))
-p_day_of_week
+
+?ggdotchart
+library(ggpubr)
+p_month_of_year_dot <- ggdotchart(month_counts, x = "month", y = "N",
+                              color = "month", # Color by groups
+                              palette = "viridis", # Custom color palette
+                              sorting = "none", # Sort value in descending order
+                              add = "segments", # Add segments from y = 0 to dots
+                              legend = "none",
+                              rotate = TRUE,
+                              dot.size = 4,
+                              add.params = list(color = "month", size = 1),
+                              ggtheme = theme_pubr() # ggplot2 theme
+)
+
+p_day_of_week + p_month_of_year_dot + plot_layout(ncol=1,widths=c(2,1))
+
