@@ -130,15 +130,16 @@ p_day_of_week <- day_counts %>% ggplot(aes(y = N, x = weekday)) +
 p_day_of_week
 
 
-str(month_counts)
-# get day counts
+
+# get month counts
 month_counts <- occurrences_Tas[, .N, by = c("month")]
 month_counts$month <- ordered(factor(month_counts$month, levels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")))
 levels(month_counts$month)
+
 # Total number of occurrences on each day
 p_month_of_year <- day_month_counts %>% ggplot(aes(x = month, y = N)) + 
   geom_bar(stat = "identity", fill = "#E06E53", width = .8) +
-  labs(title = "Total number of records each day",
+  labs(title = "Total number of records",
        subtitle = "Tasmania (2010 - 2020)",
        y = "Day\n",
        x = "\nNumber of records") +
@@ -147,7 +148,7 @@ p_month_of_year <- day_month_counts %>% ggplot(aes(x = month, y = N)) +
     plot.title = element_text(hjust = 0.5),
     plot.subtitle = element_text(hjust = 0.5))
 
-?ggdotchart
+
 library(ggpubr)
 p_month_of_year_dot <- ggdotchart(month_counts, x = "month", y = "N",
                               color = "month", # Color by groups
@@ -158,6 +159,8 @@ p_month_of_year_dot <- ggdotchart(month_counts, x = "month", y = "N",
                               rotate = TRUE,
                               dot.size = 4,
                               add.params = list(color = "month", size = 1),
+                              ylab = "Number of records",
+                              xlab = "Month",
                               ggtheme = theme_pubr() # ggplot2 theme
 )
 
