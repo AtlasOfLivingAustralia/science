@@ -340,31 +340,32 @@ spatial_df$Lat_scaled <- scale(spatial_df$Lat)
 
 
 # try a model with interacting date terms
-model <- gam(record_count ~ s(Lon, by = Lat, k = 30),
+model <- gam(record_count ~ s(Lon_scaled, by = Lat_scaled, k = 40),
              data = spatial_df,
              family = poisson(link = "log"))
+
 
 # make predictions
 # first of change over time
 Lon_vector <- seq(
-  min(spatial_df$Lon),
-  max(spatial_df$Lon),
+  min(spatial_df$Lon_scaled),
+  max(spatial_df$Lon_scaled),
   length.out = 100)
 
-
 Lat_vector <-  seq(
-  min(spatial_df$Lat),
-  max(spatial_df$Lat),
+  min(spatial_df$Lat_scaled),
+  max(spatial_df$Lat_scaled),
   length.out = 100)
 
 prediction_surface <- expand.grid(
-  Lon = Lon_vector,
-  Lat = Lat_vector)
+  Lon_scaled = Lon_vector,
+  Lat_scaled = Lat_vector)
 
 model_prediction <- predict(model, newdata = prediction_surface, se.fit = FALSE)
 prediction_surface$fit <- as.numeric(model_prediction)
 str(model_prediction)
-
+prediction_surface$Lon_unscaled <- seq(min(spatial_df$Lon), max(spatial_df$Lon), length.out = 100) # readjusting scale for plotting
+prediction_surface$Lat_unscaled <- seq(min(spatial_df$Lat), max(spatial_df$Lat), length.out = 100) # readjusting scale for plotting
 
 contours <- model_prediction %>% 
   raster::rasterToContour(levels = c(0.5, 1, 1.5)) %>% 
@@ -372,14 +373,15 @@ contours <- model_prediction %>%
 str(prediction_surface)
 
 ggplot() + 
-  geom_sf(data = state_map) +
-  coord_sf(crs = st_crs(3577)) +
+  # geom_sf(data = state_map) +
+  # coord_sf(crs = st_crs(3577)) +
   # geom_sf(data = depth_contours) +
   geom_tile(data = prediction_surface, 
             mapping = aes(x = Lon, y = Lat, fill = fit)) + 
   scale_fill_viridis() +
   theme_bw()
-# NOPE terrible idea
+
+
 
 # OLD
 model <- gam(record_count ~ s(Lon) + s(Lat),
