@@ -95,7 +95,7 @@ state_map <- merge(
 
 state_map <- st_transform(state_map, crs = st_crs(3577))
 
-
+?ozmaps
 # Map using mf_map
 mf_map(x = state_map, var = "count", type = "choro",
        pal = "Dark Mint")
@@ -107,7 +107,6 @@ mf_worldmap(state_map, col = "#0E3F5C")
 # Close the inset
 mf_inset_off()
 
-?mf_inset_on
 
 # source
 # https://riatelab.github.io/mapsf/
@@ -123,7 +122,12 @@ mf_inset_off()
 
 # Get Intermediate Egret occurences data
 # egrets <- ala_occurrences(taxa = select_taxa("Ardea intermedia"))
-egrets <- readRDS("egrets.rds")
+
+# Call saved local data file
+path <- "C:/Users/KEL329/Documents/Projects/Data Holdings/data_ALA"
+data_filepath <- file.path(path, "egrets.rds")
+egrets <- readRDS(file=data_filepath)
+
 
 dt_egrets <- setDT(egrets) # convert to data.table
 dt_egrets <- egrets[1:1000,.(decimalLatitude, decimalLongitude)] # subset first 1000 values
@@ -198,6 +202,7 @@ dens_worldmap <- ggplot() +
   scale_y_continuous(breaks = (-2:2) * 30) +
   scale_x_continuous(breaks = (-4:4) * 45) +
   coord_map("ortho", orientation=c(-20, 135, 0)) + 
+  theme_minimal() +
   theme(legend.position = "none")
 
 dens_worldmap
@@ -287,7 +292,7 @@ plot(st_geometry(world), add = TRUE, col = NA, border = "grey")
 # https://randomeffect.net/post/2021/01/05/plotting-a-spherical-distribution-in-r/
 
 
-# Map Australia + a little bit
+# Map Australia + NZ
 
 # Might need to install {rnaturalearthdata} package
 world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
@@ -305,15 +310,132 @@ ggplot(data = world) +
 
 
 
+
+
+#----------------------------------------------#
+#                   spline
+#----------------------------------------------#
+
+
+# set up lon + lat data frame
+spatial_df <- egrets %>% 
+  dplyr::select(decimalLatitude, decimalLongitude) %>% 
+  rename(., Lat = decimalLatitude, Lon = decimalLongitude)
+
+spatial_df <- spatial_df %>% filter(!is.na(spatial_df$Lat)) #remove NA
+
+# count records
+spatial_df$record_count <- unlist(lapply(
+  spatial_df$Lon,
+  function(a){
+    return(length(which(egrets$decimalLongitude == a)))
+  }))
+
+
+# model using GAMs
+# install.packages("mgcv")
+library(mgcv)
+spatial_df$Lon_scaled <- scale(spatial_df$Lon)
+spatial_df$Lat_scaled <- scale(spatial_df$Lat)
+
+
+# try a model with interacting date terms
+model <- gam(record_count ~ s(Lon, by = Lat, k = 30),
+             data = spatial_df,
+             family = poisson(link = "log"))
+
+# make predictions
+# first of change over time
+Lon_vector <- seq(
+  min(spatial_df$Lon),
+  max(spatial_df$Lon),
+  length.out = 100)
+
+
+Lat_vector <-  seq(
+  min(spatial_df$Lat),
+  max(spatial_df$Lat),
+  length.out = 100)
+
+prediction_surface <- expand.grid(
+  Lon = Lon_vector,
+  Lat = Lat_vector)
+
+model_prediction <- predict(model, newdata = prediction_surface, se.fit = FALSE)
+prediction_surface$fit <- as.numeric(model_prediction)
+str(model_prediction)
+
+
+contours <- model_prediction %>% 
+  raster::rasterToContour(levels = c(0.5, 1, 1.5)) %>% 
+  st_as_sf()
+str(prediction_surface)
+
+ggplot() + 
+  geom_sf(data = state_map) +
+  coord_sf(crs = st_crs(3577)) +
+  # geom_sf(data = depth_contours) +
+  geom_tile(data = prediction_surface, 
+            mapping = aes(x = Lon, y = Lat, fill = fit)) + 
+  scale_fill_viridis() +
+  theme_bw()
+# NOPE terrible idea
+
+# OLD
+model <- gam(record_count ~ s(Lon) + s(Lat),
+             data = spatial_df,
+             family = poisson(link = "log"))
+
+prediction_1 <- data.frame(
+  Lon = seq(
+    min(spatial_df$Lon),
+    max(spatial_df$Lon),
+    length.out = 100),
+  Lat = 0)
+prediction_1$date_unscaled <- seq(min(date_df$date), max(date_df$date), length.out = 100) # readjusting scale for plotting
+
+model_prediction <- predict(model, newdata = prediction_1, se.fit = TRUE)
+prediction_1$fit <- exp(model_prediction$fit)
+prediction_1$lci <- exp(model_prediction$fit - (2 * model_prediction$se.fit))
+prediction_1$uci <- exp(model_prediction$fit + (2 * model_prediction$se.fit))
+
+# then repeat for Julian Date
+prediction_2 <- data.frame(
+  julian_scaled = seq(
+    min(date_df$julian_scaled),
+    max(date_df$julian_scaled),
+    length.out = 100),
+  date_scaled = 0)
+prediction_2$date_unscaled <- seq(min(date_df$date_julian), max(date_df$date_julian), length.out = 100)
+
+model_prediction <- predict(model, newdata = prediction_2, se.fit = TRUE)
+prediction_2$fit <- exp(model_prediction$fit)
+prediction_2$lci <- exp(model_prediction$fit - (2 * model_prediction$se.fit))
+prediction_2$uci <- exp(model_prediction$fit + (2 * model_prediction$se.fit))
+
+# finally calculate residuals from the model
+date_df$residuals <- resid(model)
+
+
+# draw
 library(ggplot2)
-library(ggmap)
-data("crime")
-crime<- head(crime,1000)
-str(crime)
-gg <- ggplot(aes(x = lon, y = lat), data=crime) + 
-  stat_density2d(aes(alpha=..level.., color=..level.., fill=..level..),geom='polygon', bins = 10, size=0.5) +
-  scale_color_gradient(low = "grey", high = "#444444", guide = F)+
-  scale_fill_gradient(low = "yellow", high = "red", guide = F)+
-  scale_alpha( guide = F)+
-  coord_map()+
-  ggthemes::theme_map()
+library(patchwork)
+
+a <- ggplot(prediction_1, aes(x = date_unscaled, y = fit)) +
+  geom_ribbon(aes(ymin = lci, ymax = uci), fill = "#ff6e6e") +
+  geom_path() +
+  theme_bw() +
+  labs(x = "Year", y = "Number of Records")
+
+b <- ggplot(prediction_2, aes(x = date_unscaled, y = fit)) +
+  geom_ribbon(aes(ymin = lci, ymax = uci), fill = "#6e9eff") +
+  geom_path() +
+  theme_bw() + 
+  labs(x = "Day of year", y = "Number of Records")
+
+c <- ggplot(date_df, aes(x = date, y = residuals)) +
+  geom_path() +
+  # geom_point() +
+  theme_bw()
+
+a / b / c
