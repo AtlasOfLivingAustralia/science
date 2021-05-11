@@ -253,7 +253,7 @@ prediction_1 <- data.frame(
     max(date_df$date_scaled),
     length.out = 100),
   julian_scaled = 0)
-prediction_1$date_unscaled <- seq(min(date_df$date), max(date_df$date), length.out = 100)
+prediction_1$date_unscaled <- seq(min(date_df$date), max(date_df$date), length.out = 100) # readjusting scale for plotting
 
 model_prediction <- predict(model, newdata = prediction_1, se.fit = TRUE)
 prediction_1$fit <- exp(model_prediction$fit)
@@ -267,6 +267,7 @@ prediction_2 <- data.frame(
     max(date_df$julian_scaled),
     length.out = 100),
   date_scaled = 0)
+prediction_2$date_unscaled <- seq(min(date_df$date_julian), max(date_df$date_julian), length.out = 100)
 
 model_prediction <- predict(model, newdata = prediction_2, se.fit = TRUE)
 prediction_2$fit <- exp(model_prediction$fit)
@@ -287,10 +288,11 @@ a <- ggplot(prediction_1, aes(x = date_unscaled, y = fit)) +
   theme_bw() +
   labs(x = "Year", y = "Number of Records")
 
-b <- ggplot(prediction_2, aes(x = julian_scaled, y = fit)) +
+b <- ggplot(prediction_2, aes(x = date_unscaled, y = fit)) +
   geom_ribbon(aes(ymin = lci, ymax = uci), fill = "#6e9eff") +
   geom_path() +
-  theme_bw()
+  theme_bw() + 
+  labs(x = "Day of year", y = "Number of Records")
 
 c <- ggplot(date_df, aes(x = date, y = residuals)) +
   geom_path() +
