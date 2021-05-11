@@ -11,13 +11,16 @@ rm(list = ls())
 # remotes::install_github("AtlasOfLivingAustralia/galah") # installs latest version
 library(galah)
 library(data.table)
-library(ggplot2)
+library(tidyverse)
 library(ozmaps)
 library(sf)
 library(rworldmap)
 library(rnaturalearth)
 library(rnaturalearthdata)
 library(mapsf)
+# devtools::install_github("ropensci/rnaturalearthhires")
+# install.packages("rgeos")
+
 
 #-------------------------------------#
 #           Country counts
@@ -30,11 +33,11 @@ counts_by_country <- ala_counts(group_by = "countryCode", limit = 20) # top 20 o
 
 #| so it looks like a lot of people use this as an open answer rather than a category
 #| There is also a duplicate of "AU" & "Australia"
-
+str(counts_by_country)
 
 # Excluding the mammoth amount of AU data, the countries with the most records are:
-ggplot(counts_by_country %>% filter(name != "AU")) + 
-  geom_bar(aes(x = count, y = reorder(name, count)),
+ggplot(counts_by_country %>% filter(countryCode != "AU")) + 
+  geom_bar(aes(x = count, y = reorder(countryCode, count)),
            stat = "identity", fill = "forestgreen") + 
   labs(y = "Country") + 
   theme_minimal() + theme(legend.position = "none")
@@ -52,7 +55,7 @@ search_fields("marine") # id = "countryCode", id = "biome"
 counts_by_environment <- ala_counts(group_by = "biome", limit = 100)
 
 ggplot(counts_by_environment) + 
-  geom_bar(aes(x = "", y = count, fill = name), stat = "identity") + 
+  geom_bar(aes(x = "", y = count, fill = biome), stat = "identity") + 
   coord_polar("y") + 
   theme_void() + scale_fill_viridis_d(direction = -1)
 
@@ -95,7 +98,7 @@ state_map <- merge(
 
 state_map <- st_transform(state_map, crs = st_crs(3577))
 
-?ozmaps
+par(mfrow=c(1,1))
 # Map using mf_map
 mf_map(x = state_map, var = "count", type = "choro",
        pal = "Dark Mint")
@@ -124,7 +127,7 @@ mf_inset_off()
 # egrets <- ala_occurrences(taxa = select_taxa("Ardea intermedia"))
 
 # Call saved local data file
-path <- "C:/Users/KEL329/Documents/Projects/Data Holdings/data_ALA"
+path <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/Projects/Data Holdings/data_ALA"
 data_filepath <- file.path(path, "egrets.rds")
 egrets <- readRDS(file=data_filepath)
 
@@ -209,7 +212,6 @@ dens_worldmap
 
 # Note that we would prefer the contours to be filled but I am getting an error
 # Something about vectors not liking what I have at the moment
-
 
 
 
@@ -340,7 +342,7 @@ spatial_df$Lat_scaled <- scale(spatial_df$Lat)
 
 
 # try a model with interacting date terms
-model <- gam(record_count ~ s(Lon_scaled, by = Lat_scaled, k = 40),
+model <- gam(record_count ~ s(Lon_scaled, by = Lat_scaled, k = 10),
              data = spatial_df,
              family = poisson(link = "log"))
 
@@ -363,7 +365,7 @@ prediction_surface <- expand.grid(
 
 model_prediction <- predict(model, newdata = prediction_surface, se.fit = FALSE)
 prediction_surface$fit <- as.numeric(model_prediction)
-str(model_prediction)
+
 prediction_surface$Lon_unscaled <- seq(min(spatial_df$Lon), max(spatial_df$Lon), length.out = 100) # readjusting scale for plotting
 prediction_surface$Lat_unscaled <- seq(min(spatial_df$Lat), max(spatial_df$Lat), length.out = 100) # readjusting scale for plotting
 
@@ -371,15 +373,20 @@ contours <- model_prediction %>%
   raster::rasterToContour(levels = c(0.5, 1, 1.5)) %>% 
   st_as_sf()
 str(prediction_surface)
-
+library(viridisLite)
 ggplot() + 
-  # geom_sf(data = state_map) +
+  geom_sf(data = state_map) +
   # coord_sf(crs = st_crs(3577)) +
   # geom_sf(data = depth_contours) +
   geom_tile(data = prediction_surface, 
-            mapping = aes(x = Lon, y = Lat, fill = fit)) + 
+            mapping = aes(x = Lon_unscaled, y = Lat_unscaled, fill = fit), alpha = .4) + 
   scale_fill_viridis() +
   theme_bw()
+
+geom_tile(aes(x = x, y = y, fill = z), data = df_mgcv, alpha = .4) +
+  stat_contour(aes(x = x, y = y, z = z, fill = ..level..), data = df_mgcv, geom = 'polygon', alpha = .4) +
+  geom_contour(aes(x = x, y = y, z = z), data = df_mgcv, colour = 'white', alpha = .4) +
+  scale_fill_distiller(palette = "Spectral", na.value = NA)
 
 
 
