@@ -354,7 +354,7 @@ model <- gam(record_count ~ s(Lon, Lat, k = 50, m = 2), # k likely needs to be b
 
 
 # make predictions
-# first of change over time
+# first calculate grid for 2d interpolation
 Lon_vector <- seq(
   min(spatial_df$Lon),
   max(spatial_df$Lon),
@@ -369,6 +369,7 @@ prediction_surface <- expand.grid(
   Lon = Lon_vector,
   Lat = Lat_vector)
 
+# Predict (interpolate values)
 model_prediction <- predict(model, newdata = prediction_surface, se.fit = FALSE)
 prediction_surface$fit <- as.numeric(model_prediction)
 
@@ -457,3 +458,7 @@ b <- ggplot(prediction_2, aes(x = Lat, y = fit)) +
 #   theme_bw()
 
 a / b
+
+
+# Excellent info at this link:
+# https://m-clark.github.io/generalized-additive-models/appendix.html
