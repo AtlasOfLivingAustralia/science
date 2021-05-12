@@ -18,6 +18,7 @@ library(rworldmap)
 library(rnaturalearth)
 library(rnaturalearthdata)
 library(mapsf)
+library(viridis)
 # devtools::install_github("ropensci/rnaturalearthhires")
 # install.packages("rgeos")
 
@@ -330,7 +331,7 @@ spatial_df <- spatial_df %>% filter(!is.na(spatial_df$Lat)) #remove NA
 spatial_df$record_count <- unlist(lapply(
   spatial_df$Lon,
   function(a){
-    return(length(which(egrets$decimalLongitude == a)))
+    return(length(which(egrets$decimalLongitude == a | egrets$decimalLatitude == a)))
   }))
 
 
@@ -341,59 +342,67 @@ spatial_df$Lon_scaled <- scale(spatial_df$Lon)
 spatial_df$Lat_scaled <- scale(spatial_df$Lat)
 
 
-# try a model with interacting date terms
-model <- gam(record_count ~ s(Lon_scaled, by = Lat_scaled, k = 10),
+
+
+
+# model of lat, long w/ covariance specified by m
+model <- gam(record_count ~ s(Lon, Lat, k = 50, m = 2), # k likely needs to be bigger
              data = spatial_df,
              family = poisson(link = "log"))
+# saveRDS(model, "spatial_gam_ala.rds") # save model
+# model <- readRDS("spatial_gam_ala.rds") # load model
 
 
 # make predictions
 # first of change over time
 Lon_vector <- seq(
-  min(spatial_df$Lon_scaled),
-  max(spatial_df$Lon_scaled),
-  length.out = 100)
+  min(spatial_df$Lon),
+  max(spatial_df$Lon),
+  by = 1) # resolution
 
 Lat_vector <-  seq(
-  min(spatial_df$Lat_scaled),
-  max(spatial_df$Lat_scaled),
-  length.out = 100)
+  min(spatial_df$Lat),
+  max(spatial_df$Lat),
+  by = 1) # resolution
 
 prediction_surface <- expand.grid(
-  Lon_scaled = Lon_vector,
-  Lat_scaled = Lat_vector)
+  Lon = Lon_vector,
+  Lat = Lat_vector)
 
 model_prediction <- predict(model, newdata = prediction_surface, se.fit = FALSE)
 prediction_surface$fit <- as.numeric(model_prediction)
 
-prediction_surface$Lon_unscaled <- seq(min(spatial_df$Lon), max(spatial_df$Lon), length.out = 100) # readjusting scale for plotting
-prediction_surface$Lat_unscaled <- seq(min(spatial_df$Lat), max(spatial_df$Lat), length.out = 100) # readjusting scale for plotting
-
-contours <- model_prediction %>% 
-  raster::rasterToContour(levels = c(0.5, 1, 1.5)) %>% 
-  st_as_sf()
-str(prediction_surface)
-library(viridisLite)
+# Plot
 ggplot() + 
-  geom_sf(data = state_map) +
-  # coord_sf(crs = st_crs(3577)) +
-  # geom_sf(data = depth_contours) +
   geom_tile(data = prediction_surface, 
-            mapping = aes(x = Lon_unscaled, y = Lat_unscaled, fill = fit), alpha = .4) + 
+            mapping = aes(x = Lon, y = Lat, fill = fit), alpha = .4) + 
+  
+  stat_contour(aes(x = Lon, y = Lat, z = fit, fill = ..level..), data = prediction_surface, geom = 'polygon', alpha = .4) +
+  geom_contour(aes(x = Lon, y = Lat, z = fit), data = prediction_surface, colour = 'white', alpha = .4) +
   scale_fill_viridis() +
   theme_bw()
 
-geom_tile(aes(x = x, y = y, fill = z), data = df_mgcv, alpha = .4) +
-  stat_contour(aes(x = x, y = y, z = z, fill = ..level..), data = df_mgcv, geom = 'polygon', alpha = .4) +
-  geom_contour(aes(x = x, y = y, z = z), data = df_mgcv, colour = 'white', alpha = .4) +
-  scale_fill_distiller(palette = "Spectral", na.value = NA)
 
+# Plot with map (not quite right)
+ggplot() + 
+  geom_sf(data = ozmap_states) +
+  coord_sf() +
+  geom_sf() + 
+  geom_point(data = dt_egrets,
+             mapping = aes(x = decimalLongitude, y = decimalLatitude),
+             color = "red", alpha = .2, size = .5, stroke = 0) +
+  geom_tile(data = prediction_surface, 
+            mapping = aes(x = Lon, y = Lat, fill = fit), alpha = .4) + 
+  stat_contour(aes(x = Lon, y = Lat, z = fit, fill = ..level..), data = prediction_surface, geom = 'polygon', alpha = .4) +
+  geom_contour(aes(x = Lon, y = Lat, z = fit), data = prediction_surface, colour = 'white', alpha = .4) +
+  scale_fill_viridis() +
+  theme_bw()
 
 
 # OLD
-model <- gam(record_count ~ s(Lon) + s(Lat),
-             data = spatial_df,
-             family = poisson(link = "log"))
+# model2 <- gam(record_count ~ s(Lon) + s(Lat),
+#              data = spatial_df,
+#              family = poisson(link = "log"))
 
 prediction_1 <- data.frame(
   Lon = seq(
@@ -410,11 +419,11 @@ prediction_1$uci <- exp(model_prediction$fit + (2 * model_prediction$se.fit))
 
 # then repeat for Julian Date
 prediction_2 <- data.frame(
-  julian_scaled = seq(
-    min(date_df$julian_scaled),
-    max(date_df$julian_scaled),
+  Lat = seq(
+    min(spatial_df$Lat),
+    max(spatial_df$Lat),
     length.out = 100),
-  date_scaled = 0)
+  Lon = 0)
 prediction_2$date_unscaled <- seq(min(date_df$date_julian), max(date_df$date_julian), length.out = 100)
 
 model_prediction <- predict(model, newdata = prediction_2, se.fit = TRUE)
@@ -423,28 +432,28 @@ prediction_2$lci <- exp(model_prediction$fit - (2 * model_prediction$se.fit))
 prediction_2$uci <- exp(model_prediction$fit + (2 * model_prediction$se.fit))
 
 # finally calculate residuals from the model
-date_df$residuals <- resid(model)
+spatial_df$residuals <- resid(model)
 
 
 # draw
 library(ggplot2)
 library(patchwork)
 
-a <- ggplot(prediction_1, aes(x = date_unscaled, y = fit)) +
+a <- ggplot(prediction_1, aes(x = Lon, y = fit)) +
   geom_ribbon(aes(ymin = lci, ymax = uci), fill = "#ff6e6e") +
   geom_path() +
   theme_bw() +
-  labs(x = "Year", y = "Number of Records")
+  labs(x = "Longitude", y = "Number of Records")
 
-b <- ggplot(prediction_2, aes(x = date_unscaled, y = fit)) +
+b <- ggplot(prediction_2, aes(x = Lat, y = fit)) +
   geom_ribbon(aes(ymin = lci, ymax = uci), fill = "#6e9eff") +
   geom_path() +
   theme_bw() + 
-  labs(x = "Day of year", y = "Number of Records")
+  labs(x = "Latitude", y = "Number of Records")
 
-c <- ggplot(date_df, aes(x = date, y = residuals)) +
-  geom_path() +
-  # geom_point() +
-  theme_bw()
+# c <- ggplot(spatial_df, aes(x = Lon, y = residuals)) + # unsure of use of resid plot
+#   geom_path() +
+#   # geom_point() +
+#   theme_bw()
 
-a / b / c
+a / b
