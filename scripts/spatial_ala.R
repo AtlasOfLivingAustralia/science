@@ -342,7 +342,7 @@ spatial_df$Lon_scaled <- scale(spatial_df$Lon)
 spatial_df$Lat_scaled <- scale(spatial_df$Lat)
 
 
-
+str(egrets)
 
 
 # model of lat, long w/ covariance specified by m
@@ -358,12 +358,12 @@ model <- gam(record_count ~ s(Lon, Lat, k = 50, m = 2), # k likely needs to be b
 Lon_vector <- seq(
   min(spatial_df$Lon),
   max(spatial_df$Lon),
-  by = 1) # resolution
+  by = 10) # resolution
 
 Lat_vector <-  seq(
   min(spatial_df$Lat),
   max(spatial_df$Lat),
-  by = 1) # resolution
+  by = 10) # resolution
 
 prediction_surface <- expand.grid(
   Lon = Lon_vector,
@@ -383,6 +383,12 @@ ggplot() +
   scale_fill_viridis() +
   theme_bw()
 
+str(points_sf)
+points_sf <- st_as_sf(prediction_surface,
+                      coords = c("Lon", "Lat"),
+                      crs = 4283)
+# result <- st_transform(points_sf, crs = st_crs(3577))
+
 
 # Plot with map (not quite right)
 ggplot() + 
@@ -392,13 +398,20 @@ ggplot() +
   geom_point(data = dt_egrets,
              mapping = aes(x = decimalLongitude, y = decimalLatitude),
              color = "red", alpha = .2, size = .5, stroke = 0) +
-  geom_tile(data = prediction_surface, 
-            mapping = aes(x = Lon, y = Lat, fill = fit), alpha = .4) + 
+  geom_tile(data = prediction_surface,
+            mapping = aes(x = Lon, y = Lat, fill = fit), alpha = .4) +
+  # geom_sf(data = points_sf,
+  #           mapping = aes(fill = fit)) +
   stat_contour(aes(x = Lon, y = Lat, z = fit, fill = ..level..), data = prediction_surface, geom = 'polygon', alpha = .4) +
   geom_contour(aes(x = Lon, y = Lat, z = fit), data = prediction_surface, colour = 'white', alpha = .4) +
   scale_fill_viridis() +
   theme_bw()
 
+#### This doesn't work
+ggplot() + 
+  geom_sf(data = points_sf,
+          mapping = aes(fill = fit), colour = NA) + 
+  scale_fill_viridis()
 
 # OLD
 # model2 <- gam(record_count ~ s(Lon) + s(Lat),
