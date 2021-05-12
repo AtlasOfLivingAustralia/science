@@ -4,7 +4,7 @@
 ## Date Created: 2021-05-7
 ## ------------------------------------------------------#
 
-# packages
+
 rm(list = ls())
 
 # packages
@@ -42,7 +42,7 @@ ala_counts(filters = select_filters(stateProvince = "Tasmania",
 #                                                basisOfRecord = "HumanObservation"))
 
 # Call saved local data file
-path <- "C:/Users/KEL329/Documents/Projects/Data Holdings/data_ALA"
+path <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/Projects/Data Holdings/data_ALA"
 data_filepath <- file.path(path, "tasmania_occurrences.rds")
 occurrences_Tas <- readRDS(file=data_filepath)
 # filename <- file.choose()
@@ -220,29 +220,6 @@ model <- gam(record_count ~ s(date_scaled, by = julian_scaled),
 
 # make predictions
 # first of change over time
-date_vector <- seq(
-  min(date_df$date_scaled),
-  max(date_df$date_scaled),
-  length.out = 100)
-julian_vector <-  seq(
-  min(date_df$julian_scaled),
-  max(date_df$julian_scaled),
-  length.out = 100)
-
-prediction_surface <- expand.grid(
-  date_scaled = date_vector,
-  julian_scaled = julian_vector)
-
-model_prediction <- predict(model, newdata = prediction_surface, se.fit = FALSE)
-prediction_surface$fit <- as.numeric(model_prediction)
-                        
-ggplot(prediction_surface, aes(x = date_scaled, y = julian_scaled, fill = fit)) + 
-  geom_tile() + 
-  scale_fill_viridis() +
-  theme_bw()
-# NOPE terrible idea
-
-# OLD
 model <- gam(record_count ~ s(date_scaled) + s(julian_scaled),
              data = date_df,
              family = poisson(link = "log"))
@@ -302,4 +279,11 @@ c <- ggplot(date_df, aes(x = date, y = residuals)) +
 a / b / c
 
 
+
+# Adding lots and lots of data
+library(io)
+data_dir <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/Projects/Data Holdings/data_ALA/raw_ALA"
+files <- paste(data_dir, list_files(data_dir), sep = "/")
+data_list <- lapply(files, function(a){readRDS(a)})
+data_in <- data.table::rbindlist(data_list)
 
