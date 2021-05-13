@@ -316,7 +316,7 @@ ggplot(data = world) +
 
 
 #----------------------------------------------#
-#                   spline
+#                   spline                     #
 #----------------------------------------------#
 
 
@@ -344,7 +344,6 @@ spatial_df$Lat_scaled <- scale(spatial_df$Lat)
 
 
 #----------------WARNING: This takes between 20 and 30 minutes to run------------------------#
-
 # model of lat, long w/ covariance specified by m
 # model <- gam(record_count ~ s(Lon, Lat, k = 50, m = 2), # k likely needs to be bigger
 #              data = spatial_df,
@@ -355,7 +354,6 @@ spatial_df$Lat_scaled <- scale(spatial_df$Lat)
 path <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/Projects/Data Holdings/output"
 data_filepath <- file.path(path, "spatial_gam_ala.rds")
 model <- readRDS(file=data_filepath) # load model
-
 #--------------------------------------------------------------------------------------------#
 
 
@@ -392,20 +390,12 @@ ggplot() +
 
 
 #-----------------------Using Terra-------------------------#
-install.packages("terra")
+library(terra)
 
 
 
 
-
-# old plots
-str(points_sf)
-points_sf <- st_as_sf(prediction_surface,
-                      coords = c("Lon", "Lat"),
-                      crs = 4283)
-# result <- st_transform(points_sf, crs = st_crs(3577))
-
-
+str(ozmap_states)
 # Plot with map (not quite right)
 ggplot() + 
   geom_sf(data = ozmap_states) +
@@ -414,19 +404,19 @@ ggplot() +
   geom_point(data = dt_egrets,
              mapping = aes(x = decimalLongitude, y = decimalLatitude),
              color = "red", alpha = .2, size = .5, stroke = 0) +
-  geom_tile(data = prediction_surface,
+  geom_tile(data = m,
             mapping = aes(x = Lon, y = Lat, fill = fit), alpha = .4) +
   # geom_sf(data = points_sf,
   #           mapping = aes(fill = fit)) +
-  stat_contour(aes(x = Lon, y = Lat, z = fit, fill = ..level..), data = prediction_surface, geom = 'polygon', alpha = .4) +
-  geom_contour(aes(x = Lon, y = Lat, z = fit), data = prediction_surface, colour = 'white', alpha = .4) +
+  stat_contour(aes(x = Lon, y = Lat, z = fit, fill = ..level..), data = m, geom = 'polygon', alpha = .4) +
+  geom_contour(aes(x = Lon, y = Lat, z = fit), data = m, colour = 'white', alpha = .4) +
   scale_fill_viridis() +
   theme_bw()
 
 #### This doesn't work
 ggplot() + 
   geom_sf(data = points_sf,
-          mapping = aes(fill = fit), colour = NA) + 
+          mapping = aes(fill = fit)) + 
   scale_fill_viridis()
 
 # OLD
