@@ -342,15 +342,21 @@ spatial_df$Lon_scaled <- scale(spatial_df$Lon)
 spatial_df$Lat_scaled <- scale(spatial_df$Lat)
 
 
-str(egrets)
 
+#----------------WARNING: This takes between 20 and 30 minutes to run------------------------#
 
 # model of lat, long w/ covariance specified by m
-model <- gam(record_count ~ s(Lon, Lat, k = 50, m = 2), # k likely needs to be bigger
-             data = spatial_df,
-             family = poisson(link = "log"))
+# model <- gam(record_count ~ s(Lon, Lat, k = 50, m = 2), # k likely needs to be bigger
+#              data = spatial_df,
+#              family = poisson(link = "log"))
 # saveRDS(model, "spatial_gam_ala.rds") # save model
-# model <- readRDS("spatial_gam_ala.rds") # load model
+
+# Load file from local computer
+path <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/Projects/Data Holdings/output"
+data_filepath <- file.path(path, "spatial_gam_ala.rds")
+model <- readRDS(file=data_filepath) # load model
+
+#--------------------------------------------------------------------------------------------#
 
 
 # make predictions
@@ -358,12 +364,12 @@ model <- gam(record_count ~ s(Lon, Lat, k = 50, m = 2), # k likely needs to be b
 Lon_vector <- seq(
   min(spatial_df$Lon),
   max(spatial_df$Lon),
-  by = 10) # resolution
+  by = 3) # resolution
 
 Lat_vector <-  seq(
   min(spatial_df$Lat),
   max(spatial_df$Lat),
-  by = 10) # resolution
+  by = 3) # resolution
 
 prediction_surface <- expand.grid(
   Lon = Lon_vector,
@@ -383,6 +389,16 @@ ggplot() +
   scale_fill_viridis() +
   theme_bw()
 
+
+
+#-----------------------Using Terra-------------------------#
+install.packages("terra")
+
+
+
+
+
+# old plots
 str(points_sf)
 points_sf <- st_as_sf(prediction_surface,
                       coords = c("Lon", "Lat"),
