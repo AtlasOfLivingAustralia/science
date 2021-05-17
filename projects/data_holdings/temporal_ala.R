@@ -272,14 +272,8 @@ a / b / c
 
 
 
-# gc()
-# library(data.table)
-# # Adding lots and lots of data
-# library(io)
-# data_dir <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/Projects/Data Holdings/data_ALA/raw_ALA"
-# files <- paste(data_dir, list_files(data_dir), sep = "/")
-# data_list <- lapply(files, function(a){readRDS(a)})
-# data_in <- data.table::rbindlist(data_list)
+
+
 
 # WA
 
