@@ -269,14 +269,19 @@ c <- ggplot(date_df, aes(x = date, y = residuals)) +
 a / b / c
 
 
-# gc()
 
-# Adding lots and lots of data
-library(io)
-data_dir <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/Projects/Data Holdings/data_ALA/raw_ALA"
-files <- paste(data_dir, list_files(data_dir), sep = "/")
-data_list <- lapply(files, function(a){readRDS(a)})
-data_in <- data.table::rbindlist(data_list)
+
+
+# gc()
+# library(data.table)
+# # Adding lots and lots of data
+# library(io)
+# data_dir <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/Projects/Data Holdings/data_ALA/raw_ALA"
+# files <- paste(data_dir, list_files(data_dir), sep = "/")
+# data_list <- lapply(files, function(a){readRDS(a)})
+# data_in <- data.table::rbindlist(data_list)
+
+# WA
 
 
 
@@ -286,7 +291,7 @@ day_interval <- seq(ymd("2012-01-01"), ymd("2020-12-31"), by = "days")
 
 
 # set dates to date format
-occurrences_Tas$eventDate <- ymd(occurrences_Tas$eventDate)
+occurrences_WA$eventDate <- ymd(occurrences_WA$eventDate)
 
 # set up date dataset
 date_df <- data.frame(
@@ -299,7 +304,7 @@ date_df <- data.frame(
 date_df$record_count <- unlist(lapply(
   date_df$date,
   function(a){
-    return(length(which(occurrences_Tas$eventDate == a)))
+    return(length(which(occurrences_WA$eventDate == a)))
   }))
 
 
@@ -373,3 +378,9 @@ c <- ggplot(date_df, aes(x = date, y = residuals)) +
   theme_bw()
 
 a / b / c
+
+a <- ggplot(prediction_1, aes(x = date_unscaled, y = fit)) +
+  geom_area(aes(ymin = lci, ymax = uci), fill = "#ff6e6e", alpha = 0.2) +
+  geom_path() +
+  theme_bw() +
+  labs(x = "Year", y = "Number of Records")
