@@ -8,10 +8,12 @@
 library(raster)
 library(terra)
 library(galah)
-library(ggplot2)
-library(rasterVis)
+# library(rasterVis)
 library(pbapply)
+
+library(ggplot2)
 library(viridis)
+library(ggtext)
 
 # get worldclim maps
 worldclim <- rast(
@@ -92,7 +94,7 @@ model <- step(glm(initial_formula,
   family = poisson(link = "log"),
   data = point_values))
 
-summary(model)
+# summary(model)
 model_coefs <- as.list(coef(model))
 # point_values$predicted <- predict(model)
 
@@ -115,6 +117,8 @@ aus_surface <- sum(model_list) + model_coefs[[1]]
 raster_df <- as.data.frame(coords(aus_surface))
 raster_df$prediction <- as.data.frame(aus_surface)$sum
 raster_df$prediction_exp <- exp(raster_df$prediction)
+# saveRDS(raster_df, "./data/raster_df.rds")
+# raster_df <- readRDS("./data/raster_df.rds")
 
 p <- ggplot(raster_df, aes(x = x, y = y, fill = prediction_exp)) +
   geom_tile() +
@@ -124,14 +128,28 @@ p <- ggplot(raster_df, aes(x = x, y = y, fill = prediction_exp)) +
     breaks = seq_len(4) * 1000,
     labels = paste0(seq_len(4), "k"),
     option = "magma") +
+  geom_text(
+    x = 113, y = -43,
+    label = "Data sources: Worldclim (worldclim.org) &\nAtlas of Living Australia (ala.org.au)",
+    size = 2,
+    color = "#919191",
+    hjust = 0
+  ) +
   labs(
     x = "Longitude",
     y = "Latitude",
-    fill = "Number of\nSpecies") +
-  ggtitle("Biodiversity in Australia",
-    subtitle = "Number of species per degree cell, estimated using data from ALA,\ncontrolling for variation in survey effort") +
+    fill = "Number of\nSpecies",
+    title = "Biodiversity in Australia<br>
+      <span style='font-size:8pt;'>Estimated number of species, controlling for climate & survey effort</span>"
+  ) +
   theme_bw() +
   theme(
-    panel.background = element_rect(fill = "grey90", color = NA))
+    panel.background = element_rect(fill = "grey90", color = NA),
+    plot.title =  element_textbox_simple(
+      size = 14, lineheight = 1, padding = margin(0, 0, 5, 0)),
+    axis.title = element_text(size = 10),
+    legend.title = element_text(size = 8)# , color = "#919191")
+  )
 
-ggsave("./plots/test_richness_plot_v2.png", p, width = 14, height = 12, units = "cm")
+ggsave("./plots/species_richness_plot_final.png", p,
+  width = 14, height = 11, units = "cm")
