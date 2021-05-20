@@ -67,7 +67,7 @@ ggplot(counts_by_environment) +
 #-------------------------------------#
 
 
-# Might need to install:
+# Might need:
 # devtools::install_github('ropensci/rnaturalearthhires') 
 # install.packages("rgeos")
 
@@ -200,9 +200,9 @@ dens_worldmap <- ggplot() +
   geom_polygon(data = world.df, aes(x = long, y = lat, group = group)) +
   geom_point(data = dt_egrets,
              mapping = aes(x = decimalLongitude, y = decimalLatitude),
-             color = "red", alpha = .2, size = .5, stroke = 0) + 
-  geom_contour(data = egret.densities, aes(x=Long, y=Lat, z=Density)) + # this works
-  # geom_contour_fill(data = egret.densities, aes(x=Long, y=Lat, z=Density)) + # this doesn't work
+             color = "light blue", alpha = .2, size = .5, stroke = 0) + 
+  geom_contour(data = egret.densities, aes(x=Long, y=Lat, z=Density), colour = "#DC5E41") + # this works
+  # geom_contour_filled(data = egret.densities, aes(x=Long, y=Lat, z=Density)) + # this doesn't work
   scale_y_continuous(breaks = (-2:2) * 30) +
   scale_x_continuous(breaks = (-4:4) * 45) +
   coord_map("ortho", orientation=c(-20, 135, 0)) + 
@@ -214,46 +214,67 @@ dens_worldmap
 # Note that we would prefer the contours to be filled but I am getting an error
 # Something about vectors not liking what I have at the moment
 
+library(MASS)
+
+#----------------------------------#
+#           2d density map
+#----------------------------------#
 
 
 
-# Testing way to get coloured density geom onto sf map
-str(dt_egrets)
-egrets <- as.data.frame(egrets)
-egrets_sf <- st_as_sf(dt_egrets, coords = c("x", "y"), crs = 28992)
+# 2 different ways to calculate densities
 
-map <- ggplot () +
-  geom_sf(
-    data = state_map,
-    mapping = aes(fill = sqrt(count)), color = "grey30") +
-  scale_fill_gradient(low = "#dbdbdb", high = "#E06E53") +
-  stat_density_2d(data = dt_egrets,
-                  mapping = ggplot2::aes(x = purrr::map_dbl(geometry, ~.[1]),
-                                         y = purrr::map_dbl(geometry, ~.[2]),
-                                         fill = stat(density)),
-                  geom = 'tile',
-                  contour = FALSE,
-                  alpha = 0.5) +
-  theme_void() +
-  theme(
-    legend.position = "none") 
+#------ first way
+
+# Calculate density
+dgrid <- dt_egrets %>% 
+  with( 
+    MASS::kde2d(decimalLongitude, decimalLatitude, n = 101,
+                lims = c(
+                  scales::expand_range(range(decimalLongitude), .20),
+                  scales::expand_range(range(decimalLatitude), .20)
+                )
+    )
+  )
+
+# make into a data frame
+edens_df <- dgrid %>% 
+  .[c("x", "y")] %>% 
+  cross_df() %>% 
+  rename("lon" = "x", "lat" = "y") %>% 
+  mutate(density = as.vector(dgrid$z)) 
+
+# plot
+plot_2d_dens <- ggplot() + 
+  geom_sf(data = ozmap_states, fill = "grey90", color = "grey50") + 
+  geom_point(data = dt_egrets,
+             mapping = aes(x = decimalLongitude, y = decimalLatitude),
+             color = "#E06E53", alpha = .3, size = .9, stroke = 0) +
+  geom_contour_filled(data = edens_df,
+              mapping = aes(x = lon, y = lat, z = density), alpha = .5, bins = 5) +
+  scale_fill_manual(values = c(NA,"#ECA798","#E37B64","#DC5E41","#CF4526")) +
+  theme_bw() + 
+  theme(legend.position = "none")
+
+plot_2d_dens
 
 
-density <- ggplot(data = dt_egrets, 
-                  aes(x = decimalLongitude, y = decimalLatitude), fill = ..level..) + 
-  geom_sf(
-    data = state_map,
-    mapping = aes(fill = sqrt(count)), color = "grey30") +
-  scale_fill_gradient(low = "#dbdbdb", high = "#E06E53") +
-  theme_void() +
-  theme(
-    legend.position = "none") + 
-  stat_density2d(aes(fill = ..level..), geom = "polygon")
+#------ second way
 
-density + map
-ggplot() + geom_density2d(data = dt_egrets,
-                     mapping = aes(x = decimalLongitude, y = decimalLatitude, fill=..level..),
-                     geom='polygon')
+# plot
+plot_2d_dens <- ggplot() + 
+  geom_sf(data = ozmap_states, fill = "grey90", color = "grey50") + 
+  geom_point(data = dt_egrets,
+             mapping = aes(x = decimalLongitude, y = decimalLatitude),
+             color = "#E06E53", alpha = .3, size = .9, stroke = 0) +
+  stat_density2d_filled(data = dt_egrets, 
+                        mapping = aes(x = decimalLongitude, y = decimalLatitude, fill = ..level..), 
+                        alpha = .5, geom = "polygon", bins = 5) + 
+  scale_fill_manual(values = c(NA,"#ECA798","#E37B64","#DC5E41","#CF4526")) +
+  theme_bw() + 
+  theme(legend.position = "none")
+
+plot_2d_dens
 
 
 
@@ -336,7 +357,6 @@ spatial_df$record_count <- unlist(lapply(
 
 
 # model using GAMs
-# install.packages("mgcv")
 library(mgcv)
 spatial_df$Lon_scaled <- scale(spatial_df$Lon)
 spatial_df$Lat_scaled <- scale(spatial_df$Lat)
@@ -379,6 +399,8 @@ prediction_surface$fit <- as.numeric(model_prediction)
 
 # Plot
 ggplot() + 
+  geom_sf(data = world, fill= "gray90") +
+  coord_sf(xlim = c(100.00, 180.00), ylim = c(-50.00, -10.00), expand = FALSE) +
   geom_tile(data = prediction_surface, 
             mapping = aes(x = Lon, y = Lat, fill = fit), alpha = .4) + 
   
@@ -387,12 +409,13 @@ ggplot() +
   scale_fill_viridis() +
   theme_bw()
 
+library(raster)                                  ##Load the Raster Library
+au <- raster::getData('GADM', country='AUS', level=1)  ##Get the Province Shapefile for France
+
 
 
 #-----------------------Using Terra-------------------------#
 library(terra)
-
-
 
 
 str(ozmap_states)
