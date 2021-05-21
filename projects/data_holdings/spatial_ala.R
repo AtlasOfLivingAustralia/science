@@ -128,7 +128,7 @@ mf_inset_off()
 # egrets <- ala_occurrences(taxa = select_taxa("Ardea intermedia"))
 
 # Call saved local data file
-path <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/Projects/Data Holdings/data_ALA"
+path <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/ALA/Projects/Data Holdings/data_ALA"
 data_filepath <- file.path(path, "egrets.rds")
 egrets <- readRDS(file=data_filepath)
 
@@ -332,9 +332,9 @@ ggplot(data = world) +
   coord_sf(xlim = c(100.00, 180.00), ylim = c(-50.00, -10.00), expand = FALSE)
 
 
+ggplot(spatial_df) + geom_sf(data = ozmap_states) + geom_point(aes(x = Lon, y = Lat), colour = "red")
 
-
-
+str(spatial_df)
 
 #----------------------------------------------#
 #                   spline                     #
@@ -371,7 +371,7 @@ spatial_df$Lat_scaled <- scale(spatial_df$Lat)
 # saveRDS(model, "spatial_gam_ala.rds") # save model
 
 # Load file from local computer
-path <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/Projects/Data Holdings/output"
+path <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/ALA/Projects/Data Holdings/output"
 data_filepath <- file.path(path, "spatial_gam_ala.rds")
 model <- readRDS(file=data_filepath) # load model
 #--------------------------------------------------------------------------------------------#
@@ -397,6 +397,8 @@ prediction_surface <- expand.grid(
 model_prediction <- predict(model, newdata = prediction_surface, se.fit = FALSE)
 prediction_surface$fit <- as.numeric(model_prediction)
 
+
+
 # Plot
 ggplot() + 
   geom_sf(data = world, fill= "gray90") +
@@ -409,38 +411,62 @@ ggplot() +
   scale_fill_viridis() +
   theme_bw()
 
-library(raster)                                  ##Load the Raster Library
-au <- raster::getData('GADM', country='AUS', level=1)  ##Get the Province Shapefile for France
 
 
 
-#-----------------------Using Terra-------------------------#
-library(terra)
+
+#-----------------------------------------------------------------------------#
+# From https://stackoverflow.com/questions/28059182/smoothing-out-ggplot2-map
+#-----------------------------------------------------------------------------#
+library(raster)
+au <- st_as_sf(raster::getData('GADM', country='AUS', level=1))
+head(au)
 
 
-str(ozmap_states)
-# Plot with map (not quite right)
-ggplot() + 
-  geom_sf(data = ozmap_states) +
-  coord_sf() +
-  geom_sf() + 
-  geom_point(data = dt_egrets,
-             mapping = aes(x = decimalLongitude, y = decimalLatitude),
-             color = "red", alpha = .2, size = .5, stroke = 0) +
-  geom_tile(data = m,
-            mapping = aes(x = Lon, y = Lat, fill = fit), alpha = .4) +
-  # geom_sf(data = points_sf,
-  #           mapping = aes(fill = fit)) +
-  stat_contour(aes(x = Lon, y = Lat, z = fit, fill = ..level..), data = m, geom = 'polygon', alpha = .4) +
-  geom_contour(aes(x = Lon, y = Lat, z = fit), data = m, colour = 'white', alpha = .4) +
-  scale_fill_viridis() +
-  theme_bw()
 
-#### This doesn't work
-ggplot() + 
-  geom_sf(data = points_sf,
-          mapping = aes(fill = fit)) + 
-  scale_fill_viridis()
+library(tmap)
+map_aus <- tm_shape(au) + tm_polygons()
+
+
+library(data.table)
+library(ggplot2)
+library(automap)
+library(tidyverse)
+library(akima)
+
+
+# Data munging
+oz_states_df <- fortify(ozmap_states)
+box <- st_bbox(ozmap_states) # Get boundaries of map
+
+
+# Do spline interpolation with the akima package
+fld = with(edens_df, interp(x = lon, y = lat, z = density, duplicate="median",
+                            xo=seq(box$xmin, box$xmax, length = 100),
+                            yo=seq(box$ymin, box$ymax, length = 100),
+                            # xo=seq(1.02*min(au_map$long), max(au_map$long), length = 100),
+                            # yo=seq(0.96*min(au_map$lat), max(au_map$lat), length = 100),
+                            extrap=TRUE, linear=FALSE))
+melt_x = rep(fld$x, times=length(fld$y))
+melt_y = rep(fld$y, each=length(fld$x))
+melt_z = as.vector(fld$z)
+level_data = data.frame(longitude=melt_x, latitude=melt_y, APPT=melt_z)
+interp_data = na.omit(level_data)
+
+
+
+ggplot() + geom_sf(data = ozmap_states) + 
+  geom_tile(data = interp_data, 
+            mapping = aes(x = longitude, y = latitude, fill = APPT), alpha = .6) + 
+  stat_contour(data = interp_data, 
+               mapping = aes(x = longitude, y = latitude, z = APPT)) + 
+  scale_fill_viridis(option = "turbo")
+
+
+
+str(interp_data)
+
+#---------------------------------------------------------------------# spline predictions
 
 # OLD
 # model2 <- gam(record_count ~ s(Lon) + s(Lat),
