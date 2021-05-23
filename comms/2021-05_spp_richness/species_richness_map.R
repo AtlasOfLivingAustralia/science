@@ -140,14 +140,16 @@ p <- ggplot(raster_df, aes(x = x, y = y, fill = prediction_exp)) +
     y = "Latitude",
     fill = "Number of\nSpecies",
     title = "Biodiversity in Australia<br>
-      <span style='font-size:8pt;'>Estimated number of species, controlling for climate & survey effort</span>"
+      <span style='font-size:8pt;'>Estimated number of species, controlling for differences in survey effort</span>"
   ) +
   theme_bw() +
   theme(
     panel.background = element_rect(fill = "grey90", color = NA),
     plot.title =  element_textbox_simple(
       size = 14, lineheight = 1, padding = margin(0, 0, 5, 0)),
-    axis.title = element_text(size = 10),
+    axis.title = element_blank(), # element_text(size = 10),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
     legend.title = element_text(size = 8)# , color = "#919191")
   )
 
