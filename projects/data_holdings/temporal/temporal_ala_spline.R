@@ -151,6 +151,54 @@ prediction_1_VIC <- calc_prediction_1(date_df)
 #______________________________________________________________________________
 
 
+# draw
+library(patchwork)
+library(animation)
+# library(magick)
+
+
+
+
+plotting_func <- function(df, colour, state_name){
+  plot <- ggplot(data = df, 
+                 mapping = aes(x = date_unscaled, y = fit)) +
+    geom_ribbon(aes(ymin = lci, ymax = uci), fill = as.character(colour)) +
+    geom_area(fill = as.character(colour), alpha = 0.2) +
+    geom_path() +
+    theme_bw() +
+    ggtitle("Number of Observation Records Added \nto the Atlas of Living Australia from 2012-2021", 
+            subtitle = as.character(state_name)) +
+    ylim(c(0, 4250)) +
+    labs(x = "Year", y = "Number of Records")
+  return(plot)
+}
+
+# a1 <- plotting_func(prediction_1_ACT, "#ff6e6e", "ACT")
+# a2 <- plotting_func(prediction_1_SA, "blue", "SA")
+# a3 <- plotting_func(prediction_1_TAS, "green", "TAS")
+# a4 <- plotting_func(prediction_1_VIC, "purple", "VIC")
+# a5 <- plotting_func(prediction_1_WA, "orange", "WA")
+
+a1 <- plotting_func(prediction_1_NSW, "light blue", "NSW")  # NSW
+a2 <- plotting_func(prediction_1_QLD, "pink", "QLD")     # QLD
+a3 <- plotting_func(prediction_1_VIC, "purple", "VIC")  # VIC
+
+
+
+# make GIF
+animation::saveGIF(
+  expr = {
+    plot(a1)
+    plot(a2)
+    plot(a3)
+  },
+  movie.name = "temporalA_NSW_QLD_VIC.gif"
+)
+
+
+#_____________________________________________________________
+
+
 
 # then repeat for Julian Date
 
@@ -193,48 +241,7 @@ date_df$residuals <- resid(model)
 
 
 
-# draw
-library(patchwork)
-library(animation)
-# library(magick)
 
-
-
-
-plotting_func <- function(df, colour, state_name){
-  plot <- ggplot(data = df, 
-                 mapping = aes(x = date_unscaled, y = fit)) +
-    geom_ribbon(aes(ymin = lci, ymax = uci), fill = as.character(colour)) +
-    geom_area(fill = as.character(colour), alpha = 0.2) +
-    geom_path() +
-    theme_bw() +
-    ggtitle("Number of Observation Records Added \nto the Atlas of Living Australia from 2012-2021", subtitle = as.character(state_name)) +
-    ylim(c(0, 4250)) +
-    labs(x = "Year", y = "Number of Records")
-  return(plot)
-}
-
-# a1 <- plotting_func(prediction_1_ACT, "#ff6e6e", "ACT")
-# a2 <- plotting_func(prediction_1_SA, "blue", "SA")
-# a3 <- plotting_func(prediction_1_TAS, "green", "TAS")
-# a4 <- plotting_func(prediction_1_VIC, "purple", "VIC")
-# a5 <- plotting_func(prediction_1_WA, "orange", "WA")
-
-a1 <- plotting_func(prediction_1_NSW, "light blue", "NSW")  # NSW
-a2 <- plotting_func(prediction_1_QLD, "pink", "QLD")     # QLD
-a3 <- plotting_func(prediction_1_VIC, "purple", "VIC")  # VIC
-
-
-
-# make GIF
-animation::saveGIF(
-  expr = {
-    plot(a1)
-    plot(a2)
-    plot(a3)
-  },
-  movie.name = "temporalA_NSW_QLD_VIC.gif"
-)
 
 
 
