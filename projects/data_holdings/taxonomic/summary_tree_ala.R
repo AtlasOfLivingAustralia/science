@@ -215,7 +215,7 @@ json <- prepare.vis(tree.list = g$summary.trees,
                     units = "# of Observations",
                     print.weights = TRUE,
                     legend.color = "lightsteelblue",
-                    color.level = 3)
+                    color.level = 4)
 
 # Serve the vis in the browser
 draw.vis(json.object = json,
