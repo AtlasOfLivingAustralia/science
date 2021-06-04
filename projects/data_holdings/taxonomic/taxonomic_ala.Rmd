@@ -1,0 +1,277 @@
+---
+title: "Taxonomic ALA Investigation"
+author: "by Dax Kellie"
+date: "18 May, 2021"
+output:
+  html_document:
+    highlight: haddock
+    theme: simplex
+    toc: true
+    toc_float: true
+    toc_depth: 3
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+rm(list = ls())
+```
+
+
+```{=html}
+<style>
+div.orange { background-color:#fff5e6; border-radius: 5px; padding: 15px;}
+</style>
+```
+::: {.orange}
+| Draw a sunburst plot of data in the ALA
+:::
+
+------------------------------------------------------------------------
+
+
+<br>
+
+
+# Find record counts with `galah`
+
+```{r, warning = FALSE, message = FALSE}
+# packages
+library(galah)
+library(data.table)
+library(tidyverse)
+library(viridisLite)
+library(ggrepel)
+library(data.table)
+library(dtplyr)
+library(dplyr, warn.conflicts = FALSE)
+```
+
+## Import taxonomic data
+
+To get counts down to family level, we first need to extract all the families that are recorded in the ALA. To do this, we have to use `ala_counts()` (rather than `select_taxa()`) because `ala_counts()` retains all levels of taxonomy
+
+```{r family levels}
+# Get counts down to family level
+families <- ala_counts(group_by = "family", limit = 6500) # use counts to find all families
+family_names <- dplyr::pull(families, family) # extract list of all family names
+```
+
+Now that we have a list of family names, we can download the counts for all families. <br>
+
+If you wish to download the data yourself, you can use:
+
+```{r, eval = FALSE}
+# Find counts
+counts_ala <- select_taxa(term = family_names, counts = TRUE) # takes ~10 mins to run
+# saveRDS(counts_ala, file = "df_familycounts_ala.rds")
+```
+
+```{r, echo = FALSE}
+# Call saved data file
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) # set working directory to current directory
+counts_ala <- readRDS(file = "data/df_familycounts_ala.rds") # load family counts
+```
+
+Data wrangling:
+
+```{r}
+# Data wrangling
+dt_counts_ala <- lazy_dt(counts_ala) # convert to lazy data.table for dtplyr
+dt_counts_ala <- dt_counts_ala %>% 
+  select(kingdom, phylum, class, order, family, count) %>% # select cols we want
+  arrange(kingdom, phylum, class, order, family, count) %>% # sort alphabetically/numerically
+  as.data.table() 
+
+# remove NAs
+count_df <- as.data.frame(dt_counts_ala)[apply(dt_counts_ala[, 1:5], 1, function(a){!any(is.na(a))}), ]
+
+# calculate ymax & ymin
+count_df$ymax <- cumsum(count_df$count)
+count_df$ymin <- c(0, count_df$ymax[seq_len(nrow(count_df) - 1)])
+```
+
+<br>
+
+Let's have a look at our modified data frame:
+
+```{r}
+tibble(count_df)
+```
+
+<br><br><br>
+
+------------------------------------------------------------------------
+
+# Sunburst Plot (using Tidyverse)
+
+Create each tier of plot
+
+**Kingdom**
+
+```{r}
+# get data
+data_kingdom <- count_df %>%
+  group_by( kingdom ) %>%
+  summarise( tot_count = sum( count ) ) %>%
+  ungroup() %>%
+  mutate(
+    ymax = cumsum( tot_count ),
+    ymin = lag( ymax, n = 1, default = 0 )
+  )
+```
+
+```{r}
+# label position
+data_kingdom <- data_kingdom %>% mutate(running=cumsum(tot_count), pos = running - tot_count/2)
+
+# plot
+kingdom_Circle <- ggplot( data_kingdom ) +
+  geom_rect(
+    aes( xmin = 2, xmax = 3, ymin = ymin, ymax = ymax, fill = kingdom ),
+    color = "white"
+  ) +
+  scale_fill_viridis_d(option = "plasma", alpha = 1, begin = 0.7) +
+  xlim( 0, 7 ) + theme_void()
+
+kingdom_Circle + coord_polar( theta = "y" ) # test colour
+```
+
+**Phylum**
+
+```{r}
+# get data and merge with kingdom data
+data_phylum <- count_df %>%
+  group_by( kingdom, phylum ) %>%
+  summarise( tot = sum( count ) ) %>%
+  left_join( data_kingdom %>% select( kingdom, tot_count) ) %>%
+  ungroup() %>%
+  mutate(
+    ymax = cumsum(tot),
+    ymin = lag( ymax, n = 1, default = 0 )
+  ) %>%
+  filter( !is.na( phylum ) )
+```
+
+```{r}
+# Create layer for plot
+phylum_Circle <-
+  geom_rect(
+    data = data_phylum,
+    aes( xmin = 3, xmax = 4, ymin = ymin, ymax = ymax, fill = kingdom), 
+    color = "white"
+  )
+```
+
+**Class**
+
+```{r}
+# get data and merge with phylum data
+data_class <- count_df %>%
+  group_by( kingdom, phylum, class ) %>%
+  summarise( tottot = sum( count ) ) %>%
+  left_join( data_phylum %>% select( kingdom, phylum, tot_count) ) %>%
+  ungroup() %>%
+  mutate(
+    ymax = cumsum(tottot),
+    ymin = lag( ymax, n = 1, default = 0 )
+  ) %>%
+  filter( !is.na( class ) )
+```
+
+```{r}
+# outer label position
+data_class$labelPosition <- (data_class$ymax + data_class$ymin) / 2
+
+# Create layer for plot
+class_Circle <-
+  geom_rect(
+    data = data_class,
+    aes( xmin = 4, xmax = 5, ymin = ymin, ymax = ymax, fill = kingdom),
+    color = "white"
+  )
+```
+
+**Order**
+
+```{r}
+# get data and merge with phylum data
+data_order <- count_df %>%
+  group_by( kingdom, phylum, class, order ) %>%
+  summarise( tot_order = sum( count ) ) %>%
+  left_join( data_class %>% select( kingdom, phylum, class, tot_count) ) %>%
+  ungroup() %>%
+  mutate(
+    ymax = cumsum(tot_order),
+    ymin = lag( ymax, n = 1, default = 0 )
+  ) %>%
+  filter( !is.na( class ) )
+```
+
+```{r}
+# outer label position
+data_order$labelPosition <- (data_order$ymax + data_order$ymin) / 2
+
+# Create layer for plot
+order_Circle <-
+  geom_rect(
+    data = data_order,
+    aes( xmin = 5, xmax = 6, ymin = ymin, ymax = ymax, fill = kingdom),
+    color = "white"
+  )
+```
+
+<br>
+
+## Full plot
+
+```{r}
+# Full plot
+p <- kingdom_Circle + phylum_Circle + class_Circle + order_Circle +
+  coord_polar( theta = "y" ) + 
+  theme(legend.position = "none") + 
+  ggtitle("Taxonomic breakdown of observations in the ALA", 
+          subtitle = "Level: Order") +
+  geom_text_repel(data = data_kingdom, # kingdom labels
+                  aes(label=paste(kingdom), x=2.5, y=pos), 
+                  size = 3, 
+                  color = "white",
+                  bg.color = "grey30", # shadow color
+                  bg.r = 0.14, # shadow radius
+                  max.overlaps = Inf) + 
+  geom_text_repel(data = data_order %>% filter(tot_order > 500000), # family labels
+                  mapping = aes(x = 7, y = labelPosition, label = paste(order)),
+                  size = 2.3,
+                  color = "black",
+                  hjust = 0.5,
+                  max.overlaps = 2,
+                  show.legend = FALSE)
+```
+
+```{r}
+# See plot
+p
+```
+
+```{r, eval = FALSE}
+ggsave("taxonomic_ala_order.png", p,
+       width = 25, height = 25, units = "cm")
+```
+
+<br><br><br>
+
+------------------------------------------------------------------------
+
+# Links
+
+Here are some additional useful links for creating sunburst plots <br>
+
+Code to make tidyverse sunburst plot:\
+<https://www.sdinnovation.com.au/blog/create-sunburst-diagram-in-r-with-ggplot-and-dplyr> <https://medium.com/optima-blog/create-basic-sunburst-graphs-with-ggplot2-7d7484d92c61>
+
+Possibly some solution to the labelling problems:\
+<https://stackoverflow.com/questions/60642476/piedonut-does-not-display-some-pie-labels>
+
+ggrepel examples:\
+<https://ggrepel.slowkow.com/articles/examples.html>
