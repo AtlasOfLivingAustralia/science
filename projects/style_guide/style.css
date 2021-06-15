@@ -1,0 +1,57 @@
+/*---------------------------------*/
+/*            Style css
+/*---------------------------------*/
+
+
+/*----------LOGO above TOC---------*/
+
+#TOC::before {
+  content: "";
+  display: block;
+  height: 100px;
+  margin: 2em 20px 40px 20px;
+  background-image: url("ALA_Logo.png");
+  background-size: contain;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;1,300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oxygen:wght@300;400;700&display=swap');
+
+.list-group-item.active, .list-group-item.active:focus, .list-group-item.active:hover {
+    z-index: 2;
+    color: #fff;
+    background-color: #CF4526;
+    border-color: #CF4526;
+}
+
+</style>
+
+
+
+
+/*----------Header font---------*/
+
+h1, h2, h3 {
+  font-family: 'Oxygen', sans-serif;
+  font-weight: normal;
+}
+
+
+/*----------Body font---------*/
+
+body {
+  font-family: 'Montserrat', sans-serif;
+}
+
+
+/*----------chunk highlight colour---------*/
+
+.chunk-highlight {
+  background-color: #fed8b1;
+}
+

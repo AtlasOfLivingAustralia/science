@@ -1,0 +1,104 @@
+---
+title: "Style Guide"
+author: "Dax Kellie"
+date: "04/06/2021"
+output:
+  html_document:
+    css: style.css
+    highlight: default
+    toc: true
+    toc_float: true
+    toc_depth: 3
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(class.source = "chunk-highlight")
+```
+
+
+# Introduction
+This document details the Atlas of Living Australia style guide for creating html files from R Markdown
+
+# Style Template
+
+A test of a chunk
+
+```{r, warning = FALSE, message = FALSE}
+library(kableExtra)
+library(tidyverse)
+
+# a table
+head(mtcars, n=5) %>%
+  kbl() %>%
+  kable_styling()
+```
+
+<br>
+
+------------------------------------------------------------------------------
+
+# Saving R Markdown files
+
+## Getting set up
+
+R markdown files are saved in the xxx directory
+
+## ALA Style 
+
+
+
+## Knit to HTML
+
+Click the **Knit** button in the top menu (below file tabs) to create an HTML file. A preview of your knitted HTML document can be viewed in the right pane. Code must run successfully from start to end for a file to be Knit. <br>
+
+
+In the R Studio viewer pane, click the "*Show in New Window *" button to view the page in your browser.
+
+<br>
+
+------------------------------------------------------------------------------
+
+# Push to Github
+
+<br>
+
+------------------------------------------------------------------------------
+
+# Make understandable code
+
+##  Code chunk size
+
+Good writing involves structuring sentences logically to build an argument. In the same way, chunks can be used to structure lines of code to build an analysis or a plot. <br>
+
+Users should be able to follow each transformation that you make to your data. Code chunks should be organised to be brief and offer context to transformations and outputs. Frequent tables or visualisations of data and output are useful for readers. <br>
+
+
+## Brief summaries
+For others to understand what your code does and why you made the choices you did, it's good to include brief summaries or your logic or what each line of your code does. <br>
+
+
+## Using code chunks
+
+See the [R markdown documentation](https://rmarkdown.rstudio.com/lesson-3.html) to view chunk options. <br>
+
+### Examples
+
+It is essential that readers can identify where **every** file comes from (little is more frustrating than wondering where a necessary data file is located). Code used to load or extract data (from `galah`, for example) should be clearly identified. <br>
+
+It is possible to show code that takes a long time (which often happens when loading large datasets) without running it. <br>
+
+Add `eval = FALSE` to the chunk header to display the code but prevent the chunk from running: 
+```{r, eval = FALSE}
+ala_counts(group_by = "phylum")
+```
+
+
+You can then load a local file with saved output without showing the code. <br>
+
+Add `echo = FALSE` to your chunk header to run the code but prevent the chunk from displaying:
+```{r, echo = FALSE, eval = FALSE}
+data <- readRDS(file = "local_file.rds")
+```
+
