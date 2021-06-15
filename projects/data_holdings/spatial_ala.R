@@ -132,9 +132,10 @@ path <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/ALA/Projects/Data Holdings/d
 data_filepath <- file.path(path, "egrets.rds")
 egrets <- readRDS(file=data_filepath)
 
-
+egrets <- egrets %>% filter(!is.na(.))
 dt_egrets <- setDT(egrets) # convert to data.table
-dt_egrets <- egrets[1:1000,.(decimalLatitude, decimalLongitude)] # subset first 1000 values
+dt_egrets <- egrets[1:10000,.(decimalLatitude, decimalLongitude)] # subset first 1000 values
+
 
 
 
@@ -191,7 +192,7 @@ vmf_density_grid <- function(u, ngrid = 100) {
 }
 
 grid.size <- 100
-egret.densities <- vmf_density_grid(dt_egrets[1:1000,c("decimalLatitude",
+egret.densities <- vmf_density_grid(dt_egrets[1:2000,c("decimalLatitude",
                                                        "decimalLongitude")],
                                     ngrid = grid.size)
 
@@ -465,68 +466,3 @@ ggplot() + geom_sf(data = ozmap_states) +
 
 
 str(interp_data)
-
-#---------------------------------------------------------------------# spline predictions
-
-# OLD
-# model2 <- gam(record_count ~ s(Lon) + s(Lat),
-#              data = spatial_df,
-#              family = poisson(link = "log"))
-
-prediction_1 <- data.frame(
-  Lon = seq(
-    min(spatial_df$Lon),
-    max(spatial_df$Lon),
-    length.out = 100),
-  Lat = 0)
-prediction_1$date_unscaled <- seq(min(date_df$date), max(date_df$date), length.out = 100) # readjusting scale for plotting
-
-model_prediction <- predict(model, newdata = prediction_1, se.fit = TRUE)
-prediction_1$fit <- exp(model_prediction$fit)
-prediction_1$lci <- exp(model_prediction$fit - (2 * model_prediction$se.fit))
-prediction_1$uci <- exp(model_prediction$fit + (2 * model_prediction$se.fit))
-
-# then repeat for Julian Date
-prediction_2 <- data.frame(
-  Lat = seq(
-    min(spatial_df$Lat),
-    max(spatial_df$Lat),
-    length.out = 100),
-  Lon = 0)
-prediction_2$date_unscaled <- seq(min(date_df$date_julian), max(date_df$date_julian), length.out = 100)
-
-model_prediction <- predict(model, newdata = prediction_2, se.fit = TRUE)
-prediction_2$fit <- exp(model_prediction$fit)
-prediction_2$lci <- exp(model_prediction$fit - (2 * model_prediction$se.fit))
-prediction_2$uci <- exp(model_prediction$fit + (2 * model_prediction$se.fit))
-
-# finally calculate residuals from the model
-spatial_df$residuals <- resid(model)
-
-
-# draw
-library(ggplot2)
-library(patchwork)
-
-a <- ggplot(prediction_1, aes(x = Lon, y = fit)) +
-  geom_ribbon(aes(ymin = lci, ymax = uci), fill = "#ff6e6e") +
-  geom_path() +
-  theme_bw() +
-  labs(x = "Longitude", y = "Number of Records")
-
-b <- ggplot(prediction_2, aes(x = Lat, y = fit)) +
-  geom_ribbon(aes(ymin = lci, ymax = uci), fill = "#6e9eff") +
-  geom_path() +
-  theme_bw() + 
-  labs(x = "Latitude", y = "Number of Records")
-
-# c <- ggplot(spatial_df, aes(x = Lon, y = residuals)) + # unsure of use of resid plot
-#   geom_path() +
-#   # geom_point() +
-#   theme_bw()
-
-a / b
-
-
-# Excellent info at this link:
-# https://m-clark.github.io/generalized-additive-models/appendix.html
