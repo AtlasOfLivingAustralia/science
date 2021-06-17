@@ -5,3 +5,4 @@
 .Rapp.history
 docs/
 .DS_Store
+cache/
