@@ -95,18 +95,16 @@ phylum_tidy %>%
   drop_na() %>%
   filter(kingdom == as.character(kingdom_name)) %>%
   group_by(year, phylum, kingdom) %>% 
-  dplyr::summarise(total = sum(count)) %>% filter(total > 10000) %>%
+  dplyr::summarise(total = sum(count)) %>% filter(total > 1000) %>% 
   ggplot(aes(x = year,
              y = total,
              fill = phylum)) + 
   geom_stream(color = "black", 
               extra_span = .1, 
-              type = "mirror", bw = .8, 
-              sorting = "onset") + 
+              type = "mirror", bw = .8) + 
   geom_stream_label(aes(label = phylum), 
                     size = 4, type = "mirror", 
-                    colour = "black", 
-                    sorting = "onset") +
+                    colour = "black") +
   scale_fill_viridis_d(option = "D") +
   scale_x_continuous(name = "Year", 
                      limits = c(2010, 2020), 
@@ -119,8 +117,10 @@ phylum_tidy %>%
 
 
 
-phylum_tidy %>% distinct(kingdom) # list of kingdoms
+phylum_tidy %>% group_by(kingdom) %>% summarise(count = n()) # list of kingdoms
 
 
 # Select kingdom and plot
-stream_plot_function("Animalia")
+stream_plot_function("Chromista")
+
+
