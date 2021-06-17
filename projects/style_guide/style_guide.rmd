@@ -1,23 +1,76 @@
 ---
 title: "Style Guide"
-author: "Dax Kellie"
+author: "by Dax Kellie"
 date: "04/06/2021"
 output:
   html_document:
-    css: style.css
     highlight: default
     toc: true
     toc_float: true
     toc_depth: 3
+    include:
+      after_body: footer.html
+    css: style.css
 editor_options: 
   chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(class.source = "chunk-highlight")
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
 ```
 
+<!-- Picture & Links in upper right corner -->
 
+<style>
+.clipped {
+    clip-path: circle();
+}
+
+#pictureposition {
+  display: block;
+  vertical-align: top;
+  position:absolute; top:0; right:0; 
+}
+
+#linkposition {
+  display: block;
+  vertical-align: top;
+  float: middle;
+  text-align:center;
+}
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+```{r upper right bio, echo = FALSE}
+htmltools::withTags(
+  div(id = "pictureposition",
+      
+# Save your own picture as "picture.jpg" to local directory
+      img(src = knitr::image_uri("picture.jpg"),
+          class = "clipped", 
+          style = 'height:80px'),
+
+# Add links to personal accounts below and uncomment
+      div(id = "linkposition",                   
+          a(href="https://twitter.com/daxkellie?lang=en", # twitter
+            class="fab fa-twitter",
+            style = "text-align:center"),
+          a(href="https://github.com/daxkellie/", # github
+            class="fab fa-github",
+            style = "text-align:center")
+          # a(href="your-url", # linkedIn
+          #   class="fab fa-linkedin",
+          #   style = "text-align:center")
+          )))
+
+```
+
+<!-- End -->
+
+
+------------------------------------------------------------------------------
 # Introduction
 This document details the Atlas of Living Australia style guide for creating html files from R Markdown
 
@@ -39,19 +92,55 @@ head(mtcars, n=5) %>%
 
 ------------------------------------------------------------------------------
 
-# Saving R Markdown files
+# Getting started
 
-## Getting set up
+## Use ALA Template 
 
-R markdown files are saved in the xxx directory
+Create a new R Markdown document by selecting **File** --> **New File** --> **R Markdown** <br>
 
-## ALA Style 
+In the left window menu, select **New Template**. Then select the ALA Template <br>
 
+
+## Add your information
+
+1. In the top 3 lines, add your document title, your name and the date. Leave the remainder of the .yaml options unchanged. <br>
+
+2. Next, scroll down to the code chunk named `upper right bio`. This code chunk adds your image and links to your personal websites  
+    + Save your preferred picture as "picture.jpg" in the current directory  
+    + Add the urls you wish to link to for the correct websites & icons  
+
+```{r, eval = FALSE}
+`{r upper right bio, echo = FALSE}
+htmltools::withTags(
+  div(id = "pictureposition",
+      
+      
+# Save your own picture as "picture.jpg" to local directory
+      img(src = knitr::image_uri("picture.jpg"),
+          class = "clipped", 
+          style = 'height:80px'),
+      
+# Add links to personal accounts below and uncomment
+      div(id = "linkposition",
+          # a(href="your-url",              # twitter
+          #   class="fab fa-twitter",
+          #   style = "text-align:center"),
+          # a(href="your-url",              # github
+          #   class="fab fa-github",
+          #   style = "text-align:center")
+          # a(href="your-url",              # linkedIn
+          #   class="fab fa-linkedin",
+          #   style = "text-align:center")
+          )))
+`
+```
+
+<br> 
 
 
 ## Knit to HTML
 
-Click the **Knit** button in the top menu (below file tabs) to create an HTML file. A preview of your knitted HTML document can be viewed in the right pane. Code must run successfully from start to end for a file to be Knit. <br>
+Click the **Knit** button in the upper menu (below file tabs, above script) to create an HTML file. A preview of your knitted HTML document can be viewed in the right pane. Code must run successfully from start to finish for a file to be Knit. <br>
 
 
 In the R Studio viewer pane, click the "*Show in New Window *" button to view the page in your browser.
@@ -70,20 +159,28 @@ In the R Studio viewer pane, click the "*Show in New Window *" button to view th
 
 ##  Code chunk size
 
-Good writing involves structuring sentences logically to build an argument. In the same way, chunks can be used to structure lines of code to build an analysis or a plot. <br>
+Good writing involves logically structuring sentences of varying lengths to build an argument. In the same way, chunks can be used to structure lines of code to build an analysis or plot. <br>
 
-Users should be able to follow each transformation that you make to your data. Code chunks should be organised to be brief and offer context to transformations and outputs. Frequent tables or visualisations of data and output are useful for readers. <br>
+Users should be able to follow each transformation that is made to your data. Code chunks should be brief. They should also offer notes or visual output that provides context to any transformations or outputs. <br>
+
+There is no single correct code chunk size - you must use your best judgement. If it seems that the result of one or several lines of code is unclear a potential reader, you may need to split the code chunks to make the results easier to follow. <br>
 
 
 ## Brief summaries
-For others to understand what your code does and why you made the choices you did, it's good to include brief summaries or your logic or what each line of your code does. <br>
+For others to understand what your code does and why you made the choices you did, it is helpful to include brief summaries or your logic or what each line of your code does. It is also good to provide a brief interpretation of model output <br>
 
+
+## Output style
+
+### Tables
+
+### Figures
 
 ## Using code chunks
 
 See the [R markdown documentation](https://rmarkdown.rstudio.com/lesson-3.html) to view chunk options. <br>
 
-### Examples
+### `echo` and `eval`
 
 It is essential that readers can identify where **every** file comes from (little is more frustrating than wondering where a necessary data file is located). Code used to load or extract data (from `galah`, for example) should be clearly identified. <br>
 
@@ -91,14 +188,23 @@ It is possible to show code that takes a long time (which often happens when loa
 
 Add `eval = FALSE` to the chunk header to display the code but prevent the chunk from running: 
 ```{r, eval = FALSE}
-ala_counts(group_by = "phylum")
+ ```{r, eval = FALSE}`
+ 
+ ala_counts(group_by = "phylum")
+ 
+
 ```
 
 
 You can then load a local file with saved output without showing the code. <br>
 
 Add `echo = FALSE` to your chunk header to run the code but prevent the chunk from displaying:
-```{r, echo = FALSE, eval = FALSE}
-data <- readRDS(file = "local_file.rds")
+```{r, eval = FALSE}
+ ```{r, echo = FALSE}`
+ 
+ data <- readRDS(file = "local_file.rds")
+ 
+
 ```
+
 
