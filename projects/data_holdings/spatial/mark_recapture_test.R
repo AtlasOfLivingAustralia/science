@@ -75,70 +75,7 @@ parrots_allyrs_wide <- parrots_allyrs %>%
 
 
 
-#------------------------------------------------------#
-#                   Create AUS map
-#------------------------------------------------------#
 
-library(raster)
-library(terra)
-library(ozmaps)
-library(sf)
-
-# ACT Map
-act_map <- abs_ste %>% dplyr::filter(grepl("Australian Capital Territory", NAME))
-bb <- st_bbox(act_map)
-
-# Plot ACT
-plot(act_map, reset = FALSE, main = "ACT")
-rect(bb["xmin"], bb["ymin"], bb["xmax"], bb["ymax"])
-
-
-
-# TODO: Use unmarked model to plot to map
-# FIXME: Grid does not work
-# FIXME: Raster does not work
-
-
-# create grid lookup for ala records
-grid <- expand.grid(
-  xmin = c(148:150),
-  ymin = c(-36:-35))
-grid$xmax <- grid$xmin + 1
-grid$ymax <- grid$ymin + 1
-
-
-r <- raster(act_map, res = 1)
-r <- rast(r)
-
-
-
-# subset to those over the australian land mass
-point_values <- extract(r, grid[, c("xmin", "ymin")] + 0.5)
-keep_rows <-
-  !apply(point_values[, -1], 1, function(a){all(is.na(a))}) &
-  !(grid$ymin >= -11 & grid$xmin != 142) & # excludes offshore stuff
-  !(grid$ymin == -12 & grid$xmin > 150)
-grid <- grid[keep_rows, ]
-point_values <- point_values[keep_rows, ]
-
-# ggplot(grid, aes(x = xmin, y = ymin)) + geom_point() # works
-
-
-
-
-# get richness calcs from ALA
-wkt_list <- lapply(
-  split(grid, seq_len(nrow(grid))),
-  function(a){
-    wkt <- paste0("POLYGON((",
-                  paste(
-                    paste(
-                      c(a$xmin, a$xmax, a$xmax, a$xmin, a$xmin),
-                      c(a$ymin, a$ymin, a$ymax, a$ymax, a$ymin),
-                      sep = " "),
-                    collapse = ","),
-                  "))")
-  })
 
 #------------------------------------------------------#
 #         Mark-recapture model using unmarked
