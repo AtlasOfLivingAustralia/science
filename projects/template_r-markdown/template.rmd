@@ -1,0 +1,78 @@
+---
+title: "Your Title"
+author: "by Your Name"
+date: "04/06/2021"
+output:
+  html_document:
+    highlight: default
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    include:
+      in_header: header.html
+      after_body: footer.html
+    css: style.css
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(class.source = "chunk-highlight")
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
+```
+
+<!-- Picture & Links in upper right corner -->
+
+```{r upper right bio, echo = FALSE}
+htmltools::withTags(
+  div(id = "pictureposition",
+      
+# Save your own picture as "picture.jpg" to local directory
+      img(src = knitr::image_uri("picture.jpg"),
+          class = "clipped", 
+          style = 'height:120px'),
+
+# Add links to personal accounts below and uncomment
+      div(id = "linkposition",                   
+          a(href="your-url", # personal website
+            class="fas fa-globe",
+            style = "text-align:center"),
+          a(href="https://twitter.com/daxkellie?lang=en", # twitter
+            class="fab fa-twitter",
+            style = "text-align:center"),
+          a(href="https://github.com/daxkellie/", # github
+            class="fab fa-github",
+            style = "text-align:center")
+          )))
+
+```
+
+
+
+------------------------------------------------------------------------------
+# Introduction
+This document details the Atlas of Living Australia style guide for creating html files from R Markdown
+
+<br>
+
+------------------------------------------------------------------------------
+
+# Main
+
+Example chunk
+
+```{r, warning = FALSE, message = FALSE}
+library(kableExtra)
+library(tidyverse)
+
+# a table
+head(mtcars, n=5) %>%
+  kbl() %>%
+  kable_styling()
+```
+
+<br>
+
+------------------------------------------------------------------------------
+
+

@@ -18,8 +18,9 @@
 }
 
 
-/*----------Fonts---------*/
+
 <style>
+/*----------Fonts---------*/
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;1,300&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Oxygen:wght@300;400;700&display=swap');
 
@@ -36,7 +37,41 @@
 h1, .h1, h2, .h2, h3, .h3 {
     margin-top: 50px;
 }
+
+
+/*---------------------------------------------*/
+
+/*----------Bio - upper right---------*/
+
+/*----------circle image cropper------*/
+.clipped {
+    clip-path: circle();
+}
+
+/*----------position image------------*/
+#pictureposition {
+  display: block;
+  vertical-align: top;
+  position:absolute; top:0; right:0; 
+}
+
+/*----------position link icons-------*/
+#linkposition {
+  display: block;
+  vertical-align: top;
+  float: middle;
+  text-align:center;
+}
+/*--------------------------------------------*/
+
+
 </style>
+
+
+
+
+/*----------add font-awesome icons---------*/
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 
 
 
