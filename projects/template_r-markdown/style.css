@@ -21,16 +21,16 @@
 
 <style>
 /*----------Fonts---------*/
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;1,300&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Oxygen:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,700;1,300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap');
 
 
 /*----------TOC Button colour---------*/
 .list-group-item.active, .list-group-item.active:focus, .list-group-item.active:hover {
     z-index: 2;
     color: #fff;
-    background-color: #CF4526;
-    border-color: #CF4526;
+    background-color: #E06E53;
+    border-color: #B8573E;
 }
 
 /*----------Space after headers---------*/
@@ -78,8 +78,8 @@ h1, .h1, h2, .h2, h3, .h3 {
 
 /*----------Header font---------*/
 
-h1, h2, h3 {
-  font-family: 'Oxygen', sans-serif;
+h1, h2, h3, h4, h5 {
+  font-family: 'Lato', sans-serif;
   font-weight: normal;
 }
 
@@ -87,7 +87,7 @@ h1, h2, h3 {
 /*----------Body font---------*/
 
 body {
-  font-family: 'Montserrat', sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
 
