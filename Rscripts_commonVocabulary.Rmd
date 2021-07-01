@@ -8,10 +8,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Document created for a joint decision on best practices to be adopted on 
-R scripts within ALA and EcoCommons, aiming consistency and a common vocabulary. While scripts usually involves personal styles, it would be nice to follow some general 
-rules. Please add comments and pieces of information on what you usually do. Right now, this is 
-just a draft with some practices I follow and some that I found on the internet - Jess
+Document created for a joint decision on best practices to be adopted on R scripts within ALA and EcoCommons, 
+aiming consistency and a common vocabulary. While scripts usually involves personal styles, it would be nice 
+to follow some general rules. Please add comments and pieces of information on what you usually do. Right now, 
+this is just a draft with some practices I follow and some that I found on the internet - Jess
 
 ***
 
