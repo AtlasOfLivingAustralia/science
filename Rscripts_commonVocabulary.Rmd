@@ -1,0 +1,145 @@
+---
+title: "Good Practices in R scripts"
+author: "ALA and EcoCommons | June 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Document created for a joint decision on best practices to be adopted on 
+R scripts within ALA and EcoCommons, aiming consistency and a common vocabulary. While scripts usually involves personal styles, it would be nice to follow some general 
+rules. Please add comments and pieces of information on what you usually do. Right now, this is 
+just a draft with some practices I follow and some that I found on the internet - Jess
+
+***
+
+> ### **Useful sites:**
+
+* [Google's R Style Guide](https://google.github.io/styleguide/Rguide.html)
+* [Hadley Wickham’s Style Guide](http://adv-r.had.co.nz/Style.html)
+* [Environmental Computing UNSW](http://environmentalcomputing.net/good-practice-for-writing-scripts/)
+
+
+> ### **General script format**
+
+* Start with a title, author details, a brief description of the scripts purpose
+  and the data being used and copyright and legal stuff
+  
+* In the begging of the script, include commands to set working directory and 
+  load necessary libraries
+  
+* Finish scripts with writeLines('Done')
+
+EXAMPLE
+```{r}
+############################################################
+###           BCCVL script to define parameters          ###
+############################################################
+##
+## Author details: BCCVL, Contact details: emailadress@bccvl.au
+## Copyright statement: This script is the product of BCCVL etc.
+## Date : June 2021
+## Script and data info:
+## In this script you will create functions to set up parameters that
+## will allow you to run multiple algorithms for species distribution
+## modelling (SDMs)
+
+#setwd("C:/Users/JessicaFenker/projectdirectory")
+#library(biomod2)
+#library(dismo)
+
+#my.data <- rjson::fromJSON (file="mydata.json")
+
+#...
+
+#writeLines('Done')
+```
+
+
+> ### **Notation and Naming**
+
+* Avoid weird separators (as backslash, symbols, space and punctuation marks)
+  when naming your files
+  
+* Give your files short and meaningful names
+
+* File names should be unique - avoid use the same name for other documents
+
+
+> ### **Comments**
+
+* Descriptive file names can help to avoid unnecessary comments
+
+* Comments should not state the obvious
+
+* Start comments with #,  one space and Capital letter. Short codes can be placed
+  after the code, with two spaces, #, and then one space
+  
+* Functions need special comments, with one sentence description of the function,
+  a list of arguments with a description (including data type) and description
+  of the return value
+  
+EXAMPLE
+```{r}
+CalculateStandardError <- function (x){
+  # Computes the sample standard error
+  #
+  # Arguments:
+  #  x: Vector whose standard error is to be calculated. x must have length greater than one,
+  #     with no missingn values.
+  #
+  # Return:
+  #  The standard error of x
+  se<-sd(x)/sqrt(length(x))
+  return(se)
+}
+```
+  
+  
+ 
+> ### **Sythax**
+
+* Always use <- when assigning names to objects and avoid using = for assignment
+*Even though this distinction doesn’t matter for the majority of the time, it is
+ a good  habit to use <- as this can be used anywhere, whereas the operator = is
+ only allowed at the top level. In addition = closely resembles ==, which is the 
+ logical operator for equals to*
+ 
+* Avoid long line length (~80 characters)
+
+* Place spaces around all binary operators (=, +, -, <-, ==, ! = )
+
+* Always put a space after a comma and never before
+
+* Curley braces opening should never go on its own line and should always be
+  followed by a new line. A closing curly brace should always go on its own line,
+  unless followed by else, which should be contained within outward facing curly
+  braces >}else{ . Indent the code within curly braces
+  
+* Always name VARIABLES with lower case and with words separated by underscore?? 
+  (what do you think?) The use of nouns is a good practice; avoid single letters
+  
+* Name FUNCTIONS with initial capital letters and no dots. Use verbs
+ *OR*
+* Private FUNCTIONS should begin with a dot 
+
+> ### **Pypes**
+
+* Use explicit returns - do not rely on R's feature
+
+* Explicitly qualify namespaces for external functions
+
+EXAMPLE
+```{r}
+#purrr::map()
+```
+
+
+***
+
+#### *Is there something missing?? Please contribute :)*
+ *(and feel free to correct my grammar mistakes)*
+
+***
