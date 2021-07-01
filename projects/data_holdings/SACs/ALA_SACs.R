@@ -57,3 +57,12 @@ ggplot(
 ggsave("./plots/Sydney_frogs.pdf")
 
 # now plot IBRA regions
+
+#q: can we fit e.g. a spatial effects to the slope etc of the non-linear model?
+
+# q: can we fit other coefficients? E.g. can we fit curves and test how they change
+# over time or spaace or in cit sci, all at once?
+
+# The problem here is working out how the original SAC model is fit -
+  # the implementation by vegan is doesn't distinguish between
+  # data creation and modelling.

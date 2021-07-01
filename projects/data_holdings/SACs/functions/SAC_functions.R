@@ -40,6 +40,8 @@ calculate_specaccum <- function(file){
     })
     obs_matrix <- do.call(cbind, col_list)
 
+    # Note: check vegan::specpool for a better option
+
     # # or convert to year by species matrix
     # year_count_list <- lapply(
     #   split(x, x$year),
