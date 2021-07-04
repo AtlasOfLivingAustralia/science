@@ -24,10 +24,10 @@ this is just a draft with some practices I follow and some that I found on the i
 
 > ### **General script format**
 
-* Start with a title, author details, a brief description of the scripts purpose
+* Start with a title, author details, a brief description of the script's purpose
   and the data being used and copyright and legal stuff
   
-* In the begging of the script, include commands to set working directory and 
+* At the beginnig of the script, include commands to set working directory and 
   load necessary libraries
   
 * Finish scripts with writeLines('Done')
@@ -60,12 +60,12 @@ EXAMPLE
 
 > ### **Notation and Naming**
 
-* Avoid weird separators (as backslash, symbols, space and punctuation marks)
+* Avoid weird separators (as backslash, symbols, space, and punctuation marks)
   when naming your files
   
 * Give your files short and meaningful names
 
-* File names should be unique - avoid use the same name for other documents
+* File names should be unique - avoid using the same name for other documents
 
 
 > ### **Comments**
@@ -74,7 +74,7 @@ EXAMPLE
 
 * Comments should not state the obvious
 
-* Start comments with #,  one space and Capital letter. Short codes can be placed
+* Start comments with #,  one space, and Capital letter. Short codes can be placed
   after the code, with two spaces, #, and then one space
   
 * Functions need special comments, with one sentence description of the function,
