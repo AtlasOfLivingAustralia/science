@@ -33,28 +33,28 @@ this is just a draft with some practices I follow and some that I found on the i
 * Finish scripts with writeLines('Done')
 
 EXAMPLE
-```{r}
+```{r, eval=FALSE}
 ############################################################
-###           BCCVL script to define parameters          ###
+###        EcoCommons script to define parameters        ###
 ############################################################
 ##
-## Author details: BCCVL, Contact details: emailadress@bccvl.au
-## Copyright statement: This script is the product of BCCVL etc.
+## Author details: EcoCommons, Contact details: emailadress@ecocommons.au
+## Copyright statement: This script is the product of EcoCommons etc.
 ## Date : June 2021
 ## Script and data info:
 ## In this script you will create functions to set up parameters that
 ## will allow you to run multiple algorithms for species distribution
 ## modelling (SDMs)
 
-#setwd("C:/Users/JessicaFenker/projectdirectory")
-#library(biomod2)
-#library(dismo)
+setwd("C:/Users/JessicaFenker/projectdirectory")
+library(rjson)
 
-#my.data <- rjson::fromJSON (file="mydata.json")
+
+my.data <- rjson::fromJSON (file="mydata.json")
 
 #...
 
-#writeLines('Done')
+writeLines('Done')
 ```
 
 
