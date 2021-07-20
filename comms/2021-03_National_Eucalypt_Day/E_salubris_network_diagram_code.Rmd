@@ -4,8 +4,8 @@ description: |
   A plot of E. salubris for National Eucalypt Day 2021
 author:
   - name: Martin Westgate 
-    url: people/Westgate_Martin/index.html
-date: "23 March 2021"
+    url: "people/Westgate_Martin/index.html"
+date: "March 2021"
 categories: 
   - National Eucalypt Day
   - Data Visualisation
@@ -19,6 +19,9 @@ output:
 
 
 [National Eucalypt Day](https://www.eucalyptaustralia.org.au/national-eucalypt-day/national-eucalypt-day/) aims to raise awareness about Eucalypts and celebrate their influence on the lives of Australians. In honour of National Eucalypt day, we created a network plot based on occurrences data held in the Atlas of Living Australia, themed using colours from actual Eucalypts
+
+See the the [original R script](https://github.com/AtlasOfLivingAustralia/science/blob/main/comms/2021-03_National_Eucalypt_Day/E_salubris_network_diagram_code.R) for this plot
+
 
 ***
 
@@ -58,6 +61,9 @@ occurrences$date <- lubridate::ymd(occurrences$eventDate) # change date format
 occurrences$year <- lubridate::year(occurrences$date)     # extract year
 ```
 
+```{r}
+str(occurrences)
+```
 
 
 ## Create Eucalypt colour scheme
@@ -123,7 +129,7 @@ test_layout$colour_index <- factor(colour_index)          # add colour_index col
 
 Then we draw the plot with [ggplot2](https://ggplot2.tidyverse.org/)
 
-```{r, layout = "l-body-outset"}
+```{r, layout = "l-body-outset", preview = TRUE}
 # draw with ggplot
 library(ggplot2)
 
