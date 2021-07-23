@@ -1,0 +1,516 @@
+---
+title: "ALA Data Providers"
+description: |
+  Analysis of data provider count summaries for selected taxa
+author:
+  - name: Martin Westgate 
+    url: people/Westgate_Martin/index.html
+# date: "15-12-2020"
+categories: 
+  - Taxa
+  - Data Providers
+output: 
+  distill::distill_article:
+    highlight: pygments
+    toc: true
+    toc_float: true
+    toc_depth: 3
+---
+
+Task: look up largest data providers for the following groups:
+* plants (kingdom plantae)
+* birds (class aves)
+* non-avian vertebrates
+* invertebrates (non-chordate animals)
+
+Note that not all of these are monophyletic groups. Hence, the best approach is to calculate:
+* counts for kingdom animalia (A)
+* counts for phylum chordata (B)
+* counts for class aves (C)
+* then sum to get the groups we want, i.e. birds (class aves) == C, non-avian vertebrates == B - C, invertebrates (non-chordate animals) == A - B
+
+
+First download necessary packages
+
+```{r, warning = FALSE, message = FALSE}
+library(galah)
+library(packcircles)
+library(jsonlite)
+library(crul)
+library(ggplot2)
+library(kableExtra)
+```
+
+
+Next find all taxa in Plantae, Animalia, Chordata and Aves
+
+```{r}
+taxa_list <- c("plantae", "animalia", "chordata", "aves")
+id_list <- lapply(taxa_list, ala_taxa) # FIXME
+names(id_list) <- taxa_list
+```
+
+Look up count
+
+```{r}
+# look up counts
+dr_uid_list <- lapply(taxa_list, function(a){
+  result <- ala_counts(id_list[[a]], 
+                       breakdown = "data_resource_uid", 
+                       limit = 1000)
+  colnames(result) <- c("dr_uid", a)
+  return(result)
+})
+names(dr_uid_list) <- taxa_list
+```
+
+Merge the counts data into a single data frame
+
+```{r}
+# merge into a single data.frame
+dr_uid <- merge(dr_uid_list$plantae, dr_uid_list$animalia, 
+                by = "dr_uid", 
+                all = TRUE)
+dr_uid <- merge(dr_uid, dr_uid_list$chordata, 
+                by = "dr_uid", 
+                all = TRUE)
+dr_uid <- merge(dr_uid, dr_uid_list$aves, 
+                by = "dr_uid", 
+                all = TRUE)
+for(i in 2:5){dr_uid[is.na(dr_uid[, i]), i] <- 0}
+```
+
+Next we create new columns that contain the sum of counts
+
+```{r}
+# create new summed columns
+dr_uid$invertebrates <- dr_uid$animalia - dr_uid$chordata
+dr_uid$nonavian_vertebrates <- dr_uid$chordata - dr_uid$aves
+dr_uid <- dr_uid[, !(colnames(dr_uid) %in% c("animalia", "chordata"))]
+dr_uid <- dr_uid[, c(1, 2, 4, 5, 3)]
+
+# reduce total number of entries
+dr_uid <- dr_uid[apply(dr_uid[, -1], 1, sum) > 10000, ]
+```
+
+Now extract the taxon information and generate a best-possible-guess of the data provider
+
+```{r}
+# get taxon info
+uid_list <- lapply(dr_uid$dr_uid, lookup_resource_uid)
+# if the above doesn't work, try in a loop to check for bugs
+# uid_list <- as.list(rep(NA, nrow(dr_uid)))
+# for(i in c(53:length(uid_list))){
+#   uid_list[[i]] <- lookup_resource_uid(dr_uid$name[i])
+# }
+
+# generate the best possible guess of data provider
+uid_df <- do.call(rbind, uid_list)[, c(1, 3, 4, 2)]
+```
+
+We also need to add a specific call to add CSIRO National Fish COllection data which are not listed as OZCAM data for some reason
+
+```{r}
+# CSIRO National Fish Collection not listed as OZCAM for some reason
+ozcam_text <- "OZCAM (Online Zoological Collections of Australian Museums) Provider"
+uid_df$provider[which(grepl("OZCAM", uid_df$name))] <- ozcam_text
+uid_df$provider[which(grepl("ANIC", uid_df$name))[2]] <- ozcam_text
+uid_df$provider[which(uid_df$provider == "Australian National Insect Collection, CSIRO")] <- ozcam_text
+```
+
+# Create labels
+
+Now we want to create readable labels with useful information about providers
+
+```{r}
+# generate a label with the most useful information about that provider
+uid_df$label <- apply(uid_df[, c(2:4)], 1, function(a){
+  if(all(is.na(a))){
+    NA
+  }else{
+    a[min(which(!is.na(a)))]
+  }
+})
+
+# CSIRO is listed using many different labels - standardize
+uid_df$label[which(
+  (grepl("Commonwealth Scientific and Industrial Research Organisation", uid_df$label) |
+  grepl("CSIRO", uid_df$label)) &
+  !grepl("OZCAM", uid_df$provider)
+)] <- "CSIRO"
+
+# combine herbaria
+uid_df$label[
+  uid_df$label %in% c("New Zealand Virtual Herbarium", "Australia's Virtual Herbarium")
+] <- "Australasian Virtual Herbarium"
+
+# add this content back to the count dataset
+dr_uid$provider <- uid_df$label
+```
+
+Some providers have multiple uids, so we now need to group repeat observations
+
+```{r}
+# Because some providers have multiple uids, we now need to group repeat obs
+provider_list <- split(dr_uid, dr_uid$provider)
+count_df <- as.data.frame(do.call(rbind, lapply(provider_list, function(a){
+  c(
+    provider = a$provider[1],
+    apply(a[, 2:5], 2, function(b){sum(b, na.rm = TRUE)})
+  )
+})))
+rownames(count_df) <- NULL
+count_list <- lapply(
+  colnames(count_df)[2:5],
+  function(a){data.frame(provider = count_df$provider, count = as.numeric(count_df[, a]))})
+names(count_list) <- colnames(count_df)[2:5]
+count_list <- lapply(count_list, function(a){a[order(a$count, decreasing = TRUE), ]})
+count_list <- lapply(count_list, function(a){a[1:10, ]})
+
+# convert to df
+count_df <- as.data.frame(do.call(rbind, count_list))
+rownames(count_df) <- NULL
+count_df$taxon <- rep(names(count_list), each = 10)
+```
+
+Now we will manually write better labels. This is messy code, but it works!
+
+```{r}
+# manually write better labels (messy code, but works!)
+count_df$label <- NA
+
+count_df$label[grepl("Office of Environment and Heritage", count_df$provider)] <- "Office of Environment\n& Heritage (NSW)"
+count_df$label[grepl("Victorian Department of Environment", count_df$provider)] <- "DELWP (VIC)"
+count_df$label[grepl("South Australia, Department for Environment", count_df$provider)] <- "Dept. Env.\n& Water (SA)"
+count_df$label[grepl("Northern Territory Department of Environment", count_df$provider)] <- "Dept. Env. & Natural\nRes. (NT)"
+count_df$label[grepl("Tasmanian Department of Primary Industries", count_df$provider)] <- "DPIPWE (TAS)"
+count_df$label[grepl("OZCAM", count_df$provider)] <- "Museums & Collections"
+count_df$label[grepl("eBird", count_df$provider)] <- "eBird"
+count_df$label[grepl("BirdLife", count_df$provider)] <- "BirdLife Australia"
+
+count_df$label[count_df$provider == "Australasian Virtual Herbarium"] <- "Australasian Virtual Herbarium"
+count_df$label[count_df$provider == "Ocean Biogeographic Information System"] <- "OBIS"
+count_df$label[count_df$provider == "WildNet - Queensland Wildlife Data"] <- "WildNet (QLD)"
+count_df$label[count_df$provider == "iNaturalist Australia"] <- "iNaturalist"
+count_df$label[count_df$provider == "NatureMap"] <- "NatureMap"
+count_df$label[count_df$provider == "Australian Antarctic Data Centre"] <- "AADC"
+count_df$label[count_df$provider == "Murray-Darling Basin Authority"] <- "MDBC"
+count_df$label[count_df$provider == "CSIRO"] <- "CSIRO"
+count_df$label[count_df$provider == "Questagame"] <- "Earth Guardians"
+count_df$label[count_df$provider == "BowerBird"] <- "BowerBird"
+count_df$label[count_df$provider == "Reef Life Survey"] <- "Reef Life Survey"
+count_df$label[count_df$provider == "NSW Bird Atlassers"] <- "NSW Bird\nAtlassers"
+count_df$label[count_df$provider == "Canberra Ornithologists Group"] <- "Canberra Ornithologists Group"
+
+saveRDS(count_df, "labelled_count_df_highTaxa_v2.rds")
+# count_df <- readRDS("./data/labelled_count_list_highTaxa.rds")
+```
+
+
+
+# Plotting
+
+## Plot building functions
+
+First, we create some functions to do some more complex stuff that we will repeat for several plots.
+
+Make the grey circle polygon of specified sizes
+
+```{r}
+# functions for creating circular polygons of specified size
+make_circle <- function(
+  n = 100, # number of points, equally spaced around the edge of a circle
+  k,  # scaling value (radius) - larger for bigger circles. defaults to 1
+  offset = c(0, 0)
+){
+  if(missing(k)){k <- 1}
+  # get coordinates
+  theta <- (2 * (pi/(n-1)) * seq_len((n-1)) ) # -alpha
+  values <- data.frame(
+  	x = k * cos(theta),
+  	y = k * sin(theta))
+  rownames(values) <- NULL
+  values$x <- values$x + offset[[1]]
+  values$y <- values$y + offset[[2]]
+  # return(values)
+  return(values[c(seq_len(n-1), 1), ])
+}
+# note the result has nrow == n, but n-1 unique rows
+```
+
+Make circles, but in a loop
+
+```{r}
+# run make circle in a loop
+make_circles <- function(
+  df, # should be returned by packcircles::circleProgressiveLayout
+  gap = 0
+){
+  df_list <- split(df, seq_len(nrow(df)))
+  result <- as.data.frame(do.call(rbind,
+    lapply(df_list, function(a){
+      make_circle(k = a$radius - gap, offset = c(a$x, a$y))
+    })
+  ))
+  result$group <- rep(seq_along(df_list), each = 100)
+  return(result)
+}
+```
+
+Build a circle-packing plot
+
+```{r}
+# function to build a circle-packing plot
+# this is a bit over-engineered for this purpose but works ok
+taxon_plot_data <- function(
+  labels, # vector of taxon labels
+  counts, # vector of counts
+  color_scale = "viridis",
+  log_scale = TRUE, # logical - should the result be log + 1 -scaled?
+  gap = 0 # how much should the radius be reduced to decrease circle overlap?
+){
+  if(log_scale){
+    taxon_counts <- log(counts + 1)
+  }else{
+    taxon_counts <- counts
+  }
+  circle_df <- packcircles::circleProgressiveLayout(taxon_counts)
+  circle_plot_df <- make_circles(circle_df, gap = gap)
+  circle_plot_df$label <- factor(circle_plot_df$group,
+    levels = unique(circle_plot_df$group),
+    labels = labels)
+  circle_plot_df$count <- rep(counts, each = 100)
+  circle_plot_df$plotly_text <- paste0(
+    "<b>",
+    circle_plot_df$label,
+    "</b><br>n = ",
+    formatC(circle_plot_df$count, big.mark = ","))
+  circle_plot_df$color <- rep(
+    do.call(color_scale, args = list(
+      n = length(labels),
+      direction = -1)),
+    each = 100)
+  return(circle_plot_df)
+}
+```
+
+Query the data provider API
+
+```{r}
+# query the data provider API
+lookup_resource_uid <- function(id){
+  url <- paste0("https://collections.ala.org.au/ws/dataResource/", id)
+  cli <- HttpClient$new(url)
+  cli <- cli$get()
+  text <- cli$parse("UTF-8")
+  if(nchar(text) < 10000){
+    result <- fromJSON(text, flatten = TRUE)
+    out <- data.frame(
+      uid = {if(is.null(result$uid)){NA}else{result$uid}},
+      name = {if(is.null(result$name)){NA}else{result$name}},
+      provider = {if(is.null(result$provider$name)){NA}else{result$provider$name}},
+      institution = {if(is.null(result$institution$name)){NA}else{result$institution$name}}
+    )
+  }else{
+    out <- data.frame(uid = NA, name = NA, provider = NA, institution = NA)
+  }
+  return(out)
+}
+```
+
+Set colours
+
+```{r}
+# plot code
+ALA_colors <- list(
+  flamingo = "#E06E53", # primary
+  rust = "#B8573E",
+  grey = "#667073",
+  concrete = "#EEECEA", # secondary (monochrome)
+  silver = "#9E9E9F",
+  charcoal = "#222322",
+  honey = "#FFC557", # extended
+  pale_moss = "#B7CD96",
+  seafoam = "#6BDAD5",
+  ocean = "#003A70",
+  # lavender = "#A19B2",
+  plum = "#691C32"
+)
+scales::show_col(unlist(ALA_colors))
+```
+
+Make the plot!
+
+```{r}
+plot_providers <- function(data_df, labels_df, label_split = 2000, color = "#E06E53"){
+  ggplot() +
+    geom_polygon(
+      data = data_df,
+      mapping = aes(x = x, y = y, group = group, alpha = -group),
+      fill = color
+    ) +
+    # add centred text for large circles
+    geom_text(
+      data = labels_df[labels_df$count >= label_split, ],
+      mapping = aes(x = x, y = y, label = label),
+      hjust = 0.5,
+      color = "white",
+      size = 3
+    ) +
+    # add offset labels for small circles
+    geom_text(
+      data = labels_df[labels_df$count < label_split, ],
+      mapping = aes(x = x_max, y = y, label = label),
+      color = "#667073",
+      hjust = 0,
+      nudge_x = 50,
+      size = 3
+    ) +
+    # optional code for adding counts
+    # geom_text(
+    #   data = labels_df[labels_df$x > x_split, ],
+    #   mapping = aes(x = x_max, y = y, label = count),
+    #   color = "#667073",
+    #   hjust = 0,
+    #   nudge_x = 50,
+    #   nudge_y = y_offset,
+    #   size = 2
+    # ) +
+    # geom_text(
+    #   data = labels_df[labels_df$x <= x_split, ],
+    #   mapping = aes(x = x, y = y, label = count),
+    #   color = "white",
+    #   hjust = 0.5,
+    #   nudge_y = y_offset,
+    #   size = 2
+    # ) +
+    coord_fixed() +
+    # optional content for changing the color scheme
+    # scale_fill_viridis(option = "magma", begin = 0.1, end = 0.9, direction = -1) +
+    # scale_fill_gradient(low = "#B8573E", high = "#E06E53") +
+    scale_alpha(range = c(0.5, 1)) +
+    theme_void() +
+    theme(
+      legend.position = "none",
+      plot.title = element_text(hjust = 0.5)
+    )
+}
+```
+
+
+## Build plot
+
+Now we can generate plot data
+
+```{r}
+# generate plot data
+library(viridis)
+plot_list <- lapply(split(count_df, count_df$taxon)[c(4, 2, 3, 1)], function(a){
+  result <- taxon_plot_data(a$label, a$count, log_scale = FALSE)
+  result$count_label <- formatC(result$count, format = "f", digits = 0, big.mark = ",")
+  return(result)
+})
+
+label_list <- lapply(plot_list, function(a){
+  do.call(rbind, lapply(
+    split(a, a$group),
+    function(b){
+      data.frame(
+        x = mean(b$x),
+        x_max = max(b$x),
+        y = mean(b$y),
+        count = b$count[1], # b$count_label[1],
+        label = b$label[1])
+    })
+  )
+})
+```
+
+Create plots using the `plot_providers` function for:
+
+Plants
+```{r}
+# plot this
+# plantae
+plot_providers(plot_list$plantae, label_list$plantae,
+  label_split = 900000,
+  color = ALA_colors[["pale_moss"]]) +
+  ggtitle("Providers of plant data (kingdom Plantae) to ALA") +
+  lims(x = c(-3000, 5000))
+# ggsave("./plots/final_provider_plot_plantae.pdf")
+```
+
+
+Invertebrates
+```{r}
+# invertebrates
+plot_providers(plot_list$invertebrates, label_list$invertebrates[1:6, ],
+  label_split = 110000,
+  color = ALA_colors[["seafoam"]]
+) +
+  geom_text(
+    data = label_list$invertebrates[7:9, ],
+    mapping = aes(x = x_max, y = y, label = label),
+    color = "#667073",
+    hjust = 0,
+    nudge_x = 50,
+    nudge_y = -50,
+    size = 2.5
+  ) +
+  geom_text(
+    data = label_list$invertebrates[10, ],
+    mapping = aes(x = x, y = y, label = label),
+    color = "#667073",
+    hjust = 0.5,
+    # nudge_x = 100,
+    nudge_y = 220,
+    size = 3
+  ) +
+  ggtitle("Providers of invertebrate data to ALA") +
+  lims(x = c(-2300, 2000))
+# ggsave("./plots/final_provider_plot_invertebrates.pdf")
+```
+
+Non-avian vertebrates
+```{r}
+# non-avian vertebrates
+plot_providers(plot_list$nonavian_vertebrates, label_list$nonavian_vertebrates[1:8, ],
+  label_split = 500000,
+  color = ALA_colors[["flamingo"]]
+) +
+  geom_text(
+    data = label_list$nonavian_vertebrates[9:10, ],
+    mapping = aes(x = x_max, y = y, label = label),
+    color = "#667073",
+    hjust = 0,
+    nudge_x = 20,
+    nudge_y = -150,
+    size = 3
+  ) +
+  ggtitle("Providers of non-avian vertebrate data to ALA") +
+  lims(x = c(-2000, 3000))
+# ggsave("./plots/final_provider_plot_nonavian_vertebrates.pdf")
+```
+
+Aves
+```{r}
+# aves
+plot_providers(plot_list$aves, label_list$aves[-3, ],
+  label_split = 3000000,
+  color = ALA_colors[["honey"]]
+) +
+  geom_text(
+    data = label_list$aves[3, ],
+    mapping = aes(x = x_max, y = y, label = label),
+    color = "#667073",
+    hjust = 0,
+    nudge_x = 50,
+    nudge_y = -500,
+    size = 3
+  ) +
+  ggtitle("Providers of bird data to ALA") +
+  lims(x = c(-5000, 8000))
+# ggsave("./plots/final_provider_plot_aves.pdf")
+```
+
+
