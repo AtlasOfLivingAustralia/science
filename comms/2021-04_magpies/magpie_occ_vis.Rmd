@@ -20,7 +20,7 @@ output:
 The Atlas of Living Australia (ALA) holds records of magpie sightings from a number data providers like iNaturalist, eBird and BirdLife AUstralia. We wanted to make a visualisation of [Australian Bird of the Year 2018 winner](https://www.abc.net.au/news/2017-12-11/bird-of-the-year-magpie-defeats-teambinchicken/9245242), Magpies, using records held in the ALA.
 
 <aside>
-```{r author image, echo = FALSE, eval = FALSE}
+```{r author image, echo = FALSE}
 library(here)
 image_path <- here("comms", "images", "matilda.jpg")
 htmltools::withTags(
