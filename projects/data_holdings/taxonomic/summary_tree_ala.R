@@ -13,14 +13,13 @@
 #| http://www.kennyshirley.com/summarytrees/
 
 
-rm(list = ls())
-
 # packages
 library(galah)
 library(tidyverse)
 library(data.table)
 library(dtplyr)
 library(dplyr, warn.conflicts = FALSE)
+library(here)
 
 
 #----------------------------------------------------------#
@@ -28,9 +27,6 @@ library(dplyr, warn.conflicts = FALSE)
 #----------------------------------------------------------#
 
 # Call saved data file
-
-# set working directory
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 
 # Download data
@@ -49,8 +45,7 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 #___________________________________________________________________________________________#
 
 # Load data from folder
-counts_ala <- readRDS(file = "data/df_familycounts_ala.rds") # load family counts
-
+counts_ala <- readRDS(file = here("projects", "data_holdings", "taxonomic", "data", "df_familycounts_ala.rds"))
 
 
 #----------------------------------------------------------#
@@ -197,9 +192,12 @@ t2 - t1
 
 
 # See list of top 20
-g$summary.trees[[20]]
+g$summary.trees[[50]]
+top_taxa <- g$summary.trees[[50]]
 
-
+# saveRDS(top_taxa, 
+#         file = here("projects", "data_holdings", "taxonomic",
+#                     "data", "summary-tree_top-taxa-list.rds"))
 
 #----------------------------------------------------------#
 #                     Visualization
