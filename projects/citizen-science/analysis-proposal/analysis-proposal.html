@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Dax Kellie" />
+
+<meta name="date" content="2021-08-23" />
+
+<title>Analysis proposal</title>
+
+<script src="analysis-proposal_files/header-attrs-2.10/header-attrs.js"></script>
+<script src="analysis-proposal_files/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="analysis-proposal_files/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="analysis-proposal_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="analysis-proposal_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="analysis-proposal_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="analysis-proposal_files/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="analysis-proposal_files/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="analysis-proposal_files/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="analysis-proposal_files/navigation-1.1/tabsets.js"></script>
+<script src="analysis-proposal_files/navigation-1.1/codefolding.js"></script>
+<link href="analysis-proposal_files/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="analysis-proposal_files/highlightjs-9.12.0/highlight.js"></script>
+<script src="analysis-proposal_files/kePrint-0.0.1/kePrint.js"></script>
+<link href="analysis-proposal_files/lightable-0.0.1/lightable.css" rel="stylesheet" />
+<!-- ALA Template Header -->
+
+<!-- add favicon -->
+<link rel="shortcut icon" href="template-files/ALA_Logo_Mark-only.png" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+<link rel="stylesheet" href="template-files/style.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Analysis proposal</h1>
+<h4 class="author">Dax Kellie</h4>
+<h4 class="date">2021-08-23</h4>
+
+</div>
+
+
+<hr />
+<p>Here are some possible ways to see the growth of citizen science data in the Atlas of Living Australia</p>
+<hr />
+<div id="data-providers" class="section level1">
+<h1>Data providers</h1>
+<p>One way to look the growth of citizen science might be to first view the full number of records each data provider has added to the ALA.</p>
+<pre class="r"><code># packages
+library(galah)
+library(tidyverse)
+library(purrr)
+library(viridis)
+library(kableExtra)
+
+galah_config(email = &quot;dax.kellie@csiro.au&quot;)</code></pre>
+<p>As far as I can tell, <code>dataResourceName</code> contains the best data provider categories. Here are some examples:</p>
+<pre class="r"><code># search_fields(&quot;data&quot;)
+# find_field_values(&quot;dataResourceName&quot;)
+
+provider_counts &lt;- ala_counts(group_by = &quot;dataResourceName&quot;, limit = 900)
+provider_counts %&gt;% slice(1:10) %&gt;% kbl() %&gt;% kable_styling(full_width = FALSE)</code></pre>
+<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+dataResourceName
+</th>
+<th style="text-align:right;">
+count
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+26644454
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+NSW BioNet Atlas
+</td>
+<td style="text-align:right;">
+12309031
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+BirdLife Australia, Birdata
+</td>
+<td style="text-align:right;">
+11635460
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Victorian Biodiversity Atlas
+</td>
+<td style="text-align:right;">
+8285400
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New South Wales Bird Atlassers
+</td>
+<td style="text-align:right;">
+3381819
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+First Bird Atlas
+</td>
+<td style="text-align:right;">
+2712345
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+iNaturalist Australia
+</td>
+<td style="text-align:right;">
+2092749
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SA Flora (BDBSA)
+</td>
+<td style="text-align:right;">
+1913981
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Garden Bird Surveys
+</td>
+<td style="text-align:right;">
+1655345
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SA Fauna (BDBSA)
+</td>
+<td style="text-align:right;">
+1632141
+</td>
+</tr>
+</tbody>
+</table>
+<p>As a test, we can look at the number of records each data provider added to the ALA. Here I’ve only downloaded data for a a small subset of years - between 1999 and 2003 - to avoid making <strong>H</strong>ypotheses <strong>A</strong>fter the <strong>R</strong>esults are <strong>K</strong>nown when writing the paper (i.e. <strong>HARK</strong>ing).</p>
+<pre class="r"><code># Find number of records by data provider by year
+
+# list years
+years &lt;- 1999:2003
+years_long &lt;- paste0(&quot;select_filters(year = &quot;, years, &quot;)&quot;, sep=&quot;&quot;)
+
+# Get counts of records from data providers by year
+data_providers &lt;- years_long %&gt;%
+  map(~ala_counts(
+    list(filters = .x),
+    group_by = &quot;dataResourceName&quot;,
+    limit = 900)) %&gt;%
+  tibble(year = years,
+         y = .) %&gt;%
+  unnest(y) # back to df
+
+# clean string names of data providers
+data_providers &lt;- data_providers %&gt;%
+  mutate(dataResourceName = str_squish(dataResourceName))
+
+# plot
+data_providers %&gt;%
+  drop_na() %&gt;%
+  group_by(dataResourceName) %&gt;%
+  # arrange(year, dataResourceName) %&gt;%
+  dplyr::summarise(count = count,
+                   total = sum(count),
+                   cum_total = cumsum(count),
+                   year = year) %&gt;%
+  filter(total &gt; 30000) %&gt;%
+  ggplot(aes(x = year, 
+             y = cum_total, 
+             fill = reorder(str_wrap(dataResourceName), -cum_total))) +
+  geom_bar(stat = &quot;identity&quot;) +
+  scale_y_continuous(labels = scales::label_number_si()) +
+  labs(x = &quot;Year&quot;, y = &quot;Number of Records&quot;) +
+  scale_fill_brewer(palette = &quot;Set2&quot;, direction = 1) +
+  guides(fill = guide_legend(title = &quot;Data Providers&quot;, nrow = 6)) +
+  theme_minimal()</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+</div>
+<div id="type-of-record" class="section level1">
+<h1>Type of record</h1>
+<p>Another way we might be able to see the growth of citizen records is to look at the cumulative number of different types of records added to the ALA over time. Again, we will just look at a small subset between 1999 and 2003. This is a replication of plots Matilda made in her Shiny app</p>
+<pre class="r"><code># by record type
+record_type &lt;- years_long %&gt;%
+  map(~ala_counts(
+    list(filters = .x),
+    group_by = &quot;basisOfRecord&quot;,
+    limit = 900)) %&gt;%
+  tibble(year = years,
+         y = .) %&gt;%
+  unnest(y) # back to df
+
+record_type &lt;- record_type %&gt;%
+  mutate(basisOfRecord = stringr::str_to_title(basisOfRecord))
+
+record_type %&gt;%
+  drop_na() %&gt;%
+  group_by(basisOfRecord) %&gt;%
+  dplyr::summarise(count = count,
+                   total = sum(count),
+                   cum_total = cumsum(count),
+                   year = year) %&gt;%
+
+  ggplot(aes(x = year,
+             y = cum_total,
+             fill = reorder(basisOfRecord, -cum_total))) +
+  geom_bar(stat = &quot;identity&quot;) +
+  scale_y_continuous(labels = scales::label_number_si()) +
+  labs(x = &quot;Year&quot;, y = &quot;Number of Records&quot;) +
+  scale_fill_brewer(palette = &quot;Dark2&quot;, direction = 1) +
+  guides(fill = guide_legend(title = &quot;Basis of Record&quot;)) +
+  theme_minimal()</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+</div>
+<div id="kingdoms" class="section level1">
+<h1>Kingdoms</h1>
+<p>It might also be useful to divide counts by kingdoms, knowing the huge biases in human observation records. It is possible to separate this by phylum or class, or even of a specific animal (like Cam’s favourite - Koalas) though we just need to be deliberate about our choices.</p>
+<p>I plan to try comparing the top 25-50 most popularly added taxa to the rest of the Atlas to see the extent of bias in records.</p>
+<pre class="r"><code># Ok now by kingdom
+
+# Extract kingdom names
+kingdoms &lt;- ala_counts(group_by = &quot;kingdom&quot;, limit = 10)
+kingdom_names &lt;- pull(kingdoms, kingdom)
+
+# What martin did to get them all (but his wasn&#39;t by year)
+kingdom_counts &lt;- kingdom_names %&gt;%
+  map( ~ ala_counts(
+    taxa = select_taxa(list(kingdom = .x)),
+    group_by = &quot;dataResourceName&quot;,
+    limit = 10
+  )) %&gt;%
+  tibble(
+    kingdom = kingdom_names,
+    y = .) %&gt;%
+  unnest(y)
+
+
+# I think I just have to put this into a function and run it many times
+
+# We have to do it this way because each select_filters() call builds a df
+year_filter_1999 &lt;- select_filters(year = 1999)
+year_filter_2000 &lt;- select_filters(year = 2000)
+year_filter_2001 &lt;- select_filters(year = 2001)
+year_filter_2002 &lt;- select_filters(year = 2002)
+year_filter_2003 &lt;- select_filters(year = 2003)
+
+# Create a function that gets counts for all kingdoms and converts to data frame
+get_year_counts &lt;- function(year_filter, year_number) {
+  kingdom_counts &lt;- kingdom_names %&gt;%
+    map( ~ ala_counts(
+      taxa = select_taxa(list(kingdom = .x)),
+      filters = year_filter,
+      group_by = &quot;dataResourceName&quot;,
+      limit = 900
+    )) %&gt;%
+    tibble(
+      kingdom = kingdom_names,
+      year = rep(year_number),
+      y = .) %&gt;%
+    unnest(y) %&gt;% select(-name)
+}
+
+# Run this function for each year
+counts_1999 &lt;- get_year_counts(year_filter_1999, 1999)
+counts_2000 &lt;- get_year_counts(year_filter_2000, 2000)
+counts_2001 &lt;- get_year_counts(year_filter_2001, 2001)
+counts_2002 &lt;- get_year_counts(year_filter_2002, 2002)
+counts_2003 &lt;- get_year_counts(year_filter_2003, 2003)
+
+# merge all the years
+counts_99_to_03 &lt;- rbind(counts_1999, counts_2000, counts_2001, counts_2002, counts_2003)
+
+
+# Get complete list of possible kingdoms and dataResources
+
+# We have kingdom names
+# kingdom_names
+
+# Extract resources names
+resources &lt;- find_field_values(&quot;dataResourceName&quot;, limit = 900)
+resource_names &lt;- pull(resources, category)
+resource_names &lt;- resource_names %&gt;% str_trim() # trim whitespace
+
+
+# Use crossing() to find all possible combinations of inputs
+years_list &lt;- 1999:2003
+king_df &lt;- crossing(kingdom_names, years_list, resource_names)
+
+king_df &lt;- king_df %&gt;% # Do some renaming before merging
+  rename(kingdom = kingdom_names,
+         year = years_list,
+         dataResourceName = resource_names)
+
+# Get missing values
+full_counts &lt;- king_df %&gt;%
+  left_join(counts_99_to_03) %&gt;%
+  replace_na(list(count = 0)) # replace NAs
+
+# full_counts %&gt;% slice(1:10)
+full_counts &lt;- full_counts %&gt;%
+  group_by(kingdom, dataResourceName) %&gt;%
+  mutate(
+    cum_count = cumsum(count)
+  )
+
+# full_counts %&gt;% filter(kingdom == &quot;Fungi&quot;) %&gt;% filter(dataResourceName == &quot;Fungimap&quot;)</code></pre>
+<pre class="r"><code>#------------ Plot ---------------#
+library(ggstream)
+library(viridis)
+
+
+full_counts_tidy &lt;- full_counts %&gt;%
+  mutate(across(where(is.character), as.factor))
+
+# glimpse(full_counts_tidy)
+
+# Plotting stacked area chart function
+stream_plot_function &lt;- function(kingdom_name, at_least_this_many_records){
+  full_counts_tidy %&gt;%
+    drop_na() %&gt;%
+    filter(kingdom == as.character(kingdom_name)) %&gt;%
+    group_by(kingdom, dataResourceName) %&gt;%
+    dplyr::summarise(total = cumsum(count),
+                     year = year) %&gt;%
+    filter(total &gt; at_least_this_many_records) %&gt;% # filter records
+
+    ggplot(aes(x = year, # Plot
+               y = total,
+               fill = str_wrap(dataResourceName))) +
+    geom_stream(color = &quot;black&quot;,
+                extra_span = .013,
+                type = &quot;ridge&quot;, bw = 1) +
+    # geom_stream_label(aes(label = dataResourceName),
+    #                   size = 4, type = &quot;ridge&quot;,
+    #                   colour = &quot;black&quot;) +
+    scale_fill_viridis_d(option = &quot;D&quot;) +
+    guides(fill = guide_legend(title = &quot;Data provider&quot;)) +
+    scale_x_continuous(name = &quot;Year&quot;) +
+    scale_y_continuous(name = &quot;Total observations per year&quot;,
+                       labels = scales::comma) +
+    theme_minimal()
+}</code></pre>
+<p>Use the buttons to look at each plot, and take note of the y axis because the number of records added changes quite a bit between kingdoms</p>
+<div id="plots" class="section level2 tabset tabset-fade tabset-pills">
+<h2 class="tabset tabset-fade tabset-pills">Plots</h2>
+<div id="animalia" class="section level3">
+<h3>Animalia</h3>
+<pre class="r"><code>stream_plot_function(&quot;Animalia&quot;, 200000)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+</div>
+<div id="plantae" class="section level3">
+<h3>Plantae</h3>
+<pre class="r"><code>stream_plot_function(&quot;Plantae&quot;, 125000)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+</div>
+<div id="fungi" class="section level3">
+<h3>Fungi</h3>
+<pre class="r"><code>stream_plot_function(&quot;Fungi&quot;, 5000)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+</div>
+<div id="bacteria" class="section level3">
+<h3>Bacteria</h3>
+<pre class="r"><code>stream_plot_function(&quot;Bacteria&quot;, 50)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+</div>
+<div id="chromista" class="section level3">
+<h3>Chromista</h3>
+<pre class="r"><code>stream_plot_function(&quot;Chromista&quot;, 10000)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+</div>
+<div id="protista" class="section level3">
+<h3>Protista</h3>
+<pre class="r"><code>stream_plot_function(&quot;Protista&quot;, 1)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+</div>
+<div id="protozoa" class="section level3">
+<h3>Protozoa</h3>
+<pre class="r"><code>stream_plot_function(&quot;Protozoa&quot;, 1)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+</div>
+</div>
+</div>
+<div id="future-ideas" class="section level1">
+<h1>Future ideas</h1>
+<p>There are still other visualisations I am looking to try. These include:</p>
+<ul>
+<li>Some sort of comparison of yearly rates of change in different types of record counts</li>
+<li>Growth rate of popular vs unpopular species records in the ALA</li>
+<li>Records in bushfire areas before vs after bushfires (this requires some sort of geographic coordinates of bushfires, so could be complicated)</li>
+</ul>
+</div>
+
+<!-- ALA Template Footer -->
+
+<style>
+
+.clipped {
+    clip-path: circle();
+}
+
+.button-footer {
+  border: none;
+  outline: 0;
+  display: inline-block;
+  padding: 8px;
+  color: #222322;
+  background-color: white;
+  cursor: pointer;
+  width: 30px;
+  text-align: center;
+  float: left;
+  position: relative;
+  left: 45%;
+  right: 55%;
+  vertical-align: baseline;
+  max-height:30px;
+  clip-path: circle();
+
+}
+
+.button-footer:hover {
+  background-color: #E06E53;
+  color: white;
+}
+
+.column-footer {
+    float:right;
+    width: 33.333333%;
+    max-width: 33.333333%;
+    position: relative;
+    width: 100%;
+    min-height: 1px;
+    display:flex;
+    flex-direction:column;
+
+}
+
+.column-footer-2 {
+    float:left;
+    width: 33.333333%;
+    max-width: 33.333333%;
+    position: relative;
+    width: 100%;
+    min-height: 1px;
+    display:flex;
+    flex-direction:column;
+}
+
+.footer-logo {
+  float: left;
+  width:33.33333%;
+  display:inline-block;
+  margin:5px;
+}
+
+.footer-text {
+  font-family: "Roboto", sans-serif;
+  font-size: 10px;
+  color: black;
+  text-align: left;
+  margin-top: 5px;
+  margin-right: 20px;
+  margin-left: 20px;
+  line-height: 1.1;
+}
+
+#over img {
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
+
+@media screen and (max-width: 952px) {
+  .column-footer {
+    width: 100%;
+    display: block;
+  }
+
+    .column-footer-2 {
+    width: 100%;
+    display: block;
+  }
+
+    .footer-logo {
+    width: 100%;
+    display: block;
+  }
+}
+
+</style>
+
+
+<!-- add icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+<!-- ALA Logo -->
+<div class = "row">
+  <div class = "footer-logo">
+    <p>
+    <img src = "template-files/NCRIS_logo.png" style = "width:auto;height:80px;margin-left:15px;margin-right:15px"></img>
+    <img src = "template-files/CSIRO_logo.png" style = "width:auto;height:80px;margin-left:15px;margin-right:15px"></img>
+    </p>
+    <p class = "footer-text">The ALA is made possible by contributions from its many partners. It receives support through the Australian Government through the National Collaborative Research Infrastructure Strategy (NCRIS) and is hosted by CSIRO.</p>
+  </div>
+  <div id = "over" class = "column-footer-2">
+    <p>
+    <img src='template-files/ALA_Logo.png' href = "https://www.ala.org.au/" style = "max-width:auto; height:80px" ></img>
+    </p>
+<!-- ALA links -->
+    <p>
+    <button class = "button-footer"><i href="https://twitter.com/atlaslivingaust?lang=en" class="fab fa-twitter"></i>
+    </button>
+    <button class = "button-footer"><i href="https://github.com/AtlasOfLivingAustralia" class="fab fa-github"></i>
+    </button>
+    </p>
+  </div>
+</div>
+
+
+<!-- ALA links     <p class = "footer-text">The ALA is made possible by contributions from its many partners. It receives support through the Australian Government through the National Collaborative Research Infrastructure Strategy (NCRIS) and is hosted by CSIRO.</p> -->
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

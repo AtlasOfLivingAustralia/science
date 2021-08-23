@@ -1,0 +1,116 @@
+/*---------------------------------*/
+/*            Style css
+/*---------------------------------*/
+
+
+
+/*  LOGO above TOC  */
+
+#TOC::before {
+  content: "";
+  display: block;
+  height: 100px;
+  margin: 2em 20px 40px 20px;
+  background-image: url("ALA_Logo.png");
+  background-size: contain;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+
+/*--------------------------------------------*/
+<style>
+
+/*-- Fonts --*/
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,700;1,300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap');
+
+
+/*-- TOC Button colour --*/
+.list-group-item.active, .list-group-item.active:focus, .list-group-item.active:hover {
+    z-index: 2;
+    color: #fff;
+    background-color: #E06E53;
+    border-color: #B8573E;
+}
+
+/*-- Space after headers --*/
+h1, .h1, h2, .h2, h3, .h3 {
+    margin-top: 50px;
+}
+
+
+/*-------------Bio - upper right----------------*/
+
+/*-- circle image cropper --*/
+.clipped {
+    clip-path: circle();
+}
+
+/*  position image  */
+#pictureposition {
+  display: block;
+  vertical-align: top;
+  position:absolute; top:0; right:0;
+}
+
+/*  position link icons  */
+#linkposition {
+  display: block;
+  vertical-align: top;
+  float: middle;
+  text-align:center;
+}
+
+.author-button {
+  border: none;
+  outline: 0;
+  display: inline-block;
+  padding: 8px;
+  color: #222322;
+  background-color: #fff;
+  text-align: center;
+  cursor: pointer;
+  clip-path: circle();
+}
+
+.author-button:hover {
+  background-color: #E06E53;
+  color: white;
+}
+
+
+</style>
+/*--------------------------------------------*/
+
+
+
+/*----------add font-awesome icons---------*/
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+
+
+
+
+/*----------Header font---------*/
+
+h1, h2, h3, h4, h5 {
+  font-family: 'Lato', sans-serif;
+  font-weight: normal;
+}
+
+
+/*----------Body font---------*/
+
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+
+/*----------chunk highlight colour---------*/
+
+.chunk-highlight {
+  background-color: #ffefde;
+}
+
+
+
