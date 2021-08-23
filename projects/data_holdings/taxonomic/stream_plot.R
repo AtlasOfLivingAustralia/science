@@ -4,7 +4,8 @@
 ## Date Created: 2021-06-07
 ## ---------------------------
 
-rm(list = ls())
+# library(usethis)
+# use_blank_slate(scope = c("user"))
 
 # packages
 # remove.packages("galah")
