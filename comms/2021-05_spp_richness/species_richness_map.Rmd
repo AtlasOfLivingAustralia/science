@@ -1,5 +1,5 @@
 ---
-title: "Map of estimated species richness across Australia"
+title: "(Poorly) estimating species richness from atlas data"
 description: |
 
 author:
@@ -7,9 +7,8 @@ author:
     url: "people/Westgate_Martin/index.html"
 date: "2021-05-20"
 categories: 
-  - Species Richness
-  - Data Visualisation
-  - Map
+  - Maps
+  - Multispecies
 output: 
   distill::distill_article:
     highlight: tango
@@ -279,7 +278,3 @@ p
 ggsave("./plots/species_richness_plot_final.png", p,
   width = 14, height = 11, units = "cm")
 ```
-
-
-
-

@@ -1,14 +1,18 @@
 ---
-title: Magpies
+title: Magpies in the ALA
 description: |
-  Visualisation of mapgpie occurrence records in the ALA
+  Magpies are the single most recorded species in the ALA, with over 1.4 million
+  records available. Here we use this iconic species to demonstrate how to do
+  hex mapping in R using our new R package, 'galah'.
 author:
   - name: Matilda Stevenson
     url: "people/Stevenson_Matilda/index.html"
 date: '2021-04-14'
 categories: 
-  - Magpies
-  - Data Visualisation
+  - Maps
+  - Animalia
+  - Chordata
+  - Aves
 output: 
   distill::distill_article:
     highlight: tango
@@ -17,12 +21,12 @@ output:
     toc_depth: 3
 ---
 
-The Atlas of Living Australia (ALA) holds records of magpie sightings from a number data providers like iNaturalist, eBird and BirdLife AUstralia. We wanted to make a visualisation of [Australian Bird of the Year 2018 winner](https://www.abc.net.au/news/2017-12-11/bird-of-the-year-magpie-defeats-teambinchicken/9245242), Magpies, using records held in the ALA.
+The Atlas of Living Australia (ALA) holds records of magpie sightings from a number data providers like iNaturalist, eBird and BirdLife Australia. We wanted to make a visualisation of [Australian Bird of the Year 2018 winner](https://www.abc.net.au/news/2017-12-11/bird-of-the-year-magpie-defeats-teambinchicken/9245242), Magpies, using records held in the ALA.
 
 <aside>
 ```{r author image, echo = FALSE}
 library(here)
-image_path <- here("comms", "images", "matilda.jpg")
+image_path <- here("science", "comms", "images", "matilda.jpg")
 htmltools::withTags(
 # Save your own picture as "picture.jpg" to local directory
       img(src = knitr::image_uri(image_path),
@@ -58,7 +62,7 @@ library(galah)
 ala_config(email = "myemail@email.com")
 ```
 
-Now we can download magpie occurrence records by using `ala_occurrences()`
+Now we can download magpie occurrence records by using `ala_occurrences()`. Note that we also set our data 'profile' to 'ALA'; this means we only download records that meet some basic data quality standards enfored by the atlas. This is optional, but tends to improve the quality of the data returned.
 
 ```{r, results = 'hide'}
 # Download magpie occurrence records using `galah`
@@ -68,7 +72,7 @@ magpie_occ <- ala_occurrences(
 )
 ```
 
-Filter records not on the mainland or Tasmania
+For the purpose of this exercise, we're going to filter records not on the mainland or Tasmania.
 
 ```{r}
 filtered_occ <- magpie_occ %>% dplyr::filter(decimalLongitude < 155,
@@ -99,16 +103,14 @@ ggplot(filtered_occ) +
     legend.position = "none")
 ```
 
-We can build a hexagon map by manually creating hexagons, linking them to a grid of Australia and adding our data of magpie counts to colour the hexagons.
-
-First we convert the aus map from ozmaps to the same coordinate system as ALA data
+While automated methods exist (e.g. `hexbin`), we can build a hexagon map by manually creating hexagons, linking them to a grid of Australia and adding our data of magpie counts to set the `fill` color of those hexagons. To achieve this, we first convert the map of Australia provided by `ozmaps` to the same coordinate system as ALA data
 
 ```{r}
 # Convert map of aus to same coordinate system as ALA points
 aus <- st_transform(ozmaps::ozmap_country, 4326)
 ```
 
-Then transform points from our data frame of magpie occurrences to the correct coordinates
+We then transform points from our data frame of magpie occurrences to the correct coordinates
 
 ```{r}
 # transform points
@@ -148,12 +150,11 @@ gridSF$n <- filled_freqs$count
 
 Finally, build the plot
 
-```{r, message = FALSE, message = FALSE, layout = "l-page",preview = TRUE}
+```{r, message = FALSE, layout = "l-page",preview = TRUE}
 # Plot the hexagons in ALA colours, with log-transformed counts
 ggplot() +
   geom_sf(data = gridSF, aes(fill = n), size = .01) +
   scale_fill_gradientn(colours = c("#EEECEA", "#E06E53"), na.value = "white", trans = "log2") +
-  ggtitle("Magpies in Australia", "Based on data of magpie occurrences in the ALA") +
   ylim(-45, -10) +
   xlim(110, 155) +
   theme_bw() +
@@ -166,5 +167,3 @@ ggplot() +
     axis.title = element_blank(),
     legend.position = "none") 
 ```
-
-
