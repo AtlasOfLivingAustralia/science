@@ -6,7 +6,6 @@ description: |
   hex mapping in R using our new R package, 'galah'.
 author:
   - name: Matilda Stevenson
-    url: "people/Stevenson_Matilda/index.html"
 date: '2021-04-14'
 categories: 
   - Maps
@@ -21,25 +20,48 @@ output:
     toc_depth: 3
 ---
 
+<!-- Complete title, description, author and date for website metadata -->
+
+```{r, include=FALSE}
+library(htmltools)
+date.func <- format(Sys.time(), '%d %B, %Y')
+```
+
+<!-- remove distill metadata section -->
+```{css, echo = FALSE}
+d-byline {
+    display: none;
+  }
+```
+
+
+<!-- Author card -->
+
+:::author-card
+:::float-image
+
+<!-- Author image -->
+```{r out.width='120px', out.extra='style="float:right; margin-left:15px; margin-right:50px; clip-path: circle();"', echo=FALSE}
+knitr::include_graphics("https://raw.githubusercontent.com/AtlasOfLivingAustralia/SDS_website/main/images/people/matilda.jpg")
+```
+
+:::author-card-text
+<!-- Author name -->
+<h4 style = "margin-bottom:5px">Author:</h4>
+[Matilda Stevenson](people/Stevenson_Matilda/index.html)
+
+<!-- Date -->
+<h4 style = "margin-bottom:5px">Date:</h4>
+14 April, 2021
+:::
+
+:::
+:::
+
+<br>
+
 The Atlas of Living Australia (ALA) holds records of magpie sightings from a number data providers like iNaturalist, eBird and BirdLife Australia. We wanted to make a visualisation of [Australian Bird of the Year 2018 winner](https://www.abc.net.au/news/2017-12-11/bird-of-the-year-magpie-defeats-teambinchicken/9245242), Magpies, using records held in the ALA.
 
-<aside>
-```{r author image, echo = FALSE}
-library(here)
-image_path <- here("science", "comms", "images", "matilda.jpg")
-htmltools::withTags(
-# Save your own picture as "picture.jpg" to local directory
-      img(src = knitr::image_uri(image_path),
-          style = 'height:120px;clip-path: circle();'))
-```
-</aside>
-
-
-See the [original R script](https://github.com/AtlasOfLivingAustralia/science/blob/main/comms/2021-04_magpies/magpie_occ_vis.R)
-
-
-
-***
 
 # Download records
 
@@ -59,7 +81,7 @@ We will use the [galah](https://atlasoflivingaustralia.github.io/galah/index.htm
 
 ```{r, eval = FALSE}
 library(galah)
-ala_config(email = "myemail@email.com")
+galah_config(email = "myemail@email.com")
 ```
 
 Now we can download magpie occurrence records by using `ala_occurrences()`. Note that we also set our data 'profile' to 'ALA'; this means we only download records that meet some basic data quality standards enfored by the atlas. This is optional, but tends to improve the quality of the data returned.
@@ -83,9 +105,7 @@ filtered_occ <- magpie_occ %>% dplyr::filter(decimalLongitude < 155,
 
 # Create map
 
-```{r, eval = FALSE, echo = FALSE}
-# Note: This doesn't work because hexbin does not install correctly as of 21 July, 2021
-
+```{r}
 # Hexagon map using geom_hex
 ggplot(filtered_occ) +
   geom_hex(mapping = aes(x = decimalLongitude, y = decimalLatitude), bins = 55) +
@@ -167,3 +187,5 @@ ggplot() +
     axis.title = element_blank(),
     legend.position = "none") 
 ```
+
+See the [original R script](https://github.com/AtlasOfLivingAustralia/science/blob/main/comms/2021-04_magpies/magpie_occ_vis.R)

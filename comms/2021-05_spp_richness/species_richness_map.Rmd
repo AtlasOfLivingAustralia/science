@@ -1,10 +1,9 @@
 ---
-title: "(Poorly) estimating species richness from atlas data"
+title: "(Poorly) estimating species richness from Atlas of Living Australia data"
 description: |
 
 author:
-  - name: Martin Westgate 
-    url: "people/Westgate_Martin/index.html"
+  - name: Martin Westgate
 date: "2021-05-20"
 categories: 
   - Maps
@@ -17,22 +16,45 @@ output:
     toc_depth: 2
 ---
 
-The following code creates a map roughly estimating species richness across Australia.
+<!-- Complete title, description, author and date for website metadata -->
 
-<aside>
-```{r author image, echo = FALSE}
-library(here)
-image_path <- here("comms", "images", "martin.jpg")
-htmltools::withTags(
-# Save your own picture as "picture.jpg" to local directory
-      img(src = knitr::image_uri(image_path),
-          style = 'height:120px;clip-path: circle();'))
+```{r, include=FALSE}
+library(htmltools)
+date.func <- format(Sys.time(), '%d %B, %Y')
 ```
-</aside>
 
-See the the [original R script](https://github.com/AtlasOfLivingAustralia/science/blob/main/comms/2021-05_spp_richness/species_richness_map.R)
+<!-- remove distill metadata section -->
+```{css, echo = FALSE}
+d-byline {
+    display: none;
+  }
+```
 
-***
+
+<!-- Author card -->
+
+:::author-card
+:::float-image
+
+<!-- Author image -->
+```{r out.width='120px', out.extra='style="float:right; margin-left:15px; margin-right:50px; clip-path: circle();"', echo=FALSE}
+knitr::include_graphics("https://raw.githubusercontent.com/AtlasOfLivingAustralia/SDS_website/main/images/people/martin.jpg")
+```
+
+:::author-card-text
+<!-- Author name -->
+<h4 style = "margin-bottom:5px">Author:</h4>
+[Martin Westgate](people/Westgate_Martin/index.html)
+
+<!-- Date -->
+<h4 style = "margin-bottom:5px">Date:</h4>
+20 May, 2021
+:::
+
+:::
+:::
+
+
 
 # Get map data
 
@@ -278,3 +300,6 @@ p
 ggsave("./plots/species_richness_plot_final.png", p,
   width = 14, height = 11, units = "cm")
 ```
+
+
+See the the [original R script](https://github.com/AtlasOfLivingAustralia/science/blob/main/comms/2021-05_spp_richness/species_richness_map.R)

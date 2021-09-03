@@ -6,7 +6,6 @@ description: |
   some ideas for plotting these trees using circular diagrams.
 author:
   - name: Martin Westgate
-    url: "people/Westgate_Martin/index.html"
 date: '2021-08-24'
 categories: 
   - Trees
@@ -20,28 +19,51 @@ output:
     toc_depth: 3
 ---
 
+<!-- Complete title, description, author and date for website metadata -->
+
+```{r, include=FALSE}
+library(htmltools)
+date.func <- format(Sys.time(), '%d %B, %Y')
+```
+
+<!-- remove distill metadata section -->
+```{css, echo = FALSE}
+d-byline {
+    display: none;
+  }
+```
+
+
+<!-- Author card -->
+
+:::author-card
+:::float-image
+
+<!-- Author image -->
+```{r out.width='120px', out.extra='style="float:right; margin-left:15px; margin-right:50px; clip-path: circle();"', echo=FALSE}
+knitr::include_graphics("https://raw.githubusercontent.com/AtlasOfLivingAustralia/SDS_website/main/images/people/martin.jpg")
+```
+
+:::author-card-text
+<!-- Author name -->
+<h4 style = "margin-bottom:5px">Author:</h4>
+[Martin Westgate](people/Westgate_Martin/index.html)
+
+<!-- Date -->
+<h4 style = "margin-bottom:5px">Date:</h4>
+21 August, 2021
+:::
+
+:::
+:::
+
+<br>
+
 Taxonomy is pretty important at the ALA. Every occurrence record in the atlas is 
 linked to a unique taxonomic identifier. These identifiers are themselves drawn 
 from expertly curated taxonomic datasets. This system of classification is so 
 important to our system that we have a special name for it; the 'taxonomic backbone'.
 But what does it look like?
-
-<aside>
-```{r author image, echo = FALSE}
-library(here)
-image_path <- here("science", "comms", "images", "martin.jpg")
-htmltools::withTags(
-# Save your own picture as "picture.jpg" to local directory
-      img(src = knitr::image_uri(image_path),
-          style = 'height:120px;clip-path: circle();'))
-```
-</aside>
-
-
-See the [original R script](https://github.com/AtlasOfLivingAustralia/science/blob/main/comms/2021-08-24_taxonomy/taxonomy_plot_code.R)
-
-
-***
 
 Visualising trees is not particularly easy for me; I didn't train in it, and the
 data structures involved are a bit complex. More importantly, until recently it was 
@@ -194,3 +216,5 @@ In future, there are several things you could do to improve this kind of plot:
 * package this up so it's easier to reproduce
 
 While those are great ideas, that's all for now - I hope you found this helpful!
+
+See the [original R script](https://github.com/AtlasOfLivingAustralia/science/blob/main/comms/2021-08-24_taxonomy/taxonomy_plot_code.R)
