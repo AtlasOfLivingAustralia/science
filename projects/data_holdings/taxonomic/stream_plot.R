@@ -8,15 +8,12 @@
 # use_blank_slate(scope = c("user"))
 
 # packages
-# remove.packages("galah")
-# remotes::install_github("AtlasOfLivingAustralia/galah") # installs latest version
 library(galah)
 library(tidyverse)
 library(data.table)
 
 theme_set(theme_void())
 
-ala_config(email = "dax.kellie@csiro.au")
 
 
 
@@ -62,7 +59,7 @@ phylum_df$year <- as.integer(phylum_df$year) # make class the same
 phylum_df_years <- year_df %>% left_join(phylum_df) 
 
 # add kingdoms
-kingdom_and_phyla <- select_taxa(phylum_names) %>% dplyr::select(kingdom, phylum)
+kingdom_and_phyla <- select_taxa(phylum_names) %>% data.frame(.) %>% select(kingdom, phylum)
 kingdom_and_phyla <- kingdom_and_phyla %>% 
   mutate(kingdom = ifelse(phylum == "Chlorophyta", "Plantae", kingdom)) # add specific kingdom
 
@@ -85,10 +82,11 @@ phylum_joined <-phylum_df_years %>%
 library(ggstream)
 library(viridis)
 
-glimpse(phylum_tidy)
 
 phylum_tidy <- phylum_joined %>%
   mutate(across(where(is.character), as.factor))
+
+glimpse(phylum_tidy)
 
 # Plotting function
 stream_plot_function <- function(kingdom_name){ # automate plotting
@@ -113,7 +111,7 @@ phylum_tidy %>%
   scale_y_continuous(name = "Total observations per year", 
                      labels = scales::comma) +
   theme_minimal() +
-  theme(legend.position = "none") 
+  theme(legend.position = "right") 
 }
 
 
@@ -122,6 +120,6 @@ phylum_tidy %>% group_by(kingdom) %>% summarise(count = n()) # list of kingdoms
 
 
 # Select kingdom and plot
-stream_plot_function("Chromista")
+stream_plot_function("Plantae")
 
 
