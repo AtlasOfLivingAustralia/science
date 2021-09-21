@@ -11,7 +11,7 @@
 
 <meta name="author" content="Dax Kellie" />
 
-<meta name="date" content="2021-08-23" />
+<meta name="date" content="2021-09-21" />
 
 <title>Analysis proposal</title>
 
@@ -262,7 +262,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Analysis proposal</h1>
 <h4 class="author">Dax Kellie</h4>
-<h4 class="date">2021-08-23</h4>
+<h4 class="date">2021-09-21</h4>
 
 </div>
 
@@ -272,22 +272,21 @@ div.tocify {
 <hr />
 <div id="data-providers" class="section level1">
 <h1>Data providers</h1>
-<p>One way to look the growth of citizen science might be to first view the full number of records each data provider has added to the ALA.</p>
+<p>One way to see the growth of citizen science might be to first view the full number of records each data provider has added to the ALA.</p>
 <pre class="r"><code># packages
 library(galah)
 library(tidyverse)
 library(purrr)
 library(viridis)
 library(kableExtra)
-
-galah_config(email = &quot;dax.kellie@csiro.au&quot;)</code></pre>
+library(pilot) # for colour palettes</code></pre>
 <p>As far as I can tell, <code>dataResourceName</code> contains the best data provider categories. Here are some examples:</p>
 <pre class="r"><code># search_fields(&quot;data&quot;)
 # find_field_values(&quot;dataResourceName&quot;)
 
 provider_counts &lt;- ala_counts(group_by = &quot;dataResourceName&quot;, limit = 900)
-provider_counts %&gt;% slice(1:10) %&gt;% kbl() %&gt;% kable_styling(full_width = FALSE)</code></pre>
-<table class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+provider_counts %&gt;% slice(1:10) %&gt;% kbl()</code></pre>
+<table>
 <thead>
 <tr>
 <th style="text-align:left;">
@@ -312,7 +311,7 @@ eBird Australia
 NSW BioNet Atlas
 </td>
 <td style="text-align:right;">
-12309031
+12345357
 </td>
 </tr>
 <tr>
@@ -352,7 +351,7 @@ First Bird Atlas
 iNaturalist Australia
 </td>
 <td style="text-align:right;">
-2092749
+2205928
 </td>
 </tr>
 <tr>
@@ -360,7 +359,7 @@ iNaturalist Australia
 SA Flora (BDBSA)
 </td>
 <td style="text-align:right;">
-1913981
+1911652
 </td>
 </tr>
 <tr>
@@ -376,95 +375,17 @@ Garden Bird Surveys
 SA Fauna (BDBSA)
 </td>
 <td style="text-align:right;">
-1632141
+1645756
 </td>
 </tr>
 </tbody>
 </table>
-<p>As a test, we can look at the number of records each data provider added to the ALA. Here I’ve only downloaded data for a a small subset of years - between 1999 and 2003 - to avoid making <strong>H</strong>ypotheses <strong>A</strong>fter the <strong>R</strong>esults are <strong>K</strong>nown when writing the paper (i.e. <strong>HARK</strong>ing).</p>
-<pre class="r"><code># Find number of records by data provider by year
-
-# list years
-years &lt;- 1999:2003
-years_long &lt;- paste0(&quot;select_filters(year = &quot;, years, &quot;)&quot;, sep=&quot;&quot;)
-
-# Get counts of records from data providers by year
-data_providers &lt;- years_long %&gt;%
-  map(~ala_counts(
-    list(filters = .x),
-    group_by = &quot;dataResourceName&quot;,
-    limit = 900)) %&gt;%
-  tibble(year = years,
-         y = .) %&gt;%
-  unnest(y) # back to df
-
-# clean string names of data providers
-data_providers &lt;- data_providers %&gt;%
-  mutate(dataResourceName = str_squish(dataResourceName))
-
-# plot
-data_providers %&gt;%
-  drop_na() %&gt;%
-  group_by(dataResourceName) %&gt;%
-  # arrange(year, dataResourceName) %&gt;%
-  dplyr::summarise(count = count,
-                   total = sum(count),
-                   cum_total = cumsum(count),
-                   year = year) %&gt;%
-  filter(total &gt; 30000) %&gt;%
-  ggplot(aes(x = year, 
-             y = cum_total, 
-             fill = reorder(str_wrap(dataResourceName), -cum_total))) +
-  geom_bar(stat = &quot;identity&quot;) +
-  scale_y_continuous(labels = scales::label_number_si()) +
-  labs(x = &quot;Year&quot;, y = &quot;Number of Records&quot;) +
-  scale_fill_brewer(palette = &quot;Set2&quot;, direction = 1) +
-  guides(fill = guide_legend(title = &quot;Data Providers&quot;, nrow = 6)) +
-  theme_minimal()</code></pre>
-<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
-</div>
-<div id="type-of-record" class="section level1">
-<h1>Type of record</h1>
-<p>Another way we might be able to see the growth of citizen records is to look at the cumulative number of different types of records added to the ALA over time. Again, we will just look at a small subset between 1999 and 2003. This is a replication of plots Matilda made in her Shiny app</p>
-<pre class="r"><code># by record type
-record_type &lt;- years_long %&gt;%
-  map(~ala_counts(
-    list(filters = .x),
-    group_by = &quot;basisOfRecord&quot;,
-    limit = 900)) %&gt;%
-  tibble(year = years,
-         y = .) %&gt;%
-  unnest(y) # back to df
-
-record_type &lt;- record_type %&gt;%
-  mutate(basisOfRecord = stringr::str_to_title(basisOfRecord))
-
-record_type %&gt;%
-  drop_na() %&gt;%
-  group_by(basisOfRecord) %&gt;%
-  dplyr::summarise(count = count,
-                   total = sum(count),
-                   cum_total = cumsum(count),
-                   year = year) %&gt;%
-
-  ggplot(aes(x = year,
-             y = cum_total,
-             fill = reorder(basisOfRecord, -cum_total))) +
-  geom_bar(stat = &quot;identity&quot;) +
-  scale_y_continuous(labels = scales::label_number_si()) +
-  labs(x = &quot;Year&quot;, y = &quot;Number of Records&quot;) +
-  scale_fill_brewer(palette = &quot;Dark2&quot;, direction = 1) +
-  guides(fill = guide_legend(title = &quot;Basis of Record&quot;)) +
-  theme_minimal()</code></pre>
-<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
 </div>
 <div id="kingdoms" class="section level1">
 <h1>Kingdoms</h1>
-<p>It might also be useful to divide counts by kingdoms, knowing the huge biases in human observation records. It is possible to separate this by phylum or class, or even of a specific animal (like Cam’s favourite - Koalas) though we just need to be deliberate about our choices.</p>
-<p>I plan to try comparing the top 25-50 most popularly added taxa to the rest of the Atlas to see the extent of bias in records.</p>
-<pre class="r"><code># Ok now by kingdom
-
-# Extract kingdom names
+<p>Here we can try to see the growth of records for each kingdom, and the proportion of records from each data provider <br></p>
+<p>Use the buttons to look at each plot, and take note of the y axis because the number of records added changes quite a bit between kingdoms</p>
+<pre class="r"><code># Extract kingdom names
 kingdoms &lt;- ala_counts(group_by = &quot;kingdom&quot;, limit = 10)
 kingdom_names &lt;- pull(kingdoms, kingdom)
 
@@ -482,16 +403,33 @@ kingdom_counts &lt;- kingdom_names %&gt;%
 
 
 # I think I just have to put this into a function and run it many times
-
 # We have to do it this way because each select_filters() call builds a df
 year_filter_1999 &lt;- select_filters(year = 1999)
 year_filter_2000 &lt;- select_filters(year = 2000)
 year_filter_2001 &lt;- select_filters(year = 2001)
 year_filter_2002 &lt;- select_filters(year = 2002)
 year_filter_2003 &lt;- select_filters(year = 2003)
+year_filter_2004 &lt;- select_filters(year = 2004)
+year_filter_2005 &lt;- select_filters(year = 2005)
+year_filter_2006 &lt;- select_filters(year = 2006)
+year_filter_2007 &lt;- select_filters(year = 2007)
+year_filter_2008 &lt;- select_filters(year = 2008)
+year_filter_2009 &lt;- select_filters(year = 2009)
+year_filter_2010 &lt;- select_filters(year = 2010)
+year_filter_2011 &lt;- select_filters(year = 2011)
+year_filter_2012 &lt;- select_filters(year = 2012)
+year_filter_2013 &lt;- select_filters(year = 2013)
+year_filter_2014 &lt;- select_filters(year = 2014)
+year_filter_2015 &lt;- select_filters(year = 2015)
+year_filter_2016 &lt;- select_filters(year = 2016)
+year_filter_2017 &lt;- select_filters(year = 2017)
+year_filter_2018 &lt;- select_filters(year = 2018)
+year_filter_2019 &lt;- select_filters(year = 2019)
+year_filter_2020 &lt;- select_filters(year = 2020)
 
 # Create a function that gets counts for all kingdoms and converts to data frame
 get_year_counts &lt;- function(year_filter, year_number) {
+  
   kingdom_counts &lt;- kingdom_names %&gt;%
     map( ~ ala_counts(
       taxa = select_taxa(list(kingdom = .x)),
@@ -512,15 +450,33 @@ counts_2000 &lt;- get_year_counts(year_filter_2000, 2000)
 counts_2001 &lt;- get_year_counts(year_filter_2001, 2001)
 counts_2002 &lt;- get_year_counts(year_filter_2002, 2002)
 counts_2003 &lt;- get_year_counts(year_filter_2003, 2003)
+counts_2004 &lt;- get_year_counts(year_filter_2004, 2004)
+counts_2005 &lt;- get_year_counts(year_filter_2005, 2005)
+counts_2006 &lt;- get_year_counts(year_filter_2006, 2006)
+counts_2007 &lt;- get_year_counts(year_filter_2007, 2007)
+counts_2008 &lt;- get_year_counts(year_filter_2008, 2008)
+counts_2009 &lt;- get_year_counts(year_filter_2009, 2009)
+counts_2010 &lt;- get_year_counts(year_filter_2010, 2010)
+counts_2011 &lt;- get_year_counts(year_filter_2011, 2011)
+counts_2012 &lt;- get_year_counts(year_filter_2012, 2012)
+counts_2013 &lt;- get_year_counts(year_filter_2013, 2013)
+counts_2014 &lt;- get_year_counts(year_filter_2014, 2014)
+counts_2015 &lt;- get_year_counts(year_filter_2015, 2015)
+counts_2016 &lt;- get_year_counts(year_filter_2016, 2016)
+counts_2017 &lt;- get_year_counts(year_filter_2017, 2017)
+counts_2018 &lt;- get_year_counts(year_filter_2018, 2018)
+counts_2019 &lt;- get_year_counts(year_filter_2019, 2019)
+counts_2020 &lt;- get_year_counts(year_filter_2020, 2020)
 
 # merge all the years
-counts_99_to_03 &lt;- rbind(counts_1999, counts_2000, counts_2001, counts_2002, counts_2003)
+counts_99_to_20 &lt;- rbind(counts_1999, counts_2000, counts_2001, counts_2002, counts_2003,
+                         counts_2004, counts_2005, counts_2006, counts_2007, counts_2008,
+                         counts_2009, counts_2010, counts_2011, counts_2012, counts_2013,
+                         counts_2014, counts_2015, counts_2016, counts_2017, counts_2018,
+                         counts_2019, counts_2020)
 
 
 # Get complete list of possible kingdoms and dataResources
-
-# We have kingdom names
-# kingdom_names
 
 # Extract resources names
 resources &lt;- find_field_values(&quot;dataResourceName&quot;, limit = 900)
@@ -529,7 +485,7 @@ resource_names &lt;- resource_names %&gt;% str_trim() # trim whitespace
 
 
 # Use crossing() to find all possible combinations of inputs
-years_list &lt;- 1999:2003
+years_list &lt;- 1999:2020
 king_df &lt;- crossing(kingdom_names, years_list, resource_names)
 
 king_df &lt;- king_df %&gt;% # Do some renaming before merging
@@ -539,29 +495,28 @@ king_df &lt;- king_df %&gt;% # Do some renaming before merging
 
 # Get missing values
 full_counts &lt;- king_df %&gt;%
-  left_join(counts_99_to_03) %&gt;%
+  left_join(counts_99_to_20) %&gt;%
   replace_na(list(count = 0)) # replace NAs
 
-# full_counts %&gt;% slice(1:10)
 full_counts &lt;- full_counts %&gt;%
   group_by(kingdom, dataResourceName) %&gt;%
   mutate(
     cum_count = cumsum(count)
   )
 
+# full_counts %&gt;% slice(1:10)
 # full_counts %&gt;% filter(kingdom == &quot;Fungi&quot;) %&gt;% filter(dataResourceName == &quot;Fungimap&quot;)</code></pre>
 <pre class="r"><code>#------------ Plot ---------------#
 library(ggstream)
 library(viridis)
 
-
+# Tidy dataframe
 full_counts_tidy &lt;- full_counts %&gt;%
   mutate(across(where(is.character), as.factor))
 
-# glimpse(full_counts_tidy)
 
 # Plotting stacked area chart function
-stream_plot_function &lt;- function(kingdom_name, at_least_this_many_records){
+plot_stream_plot_stacked &lt;- function(kingdom_name, at_least_this_many_records){
   full_counts_tidy %&gt;%
     drop_na() %&gt;%
     filter(kingdom == as.character(kingdom_name)) %&gt;%
@@ -575,65 +530,2320 @@ stream_plot_function &lt;- function(kingdom_name, at_least_this_many_records){
                fill = str_wrap(dataResourceName))) +
     geom_stream(color = &quot;black&quot;,
                 extra_span = .013,
-                type = &quot;ridge&quot;, bw = 1) +
-    # geom_stream_label(aes(label = dataResourceName),
-    #                   size = 4, type = &quot;ridge&quot;,
-    #                   colour = &quot;black&quot;) +
-    scale_fill_viridis_d(option = &quot;D&quot;) +
+                type = &quot;ridge&quot;, bw = .9, sorting = &quot;onset&quot;) +
+    geom_stream_label(aes(label = dataResourceName),
+                      size = 3, type = &quot;ridge&quot;,
+                      colour = &quot;black&quot;, sorting = &quot;onset&quot;) +
+    scale_fill_viridis_d(option = &quot;D&quot;, begin = 0.3) +
     guides(fill = guide_legend(title = &quot;Data provider&quot;)) +
     scale_x_continuous(name = &quot;Year&quot;) +
     scale_y_continuous(name = &quot;Total observations per year&quot;,
                        labels = scales::comma) +
-    theme_minimal()
+    theme_minimal() + 
+    theme(legend.position = &quot;none&quot;)
+}
+
+
+# Plotting proportional area chart function
+plot_stream_plot_prop &lt;- function(kingdom_name, at_least_this_many_records){
+  full_counts_tidy %&gt;%
+    drop_na() %&gt;%
+    filter(kingdom == as.character(kingdom_name)) %&gt;%
+    group_by(kingdom, dataResourceName) %&gt;%
+    dplyr::summarise(total = cumsum(count),
+                     year = year) %&gt;%
+    filter(total &gt; at_least_this_many_records) %&gt;% # filter records
+
+    ggplot(aes(x = year, # Plot
+               y = total,
+               fill = str_wrap(dataResourceName))) +
+    geom_stream(color = &quot;black&quot;,
+                extra_span = .013,
+                type = &quot;proportional&quot;, bw = .9, sorting = &quot;onset&quot;) +
+    geom_stream_label(aes(label = dataResourceName),
+                      size = 3, type = &quot;proportional&quot;,
+                      colour = &quot;black&quot;, sorting = &quot;onset&quot;) +
+    scale_fill_viridis_d(option = &quot;D&quot;, begin = 0.3) +
+    guides(fill = guide_legend(title = &quot;Data provider&quot;)) +
+    scale_x_continuous(name = &quot;Year&quot;) +
+    scale_y_continuous(name = &quot;Total observations per year&quot;,
+                       labels = scales::comma) +
+    theme_minimal() + 
+    theme(legend.position = &quot;none&quot;)
 }</code></pre>
-<p>Use the buttons to look at each plot, and take note of the y axis because the number of records added changes quite a bit between kingdoms</p>
 <div id="plots" class="section level2 tabset tabset-fade tabset-pills">
 <h2 class="tabset tabset-fade tabset-pills">Plots</h2>
 <div id="animalia" class="section level3">
 <h3>Animalia</h3>
-<pre class="r"><code>stream_plot_function(&quot;Animalia&quot;, 200000)</code></pre>
-<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<pre class="r"><code>plot_stream_plot_stacked(&quot;Animalia&quot;, 200000)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>plot_stream_plot_prop(&quot;Animalia&quot;, 200000)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
 </div>
 <div id="plantae" class="section level3">
 <h3>Plantae</h3>
-<pre class="r"><code>stream_plot_function(&quot;Plantae&quot;, 125000)</code></pre>
-<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<pre class="r"><code>plot_stream_plot_stacked(&quot;Plantae&quot;, 125000)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>plot_stream_plot_prop(&quot;Plantae&quot;, 125000)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
 </div>
 <div id="fungi" class="section level3">
 <h3>Fungi</h3>
-<pre class="r"><code>stream_plot_function(&quot;Fungi&quot;, 5000)</code></pre>
-<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<pre class="r"><code>plot_stream_plot_stacked(&quot;Fungi&quot;, 5000)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<pre class="r"><code>plot_stream_plot_prop(&quot;Fungi&quot;, 5000)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
 </div>
 <div id="bacteria" class="section level3">
 <h3>Bacteria</h3>
-<pre class="r"><code>stream_plot_function(&quot;Bacteria&quot;, 50)</code></pre>
+<pre class="r"><code>plot_stream_plot_stacked(&quot;Bacteria&quot;, 50)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<pre class="r"><code>plot_stream_plot_prop(&quot;Bacteria&quot;, 50)</code></pre>
 <p><img src="analysis-proposal_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
 </div>
 <div id="chromista" class="section level3">
 <h3>Chromista</h3>
-<pre class="r"><code>stream_plot_function(&quot;Chromista&quot;, 10000)</code></pre>
+<pre class="r"><code>plot_stream_plot_stacked(&quot;Chromista&quot;, 10000)</code></pre>
 <p><img src="analysis-proposal_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<pre class="r"><code>plot_stream_plot_prop(&quot;Chromista&quot;, 10000)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
 </div>
 <div id="protista" class="section level3">
 <h3>Protista</h3>
-<pre class="r"><code>stream_plot_function(&quot;Protista&quot;, 1)</code></pre>
-<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<pre class="r"><code>plot_stream_plot_stacked(&quot;Protista&quot;, 1)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<pre class="r"><code>plot_stream_plot_prop(&quot;Protista&quot;, 1)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
 </div>
 <div id="protozoa" class="section level3">
 <h3>Protozoa</h3>
-<pre class="r"><code>stream_plot_function(&quot;Protozoa&quot;, 1)</code></pre>
-<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<pre class="r"><code>plot_stream_plot_stacked(&quot;Protozoa&quot;, 1)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
+<pre class="r"><code>plot_stream_plot_prop(&quot;Protozoa&quot;, 1)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
 </div>
 </div>
 </div>
-<div id="future-ideas" class="section level1">
-<h1>Future ideas</h1>
-<p>There are still other visualisations I am looking to try. These include:</p>
-<ul>
-<li>Some sort of comparison of yearly rates of change in different types of record counts</li>
-<li>Growth rate of popular vs unpopular species records in the ALA</li>
-<li>Records in bushfire areas before vs after bushfires (this requires some sort of geographic coordinates of bushfires, so could be complicated)</li>
-</ul>
+<div id="rate-of-change-per-year" class="section level1">
+<h1>Rate of change per year</h1>
+<p>It might also be useful to see the rate that observations from data providers are inflating/deflating. Considering records from eBird appear to be growing the fastest, let’s have a look at the numbers:</p>
+<pre class="r"><code># Calculate rate of change in observations by year
+
+rate_of_change &lt;- full_counts %&gt;%
+  group_by(kingdom, dataResourceName) %&gt;%
+  mutate(pct_change = (((lead(count)/count) - 1)*100))
+
+rate_of_change &lt;- rate_of_change %&gt;% group_by(kingdom, year) %&gt;% mutate(yearly_total = sum(count),
+                                                                        prop = count/yearly_total)
+
+rate_of_change$pct_change[is.nan(rate_of_change$pct_change)]&lt;-0
+
+# Table of percent change
+rate_of_change %&gt;% 
+  filter(kingdom == &quot;Animalia&quot;) %&gt;% 
+  filter(dataResourceName == &quot;eBird Australia&quot;) %&gt;% kbl() %&gt;% kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+kingdom
+</th>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:left;">
+dataResourceName
+</th>
+<th style="text-align:right;">
+count
+</th>
+<th style="text-align:right;">
+cum_count
+</th>
+<th style="text-align:right;">
+pct_change
+</th>
+<th style="text-align:right;">
+yearly_total
+</th>
+<th style="text-align:right;">
+prop
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+1999
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+77577
+</td>
+<td style="text-align:right;">
+77577
+</td>
+<td style="text-align:right;">
+21.322041
+</td>
+<td style="text-align:right;">
+1998287
+</td>
+<td style="text-align:right;">
+0.0388218
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2000
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+94118
+</td>
+<td style="text-align:right;">
+171695
+</td>
+<td style="text-align:right;">
+29.966638
+</td>
+<td style="text-align:right;">
+2124581
+</td>
+<td style="text-align:right;">
+0.0442996
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2001
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+122322
+</td>
+<td style="text-align:right;">
+294017
+</td>
+<td style="text-align:right;">
+17.026373
+</td>
+<td style="text-align:right;">
+2022758
+</td>
+<td style="text-align:right;">
+0.0604729
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2002
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+143149
+</td>
+<td style="text-align:right;">
+437166
+</td>
+<td style="text-align:right;">
+2.352095
+</td>
+<td style="text-align:right;">
+1293293
+</td>
+<td style="text-align:right;">
+0.1106857
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2003
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+146516
+</td>
+<td style="text-align:right;">
+583682
+</td>
+<td style="text-align:right;">
+19.791013
+</td>
+<td style="text-align:right;">
+1211394
+</td>
+<td style="text-align:right;">
+0.1209483
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2004
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+175513
+</td>
+<td style="text-align:right;">
+759195
+</td>
+<td style="text-align:right;">
+1.473965
+</td>
+<td style="text-align:right;">
+1320442
+</td>
+<td style="text-align:right;">
+0.1329199
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2005
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+178100
+</td>
+<td style="text-align:right;">
+937295
+</td>
+<td style="text-align:right;">
+10.422796
+</td>
+<td style="text-align:right;">
+1280320
+</td>
+<td style="text-align:right;">
+0.1391058
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2006
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+196663
+</td>
+<td style="text-align:right;">
+1133958
+</td>
+<td style="text-align:right;">
+14.423659
+</td>
+<td style="text-align:right;">
+1292648
+</td>
+<td style="text-align:right;">
+0.1521396
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2007
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+225029
+</td>
+<td style="text-align:right;">
+1358987
+</td>
+<td style="text-align:right;">
+16.698737
+</td>
+<td style="text-align:right;">
+1327745
+</td>
+<td style="text-align:right;">
+0.1694821
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2008
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+262606
+</td>
+<td style="text-align:right;">
+1621593
+</td>
+<td style="text-align:right;">
+32.245646
+</td>
+<td style="text-align:right;">
+1447682
+</td>
+<td style="text-align:right;">
+0.1813976
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2009
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+347285
+</td>
+<td style="text-align:right;">
+1968878
+</td>
+<td style="text-align:right;">
+16.814432
+</td>
+<td style="text-align:right;">
+1581641
+</td>
+<td style="text-align:right;">
+0.2195726
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2010
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+405679
+</td>
+<td style="text-align:right;">
+2374557
+</td>
+<td style="text-align:right;">
+50.744554
+</td>
+<td style="text-align:right;">
+1643767
+</td>
+<td style="text-align:right;">
+0.2467984
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2011
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+611539
+</td>
+<td style="text-align:right;">
+2986096
+</td>
+<td style="text-align:right;">
+33.688448
+</td>
+<td style="text-align:right;">
+1802026
+</td>
+<td style="text-align:right;">
+0.3393619
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2012
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+817557
+</td>
+<td style="text-align:right;">
+3803653
+</td>
+<td style="text-align:right;">
+39.963941
+</td>
+<td style="text-align:right;">
+2324527
+</td>
+<td style="text-align:right;">
+0.3517090
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+1144285
+</td>
+<td style="text-align:right;">
+4947938
+</td>
+<td style="text-align:right;">
+27.861241
+</td>
+<td style="text-align:right;">
+2723781
+</td>
+<td style="text-align:right;">
+0.4201090
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2014
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+1463097
+</td>
+<td style="text-align:right;">
+6411035
+</td>
+<td style="text-align:right;">
+22.734856
+</td>
+<td style="text-align:right;">
+2970095
+</td>
+<td style="text-align:right;">
+0.4926095
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2015
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+1795730
+</td>
+<td style="text-align:right;">
+8206765
+</td>
+<td style="text-align:right;">
+27.509035
+</td>
+<td style="text-align:right;">
+3052755
+</td>
+<td style="text-align:right;">
+0.5882326
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2016
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+2289718
+</td>
+<td style="text-align:right;">
+10496483
+</td>
+<td style="text-align:right;">
+24.023482
+</td>
+<td style="text-align:right;">
+3304471
+</td>
+<td style="text-align:right;">
+0.6929151
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2017
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+2839788
+</td>
+<td style="text-align:right;">
+13336271
+</td>
+<td style="text-align:right;">
+27.426132
+</td>
+<td style="text-align:right;">
+3956552
+</td>
+<td style="text-align:right;">
+0.7177431
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2018
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+3618632
+</td>
+<td style="text-align:right;">
+16954903
+</td>
+<td style="text-align:right;">
+15.158104
+</td>
+<td style="text-align:right;">
+4954391
+</td>
+<td style="text-align:right;">
+0.7303889
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+4167148
+</td>
+<td style="text-align:right;">
+21122051
+</td>
+<td style="text-align:right;">
+10.081091
+</td>
+<td style="text-align:right;">
+5034446
+</td>
+<td style="text-align:right;">
+0.8277272
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Animalia
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+4587242
+</td>
+<td style="text-align:right;">
+25709293
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+5269196
+</td>
+<td style="text-align:right;">
+0.8705772
+</td>
+</tr>
+</tbody>
+</table>
+<p>It’s worth noting 2 things:<br />
+- The rate of change from 2008 to 2012 is massive<br />
+- Anything more than a 20% increase after 2012 translates to an increase of &gt; 100000 records. So just because the rate of change is lower than in 2012 doesn’t tell the full story because we are talking about so many records</p>
+<hr />
+<p>In the following plot, increasing observations are on the x axis, the proportion of records that year are on the y axis, and the size of the dot represents the cumulative count of records in the ALA. Small dots near the bottom left corner are data providers that provide relatively small numbers of observations each year, whereas large dots near the upper right corner are data providers that provide relatively large numbers of observations each year</p>
+<p>What is interesting is that only more recently did citizen science app data like eBird become the majority of yearly records added to the ALA. This change happens closer to 2017 rather than 2010/11. <br></p>
+<p>(This plot only shows Animalia data)</p>
+<pre class="r"><code># list of names for the plot
+data_resource_names &lt;- full_counts_tidy %&gt;%
+  drop_na() %&gt;%
+  filter(kingdom == as.character(&quot;Animalia&quot;)) %&gt;%
+  group_by(kingdom, dataResourceName) %&gt;%
+  dplyr::summarise(total = cumsum(count),
+                   year = year) %&gt;%
+  filter(total &gt; 200000) %&gt;%
+  distinct(dataResourceName) %&gt;%
+  ungroup(.) %&gt;%
+  select(dataResourceName)
+
+library(gganimate)
+library(ggrepel)
+
+## animated ggplot2
+rate_of_change %&gt;% 
+  filter(kingdom == &quot;Animalia&quot;) %&gt;% 
+  # filter(count &gt; 1) %&gt;% 
+  filter(pct_change &lt; 20) %&gt;%
+  filter(year &gt; 2000) %&gt;%
+  filter(dataResourceName %in% data_resource_names$dataResourceName) %&gt;%
+  mutate(label = case_when(dataResourceName == &quot;eBird Australia&quot; ~ dataResourceName,
+                           dataResourceName == &quot;iNaturalist&quot; ~ dataResourceName,
+                           prop &gt; 0.1 ~ dataResourceName,
+                           TRUE ~ &#39;&#39;)) %&gt;%
+  
+ggplot(aes(cum_count, prop, size = cum_count, colour = dataResourceName, label = label)) +
+  geom_point(alpha = 0.7, show.legend = FALSE) +
+  geom_hline(yintercept = 0, color = &quot;black&quot;, size = 1) + 
+  geom_vline(xintercept = 0, color = &quot;black&quot;, size = 1) + 
+  scale_colour_viridis_d() +
+  geom_text_repel(max.overlaps = 100,
+                  box.padding = 1) + 
+  theme_minimal() +
+  theme(legend.position = &quot;none&quot;) +
+  # Here comes the gganimate specific bits
+  labs(title = &#39;year: {frame_time}&#39;, x = &#39;Number of obvs in Atlas&#39;, y = &#39;Proportion of total records each year&#39;) +
+  transition_time(year) +
+  ease_aes(&#39;linear&#39;)</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-19-1.gif" /><!-- --></p>
+<p><br></p>
+<hr />
+</div>
+<div id="popular-species-vs-unpopular-species" class="section level1">
+<h1>Popular species vs unpopular species</h1>
+<p>Earlier this year we figured out how to build flexible decision trees that make hierarchical decisions based on some variable, for example observation counts. In other words, we can build a tree of “importance” based on which clades have the most observations in the ALA. <br></p>
+<p>What could be useful is to compare the number of observations from citizen science vs non-citizen science data providers between clades with the most observations and the rest of the ALA. <br></p>
+<p>I have pulled that info from that analysis to see what the top 20(ish) clades are in the ALA by number of observations. <br></p>
+<div id="list-of-most-popular-clades" class="section level3">
+<h3>List of most popular clades</h3>
+<pre class="r"><code># Get data of clades with highest number of observations
+top_clades &lt;- readRDS(here::here(&quot;projects&quot;, &quot;data_holdings&quot;, &quot;taxonomic&quot;, &quot;data&quot;, &quot;summary-tree_top-taxa-list.rds&quot;))
+
+# Extract names
+top_clade_names &lt;- top_clades %&gt;% filter(type == 2) %&gt;% pull(., label)
+
+# Find taxon concept id within ALA
+top_orders_dfr &lt;- top_clade_names %&gt;% 
+  map( ~ select_taxa(list(.x))) %&gt;% # run select_taxa() for each name
+  plyr::ldply (., data.frame) %&gt;%   # convert to df
+  # filter(kingdom == &quot;Animalia&quot;) %&gt;% # filter to only animal kingdom
+  filter(!is.na(order))   # select only those down to order
+
+top_orders_dfr %&gt;% select(vernacular_name, class) %&gt;% distinct(class, vernacular_name)</code></pre>
+<pre><code>##                                vernacular_name         class
+## 1                                 Magpie Goose          Aves
+## 2                Waders, Gulls and Terns, Auks          Aves
+## 3            Herons, Ibises, Storks and Allies          Aves
+## 4                            Pigeons and Doves          Aves
+## 5  Kingfishers, Bee-eaters, Rollers and Allies          Aves
+## 6                        Diurnal Birds of Prey          Aves
+## 7                     Rails, Cranes and Allies          Aves
+## 8     Pelicans, Gannets, Cormorants and Allies          Aves
+## 9                        Cockatoos and Parrots          Aves
+## 10                                        &lt;NA&gt; Equisetopsida
+## 11                              Cuckoo-shrikes          Aves
+## 12                                        &lt;NA&gt;          Aves
+## 13                     Starlings and oxpeckers          Aves
+## 14                        Swallows and Martins          Aves
+## 15                              Crows and Jays          Aves
+## 16                         Monarch Flycatchers          Aves
+## 17                        Whistlers and Allies          Aves
+## 18                       Australasian Warblers          Aves
+## 19                                Woodswallows          Aves
+## 20                                 Honeyeaters          Aves</code></pre>
+<p>Wow they are nearly all birds. Perhaps it might be best to compare other taxonomic classes with Aves to see how different bird observations are compared with observations of other species. <br></p>
+<p>Here are the top 10 classes</p>
+<pre class="r"><code># Extract class names
+classes &lt;- ala_counts(group_by = &quot;class&quot;, limit = 320)
+class_names &lt;- pull(classes, class)
+
+classes[1:10,] # top 10</code></pre>
+<pre><code>##             class    count
+## 1            Aves 59749558
+## 2   Equisetopsida 20770773
+## 3        Mammalia  3199880
+## 4         Insecta  3156325
+## 5  Actinopterygii  2918427
+## 6        Reptilia  1303015
+## 7  Chondrichthyes   841688
+## 8      Gastropoda   826746
+## 9        Amphibia   815506
+## 10 Agaricomycetes   681775</code></pre>
+</div>
+<div id="birds-vs-the-rest" class="section level2">
+<h2>Birds vs the rest</h2>
+<p>Let’s try comparing the proportion of occurrences from citizen science and non-citizen science data providers for Aves vs all the other classes.</p>
+<pre class="r"><code># Separate Aves
+class_aves &lt;- &quot;Aves&quot;
+class_not_aves &lt;- class_names[!class_names %in% &quot;Aves&quot;]
+
+# Create a function that gets counts for all classes and converts to data frame
+get_year_counts_by_class &lt;- function(year_filter, year_number, class_df) {
+  ala_counts(
+    taxa = select_taxa(as.list(class_df)),
+    filters = year_filter,
+    group_by = &quot;dataResourceName&quot;,
+    limit = 900) %&gt;%
+    tibble() %&gt;%
+    mutate(year = rep(year_number))
+}
+
+# Run this function for each year
+all_filters &lt;- list(year_filter_1999, year_filter_2000, year_filter_2001,
+                    year_filter_2002, year_filter_2003, year_filter_2004,
+                    year_filter_2005, year_filter_2006, year_filter_2007, 
+                    year_filter_2008, year_filter_2009, year_filter_2010,
+                    year_filter_2011, year_filter_2012, year_filter_2013,
+                    year_filter_2014, year_filter_2015, year_filter_2016, 
+                    year_filter_2017, year_filter_2018, year_filter_2019,
+                    year_filter_2020)
+all_years &lt;- 1999:2020
+
+# Get counts for Aves
+class_counts_aves &lt;- map2_dfr(.x = all_filters, .y = all_years, 
+                              ~ {get_year_counts_by_class(.x, .y, class_aves)})
+
+# Use crossing() to find all possible combinations dataProviders and years
+# resource_names[1:5] # We already have a full list of resource names
+all_combos_of_years &lt;- crossing(all_years, resource_names)
+
+# Do some renaming before merging
+all_combos_of_years &lt;- all_combos_of_years %&gt;% 
+  rename(year = all_years,
+         dataResourceName = resource_names)
+
+# Merge and replace NAs with zeros
+class_aves_full_counts &lt;- all_combos_of_years %&gt;%
+  left_join(class_counts_aves) %&gt;%
+  replace_na(list(count = 0)) # replace NAs
+
+# class_aves_full_counts %&gt;% slice(1:10)
+
+
+
+# Get counts for all other not Aves classes
+class_counts_not_aves &lt;- map2_dfr(.x = all_filters, .y = all_years, 
+                              ~ {get_year_counts_by_class(.x, .y, class_not_aves)})
+
+# Merge with all_combos_of_years and replace NAs with zeros
+class_not_aves_full_counts &lt;- all_combos_of_years %&gt;%
+  left_join(class_counts_not_aves) %&gt;%
+  replace_na(list(count = 0)) # replace NAs
+
+# class_not_aves_full_counts %&gt;% slice(1:10)</code></pre>
+<p><br></p>
+<div id="plot" class="section level4 tabset tabset-fade tabset-pills">
+<h4 class="tabset tabset-fade tabset-pills">Plot</h4>
+<p>Use the buttons to see plots</p>
+<pre class="r"><code>make_plotting_df &lt;- function(df, at_least_this_many_records) {
+  df %&gt;%
+    drop_na() %&gt;%
+    group_by(dataResourceName) %&gt;%
+    dplyr::summarise(total = cumsum(count),
+                     year = year) %&gt;% 
+    filter(total &gt; at_least_this_many_records) %&gt;% # filter records
+    mutate(across(where(is.character), as.factor))
+}
+
+# Plotting stacked area chart function
+plot_stream_plot_stacked &lt;- function(df){
+  df %&gt;%
+    ggplot(aes(x = year, # Plot
+               y = total,
+               fill = str_wrap(dataResourceName))) +
+    geom_stream(color = &quot;black&quot;,
+                extra_span = .013,
+                type = &quot;ridge&quot;, bw = .9, sorting = &quot;onset&quot;) +
+    geom_stream_label(aes(label = dataResourceName),
+                      size = 3, type = &quot;ridge&quot;,
+                      colour = &quot;black&quot;, sorting = &quot;onset&quot;) +
+    scale_fill_viridis_d(option = &quot;D&quot;, begin = 0.3) +
+    guides(fill = guide_legend(title = &quot;Data provider&quot;)) +
+    scale_x_continuous(name = &quot;Year&quot;) +
+    scale_y_continuous(name = &quot;Total observations per year&quot;,
+                       labels = scales::comma) +
+    theme_minimal() + 
+    theme(legend.position = &quot;none&quot;)
+}
+
+# Plotting proportional area chart function
+plot_stream_plot_prop &lt;- function(df){
+  df %&gt;%
+    ggplot(aes(x = year, # Plot
+               y = total,
+               fill = str_wrap(dataResourceName))) +
+    geom_stream(color = &quot;black&quot;,
+                extra_span = .013,
+                type = &quot;proportional&quot;, bw = .9, sorting = &quot;onset&quot;) +
+    geom_stream_label(aes(label = dataResourceName),
+                      size = 3, type = &quot;proportional&quot;,
+                      colour = &quot;black&quot;, sorting = &quot;onset&quot;) +
+    scale_fill_viridis_d(option = &quot;D&quot;, begin = 0.3) +
+    # guides(fill = guide_legend(title = &quot;Data provider&quot;)) +
+    scale_x_continuous(name = &quot;Year&quot;) +
+    scale_y_continuous(name = &quot;Proportion of total records&quot;,
+                       labels = scales::comma) +
+    theme_minimal() + 
+    theme(legend.position = &quot;none&quot;)
+}</code></pre>
+<div id="cumulative-number" class="section level5">
+<h5>Cumulative number</h5>
+<pre class="r"><code>aves_plot_df &lt;- make_plotting_df(class_aves_full_counts, 1000000)
+not_aves_plot_df &lt;- make_plotting_df(class_not_aves_full_counts, 1000000)
+
+# plot 1
+library(patchwork)
+p1 &lt;- plot_stream_plot_stacked(aves_plot_df)
+p2 &lt;- plot_stream_plot_stacked(not_aves_plot_df)
+
+p1 </code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-22-1.png" width="672" /></p>
+<pre class="r"><code>p2</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-22-2.png" width="672" /></p>
+</div>
+<div id="proportions" class="section level5">
+<h5>Proportions</h5>
+<pre class="r"><code># plot 2
+p3 &lt;- plot_stream_plot_prop(aves_plot_df)
+p4 &lt;- plot_stream_plot_prop(not_aves_plot_df)
+
+p3 </code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
+<pre class="r"><code>p4</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-23-2.png" width="672" /></p>
+<p><br></p>
+<hr />
+</div>
+</div>
+<div id="records-from-2020-only" class="section level4 tabset tabset-fade tabset-pills">
+<h4 class="tabset tabset-fade tabset-pills">Records from 2020 only</h4>
+<p>Looking at only 2020 records shows how important citizen science records are for Aves. eBird records alone account for more than 95% of occurrence records added to the ALA in 2020 for birds. In comparison, iNaturalist records accounted for ~57% of all records added to the ALA in 2020 for all other classes. <br></p>
+<p>It’s worth noticing that these trends closely resemble the difference between Animalia and Plantae plots in the “Kingdoms” section above</p>
+<div id="tables" class="section level5">
+<h5>Tables</h5>
+<pre class="r"><code>prop_table_aves &lt;- class_counts_aves %&gt;% 
+  group_by(year) %&gt;%
+  mutate(yearly_total = sum(count),
+         dataResourceName = str_trim(dataResourceName)) %&gt;%
+  group_by(dataResourceName, year) %&gt;%
+  summarise(
+    prop = round((count/yearly_total)*100, 3)) %&gt;%
+  filter(year == 2020) %&gt;%
+  arrange(desc(prop))
+
+prop_table_not_aves &lt;- class_counts_not_aves %&gt;% 
+  group_by(year) %&gt;%
+  mutate(yearly_total = sum(count),
+         dataResourceName = str_trim(dataResourceName)) %&gt;%
+  group_by(dataResourceName, year) %&gt;%
+  summarise(
+    prop = round((count/yearly_total)*100, 3)) %&gt;%
+  filter(year == 2020) %&gt;%
+  arrange(desc(prop))
+
+
+prop_table_aves %&gt;%
+  kbl(caption = &quot;Top record providers - Aves&quot;) %&gt;% kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+Top record providers - Aves
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+dataResourceName
+</th>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:right;">
+prop
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+eBird Australia
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+95.546
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+iNaturalist Australia
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+1.955
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+NSW BioNet Atlas
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+1.594
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Earth Guardians Weekly Feed
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.414
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SA Fauna (BDBSA)
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.240
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Canberra Nature Map
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.060
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Port Adelaide Enfield Flora &amp; Fauna Monitoring
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.040
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wildlife Watch NSC
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.036
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WCPS Bird Survey Project
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.018
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Eyre Peninsula’s Bird Monitoring Program
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.017
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Atlas of Life in the Coastal Wilderness
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.016
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Victorian Biodiversity Atlas
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.010
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ALA species sightings and OzAtlas
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.009
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Superb Parrot Monitoring project
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.008
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Australian National Wildlife Collection provider for OZCAM
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.007
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tempe birdos
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.007
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Budawang Coast Nature Map
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.006
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Albury Wodonga Nature Map
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.005
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Southern Highlands Nature Map
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.004
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Birdos along the Greenway
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+My species list
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ibsa_bennelongia
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Northern Territory WildWatch
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Australian Museum provider for OZCAM
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cockatoos in the Hood
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Lizard Island Research Station
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Museums Victoria provider for OZCAM
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Noosa Shire Nature Map
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Queen Victoria Museum Art Gallery provider for OZCAM
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Australian Museum Australia provider for OZCAM
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Thredbo Park Bushcare Group
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>prop_table_not_aves %&gt;%
+  kbl(caption = &quot;Top record providers - Everything but Aves&quot;) %&gt;% kable_styling()</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<caption>
+Top record providers - Everything but Aves
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+dataResourceName
+</th>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:right;">
+prop
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+iNaturalist Australia
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+57.460
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+NSW BioNet Atlas
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+27.152
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Earth Guardians Weekly Feed
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+4.419
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SA Fauna (BDBSA)
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+2.401
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+SA Flora (BDBSA)
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+2.110
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Canberra Nature Map
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+1.696
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Butterflies Australia
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.824
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Flora Atlas N.T.
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.782
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Victorian Biodiversity Atlas
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.383
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tasmanian Museum and Art Gallery provider for OZCAM
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.319
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Atlas of Life in the Coastal Wilderness
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.184
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Budawang Coast Nature Map
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.184
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ALA species sightings and OzAtlas
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.165
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+BRI AVH data
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.138
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+North East Dung Beetle Project
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.136
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+New Zealand Virtual Herbarium
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.132
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+FrogWatch SA
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.121
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+NSW AVH data
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.117
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CANB AVH data
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.114
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Australian Museum provider for OZCAM
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.106
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Lizard Island Research Station
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.092
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+DNA AVH data
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.083
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+MEL AVH data
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.064
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+PERTH AVH data
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.063
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Australian Platypus Conservancy
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.054
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Southern Highlands Nature Map
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.051
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Frogwatch ACT and Region
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.045
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+HO AVH data
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.042
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+NE AVH data
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.041
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Albury Wodonga Nature Map
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.039
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Team Turtle CQ
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.038
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Southern ACT Catchment - Upper Murrumbidgee Waterwatch
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.033
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Queensland Museum provider for OZCAM
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.032
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Koala Count
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.031
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wildlife Watch NSC
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.029
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ibsa_bennelongia
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.028
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Tweed Koala Sightings
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.027
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Molonglo Conservation Group - Upper Murrumbidgee Waterwatch
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+My species list
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.026
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Melbourne Water Frog Census
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.020
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Bangalow Koalas
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Southern Ocean Continuous Zooplankton Recorder (SO-CPR) Survey
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.019
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CNS AVH data
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.018
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Queen Victoria Museum Art Gallery provider for OZCAM
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.018
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Fauna Atlas N.T.
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.014
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Museums Victoria provider for OZCAM
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.014
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Dung Beetle Ecosystem Engineers
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.013
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Lost fungi Australia
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.011
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Martin Butterfield Mallacoota Observations
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.010
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Northern Territory WildWatch
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.010
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+ReefWatch
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.009
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Kangaroo Island Dunnart Project
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.005
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Wingecarribee Shire Council Macroinvertebrate Sampling
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.005
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Australian National Wildlife Collection provider for OZCAM
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.004
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+JCT AVH data
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.004
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Paterson’s curse and Viper’s bugloss biocontrol
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.004
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+South Australian Museum Australia provider for OZCAM
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.004
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Australian National Fish Collection
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.003
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Burgoigee Creek Landcare Nest Box Monitoring
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.002
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Encyclopedia of Life Images - Flickr Group
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Fungimap
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+NatureShare
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Noosa Shire Nature Map
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Records of the Australian National Botanic Gardens Seedbank
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Sea Slug Survey Gold Coast
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+St John’s wort biocontrol
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Thredbo Park Bushcare Group
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.001
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Birdos along the Greenway
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+City of Kalamunda Biodiversity Inventory
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+CSIRO Ichthyology provider for OZCAM
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Echidna-CSI
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+melu_avh
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Port Adelaide Enfield Flora &amp; Fauna Monitoring
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Sea Search
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Species at 290 Leppitt Road, Upper Beaconsfield
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+WOLL AVH data
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+0.000
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="plot-1" class="section level5">
+<h5>Plot</h5>
+<p>Plots only shows data providers that supply more than 0.1% of total observations</p>
+<pre class="r"><code>prop_plot1 &lt;- prop_table_aves %&gt;% filter(prop &gt; 0.1) %&gt;%
+  ggplot(aes(x = reorder(dataResourceName, prop), y = prop, fill = dataResourceName)) + 
+  geom_bar(stat = &quot;identity&quot;) +
+  scale_y_continuous(labels = paste0(as.character(c(seq(0, 100, 25))), &quot;%&quot;)) +
+  ylim(c(0, 100)) +
+  labs(title = &quot;ALA Records 2020&quot;,
+       subtitle = &quot;Aves&quot;,
+       x = &quot;Data Providers&quot;, 
+       y = &quot;Proportion of Records&quot;) +
+  theme_minimal() + 
+  theme(legend.position = &quot;none&quot;) + 
+  coord_flip()
+
+prop_plot2 &lt;- prop_table_not_aves %&gt;% filter(prop &gt; 0.1) %&gt;%
+  ggplot(aes(x = reorder(dataResourceName, prop), y = prop, fill = dataResourceName)) + 
+  geom_bar(stat = &quot;identity&quot;) +
+  ylim(c(0, 100)) +
+  # scale_y_continuous(labels = paste0(as.character(c(seq(0, 100, 25))), &quot;%&quot;)) +
+  labs(subtitle = &quot;All Classes but Aves&quot;,
+       x = &quot;Data Providers&quot;, 
+       y = &quot;Proportion of Records&quot;) +
+  theme_minimal() + 
+  theme(legend.position = &quot;none&quot;) + 
+  coord_flip()
+
+prop_plot1</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-24-1.png" width="672" /></p>
+<pre class="r"><code>prop_plot2</code></pre>
+<p><img src="analysis-proposal_files/figure-html/unnamed-chunk-24-2.png" width="672" /></p>
+</div>
+</div>
+</div>
+</div>
+<div id="type-of-record" class="section level1">
+<h1>Type of record</h1>
+<p>So I made a version of this before that was wrong - I wasn’t getting the correct number of records - but now it’s fixed <br></p>
+<p>Another way we might be able to see the growth of citizen records is to look at the cumulative number of different types of records added to the ALA over time. This is a replication of plots Matilda made in her Shiny app</p>
+<pre class="r"><code># Create a function that gets counts by record type
+get_year_counts_by_record_type &lt;- function(year_filter, year_number) {
+  ala_counts(
+    filters = year_filter,
+    group_by = &quot;basisOfRecord&quot;,
+    limit = 900) %&gt;%
+    tibble() %&gt;%
+    mutate(year = rep(year_number))
+}
+
+# by record type
+record_type &lt;- map2_dfr(.x = all_filters, .y = all_years, 
+                              ~ {get_year_counts_by_record_type(.x, .y)})
+
+record_type &lt;- record_type %&gt;%
+  mutate(basisOfRecord = stringr::str_to_title(basisOfRecord))
+
+record_type %&gt;%
+  drop_na() %&gt;%
+  group_by(basisOfRecord) %&gt;%
+  dplyr::summarise(count = count,
+                   total = sum(count),
+                   cum_total = cumsum(count),
+                   year = year) %&gt;%
+
+  ggplot(aes(x = year,
+             y = cum_total,
+             fill = reorder(basisOfRecord, -cum_total))) +
+  geom_bar(stat = &quot;identity&quot;) +
+  scale_y_continuous(labels = scales::label_number_si()) +
+  labs(x = &quot;Year&quot;, y = &quot;Number of Records&quot;) +
+  guides(fill = guide_legend(title = &quot;Basis of Record&quot;)) +
+  theme_pilot() +
+  scale_color_pilot()</code></pre>
+<p><img src="analysis-proposal_files/figure-html/record-type-1.png" width="672" /></p>
+</div>
+<div id="other" class="section level1">
+<h1>Other</h1>
+<pre class="r"><code>#Ideas
+#   | Number of unique observations over time
+
+# Extract species names for a given year
+# species &lt;- ala_counts(group_by = &quot;species&quot;, filters = select_filters(year = 2001), limit = 50000)
+# species_names &lt;- pull(species, species)
+
+#TODO : You can create a loop to extract names of species for each year, then compare unique values
+# But this doesn&#39;t get at whether phone apps brought about a change</code></pre>
+<pre class="r"><code>#-------------------------------------------------------------------------------
+#   | Rate of observations in bushfire areas before vs after bushfires &lt;- too difficult
+
+
+#   | Could check number of papers published using ALA species distributions over time</code></pre>
 </div>
 
 <!-- ALA Template Footer -->

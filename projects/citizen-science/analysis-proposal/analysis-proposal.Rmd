@@ -15,7 +15,7 @@ output:
     css: template-files/style.css
     self_contained: FALSE
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -34,7 +34,7 @@ Here are some possible ways to see the growth of citizen science data in the Atl
 
 # Data providers
 
-One way to look the growth of citizen science might be to first view the full number of records each data provider has added to the ALA.
+One way to see the growth of citizen science might be to first view the full number of records each data provider has added to the ALA.
 
 ```{r}
 # packages
@@ -43,8 +43,7 @@ library(tidyverse)
 library(purrr)
 library(viridis)
 library(kableExtra)
-
-galah_config(email = "dax.kellie@csiro.au")
+library(pilot) # for colour palettes
 ```
 
 As far as I can tell, `dataResourceName` contains the best data provider categories. Here are some examples:
@@ -54,101 +53,17 @@ As far as I can tell, `dataResourceName` contains the best data provider categor
 # find_field_values("dataResourceName")
 
 provider_counts <- ala_counts(group_by = "dataResourceName", limit = 900)
-provider_counts %>% slice(1:10) %>% kbl() %>% kable_styling(full_width = FALSE)
-```
-
-As a test, we can look at the number of records each data provider added to the ALA. Here I've only downloaded data for a a small subset of years - between 1999 and 2003 - to avoid making **H**ypotheses **A**fter the **R**esults are **K**nown when writing the paper (i.e. **HARK**ing).
-
-```{r}
-# Find number of records by data provider by year
-
-# list years
-years <- 1999:2003
-years_long <- paste0("select_filters(year = ", years, ")", sep="")
-
-# Get counts of records from data providers by year
-data_providers <- years_long %>%
-  map(~ala_counts(
-    list(filters = .x),
-    group_by = "dataResourceName",
-    limit = 900)) %>%
-  tibble(year = years,
-         y = .) %>%
-  unnest(y) # back to df
-
-# clean string names of data providers
-data_providers <- data_providers %>%
-  mutate(dataResourceName = str_squish(dataResourceName))
-
-# plot
-data_providers %>%
-  drop_na() %>%
-  group_by(dataResourceName) %>%
-  # arrange(year, dataResourceName) %>%
-  dplyr::summarise(count = count,
-                   total = sum(count),
-                   cum_total = cumsum(count),
-                   year = year) %>%
-  filter(total > 30000) %>%
-  ggplot(aes(x = year, 
-             y = cum_total, 
-             fill = reorder(str_wrap(dataResourceName), -cum_total))) +
-  geom_bar(stat = "identity") +
-  scale_y_continuous(labels = scales::label_number_si()) +
-  labs(x = "Year", y = "Number of Records") +
-  scale_fill_brewer(palette = "Set2", direction = 1) +
-  guides(fill = guide_legend(title = "Data Providers", nrow = 6)) +
-  theme_minimal()
-```
-
-
-# Type of record
-
-Another way we might be able to see the growth of citizen records is to look at the cumulative number of different types of records added to the ALA over time. Again, we will just look at a small subset between 1999 and 2003. This is a replication of plots Matilda made in her Shiny app
-
-```{r}
-# by record type
-record_type <- years_long %>%
-  map(~ala_counts(
-    list(filters = .x),
-    group_by = "basisOfRecord",
-    limit = 900)) %>%
-  tibble(year = years,
-         y = .) %>%
-  unnest(y) # back to df
-
-record_type <- record_type %>%
-  mutate(basisOfRecord = stringr::str_to_title(basisOfRecord))
-
-record_type %>%
-  drop_na() %>%
-  group_by(basisOfRecord) %>%
-  dplyr::summarise(count = count,
-                   total = sum(count),
-                   cum_total = cumsum(count),
-                   year = year) %>%
-
-  ggplot(aes(x = year,
-             y = cum_total,
-             fill = reorder(basisOfRecord, -cum_total))) +
-  geom_bar(stat = "identity") +
-  scale_y_continuous(labels = scales::label_number_si()) +
-  labs(x = "Year", y = "Number of Records") +
-  scale_fill_brewer(palette = "Dark2", direction = 1) +
-  guides(fill = guide_legend(title = "Basis of Record")) +
-  theme_minimal()
+provider_counts %>% slice(1:10) %>% kbl()
 ```
 
 
 # Kingdoms
 
-It might also be useful to divide counts by kingdoms, knowing the huge biases in human observation records. It is possible to separate this by phylum or class, or even of a specific animal (like Cam's favourite - Koalas) though we just need to be deliberate about our choices.
+Here we can try to see the growth of records for each kingdom, and the proportion of records from each data provider <br>
 
-I plan to try comparing the top 25-50 most popularly added taxa to the rest of the Atlas to see the extent of bias in records.
+Use the buttons to look at each plot, and take note of the y axis because the number of records added changes quite a bit between kingdoms
 
-```{r}
-# Ok now by kingdom
-
+```{r kingdom-counts}
 # Extract kingdom names
 kingdoms <- ala_counts(group_by = "kingdom", limit = 10)
 kingdom_names <- pull(kingdoms, kingdom)
@@ -167,16 +82,33 @@ kingdom_counts <- kingdom_names %>%
 
 
 # I think I just have to put this into a function and run it many times
-
 # We have to do it this way because each select_filters() call builds a df
 year_filter_1999 <- select_filters(year = 1999)
 year_filter_2000 <- select_filters(year = 2000)
 year_filter_2001 <- select_filters(year = 2001)
 year_filter_2002 <- select_filters(year = 2002)
 year_filter_2003 <- select_filters(year = 2003)
+year_filter_2004 <- select_filters(year = 2004)
+year_filter_2005 <- select_filters(year = 2005)
+year_filter_2006 <- select_filters(year = 2006)
+year_filter_2007 <- select_filters(year = 2007)
+year_filter_2008 <- select_filters(year = 2008)
+year_filter_2009 <- select_filters(year = 2009)
+year_filter_2010 <- select_filters(year = 2010)
+year_filter_2011 <- select_filters(year = 2011)
+year_filter_2012 <- select_filters(year = 2012)
+year_filter_2013 <- select_filters(year = 2013)
+year_filter_2014 <- select_filters(year = 2014)
+year_filter_2015 <- select_filters(year = 2015)
+year_filter_2016 <- select_filters(year = 2016)
+year_filter_2017 <- select_filters(year = 2017)
+year_filter_2018 <- select_filters(year = 2018)
+year_filter_2019 <- select_filters(year = 2019)
+year_filter_2020 <- select_filters(year = 2020)
 
 # Create a function that gets counts for all kingdoms and converts to data frame
 get_year_counts <- function(year_filter, year_number) {
+  
   kingdom_counts <- kingdom_names %>%
     map( ~ ala_counts(
       taxa = select_taxa(list(kingdom = .x)),
@@ -197,15 +129,33 @@ counts_2000 <- get_year_counts(year_filter_2000, 2000)
 counts_2001 <- get_year_counts(year_filter_2001, 2001)
 counts_2002 <- get_year_counts(year_filter_2002, 2002)
 counts_2003 <- get_year_counts(year_filter_2003, 2003)
+counts_2004 <- get_year_counts(year_filter_2004, 2004)
+counts_2005 <- get_year_counts(year_filter_2005, 2005)
+counts_2006 <- get_year_counts(year_filter_2006, 2006)
+counts_2007 <- get_year_counts(year_filter_2007, 2007)
+counts_2008 <- get_year_counts(year_filter_2008, 2008)
+counts_2009 <- get_year_counts(year_filter_2009, 2009)
+counts_2010 <- get_year_counts(year_filter_2010, 2010)
+counts_2011 <- get_year_counts(year_filter_2011, 2011)
+counts_2012 <- get_year_counts(year_filter_2012, 2012)
+counts_2013 <- get_year_counts(year_filter_2013, 2013)
+counts_2014 <- get_year_counts(year_filter_2014, 2014)
+counts_2015 <- get_year_counts(year_filter_2015, 2015)
+counts_2016 <- get_year_counts(year_filter_2016, 2016)
+counts_2017 <- get_year_counts(year_filter_2017, 2017)
+counts_2018 <- get_year_counts(year_filter_2018, 2018)
+counts_2019 <- get_year_counts(year_filter_2019, 2019)
+counts_2020 <- get_year_counts(year_filter_2020, 2020)
 
 # merge all the years
-counts_99_to_03 <- rbind(counts_1999, counts_2000, counts_2001, counts_2002, counts_2003)
+counts_99_to_20 <- rbind(counts_1999, counts_2000, counts_2001, counts_2002, counts_2003,
+                         counts_2004, counts_2005, counts_2006, counts_2007, counts_2008,
+                         counts_2009, counts_2010, counts_2011, counts_2012, counts_2013,
+                         counts_2014, counts_2015, counts_2016, counts_2017, counts_2018,
+                         counts_2019, counts_2020)
 
 
 # Get complete list of possible kingdoms and dataResources
-
-# We have kingdom names
-# kingdom_names
 
 # Extract resources names
 resources <- find_field_values("dataResourceName", limit = 900)
@@ -214,7 +164,7 @@ resource_names <- resource_names %>% str_trim() # trim whitespace
 
 
 # Use crossing() to find all possible combinations of inputs
-years_list <- 1999:2003
+years_list <- 1999:2020
 king_df <- crossing(kingdom_names, years_list, resource_names)
 
 king_df <- king_df %>% # Do some renaming before merging
@@ -224,33 +174,32 @@ king_df <- king_df %>% # Do some renaming before merging
 
 # Get missing values
 full_counts <- king_df %>%
-  left_join(counts_99_to_03) %>%
+  left_join(counts_99_to_20) %>%
   replace_na(list(count = 0)) # replace NAs
 
-# full_counts %>% slice(1:10)
 full_counts <- full_counts %>%
   group_by(kingdom, dataResourceName) %>%
   mutate(
     cum_count = cumsum(count)
   )
 
+# full_counts %>% slice(1:10)
 # full_counts %>% filter(kingdom == "Fungi") %>% filter(dataResourceName == "Fungimap")
 ```
 
 
-```{r}
+```{r plot-functions-kingdom}
 #------------ Plot ---------------#
 library(ggstream)
 library(viridis)
 
-
+# Tidy dataframe
 full_counts_tidy <- full_counts %>%
   mutate(across(where(is.character), as.factor))
 
-# glimpse(full_counts_tidy)
 
 # Plotting stacked area chart function
-stream_plot_function <- function(kingdom_name, at_least_this_many_records){
+plot_stream_plot_stacked <- function(kingdom_name, at_least_this_many_records){
   full_counts_tidy %>%
     drop_na() %>%
     filter(kingdom == as.character(kingdom_name)) %>%
@@ -264,20 +213,50 @@ stream_plot_function <- function(kingdom_name, at_least_this_many_records){
                fill = str_wrap(dataResourceName))) +
     geom_stream(color = "black",
                 extra_span = .013,
-                type = "ridge", bw = 1) +
-    # geom_stream_label(aes(label = dataResourceName),
-    #                   size = 4, type = "ridge",
-    #                   colour = "black") +
-    scale_fill_viridis_d(option = "D") +
+                type = "ridge", bw = .9, sorting = "onset") +
+    geom_stream_label(aes(label = dataResourceName),
+                      size = 3, type = "ridge",
+                      colour = "black", sorting = "onset") +
+    scale_fill_viridis_d(option = "D", begin = 0.3) +
     guides(fill = guide_legend(title = "Data provider")) +
     scale_x_continuous(name = "Year") +
     scale_y_continuous(name = "Total observations per year",
                        labels = scales::comma) +
-    theme_minimal()
+    theme_minimal() + 
+    theme(legend.position = "none")
+}
+
+
+# Plotting proportional area chart function
+plot_stream_plot_prop <- function(kingdom_name, at_least_this_many_records){
+  full_counts_tidy %>%
+    drop_na() %>%
+    filter(kingdom == as.character(kingdom_name)) %>%
+    group_by(kingdom, dataResourceName) %>%
+    dplyr::summarise(total = cumsum(count),
+                     year = year) %>%
+    filter(total > at_least_this_many_records) %>% # filter records
+
+    ggplot(aes(x = year, # Plot
+               y = total,
+               fill = str_wrap(dataResourceName))) +
+    geom_stream(color = "black",
+                extra_span = .013,
+                type = "proportional", bw = .9, sorting = "onset") +
+    geom_stream_label(aes(label = dataResourceName),
+                      size = 3, type = "proportional",
+                      colour = "black", sorting = "onset") +
+    scale_fill_viridis_d(option = "D", begin = 0.3) +
+    guides(fill = guide_legend(title = "Data provider")) +
+    scale_x_continuous(name = "Year") +
+    scale_y_continuous(name = "Total observations per year",
+                       labels = scales::comma) +
+    theme_minimal() + 
+    theme(legend.position = "none")
 }
 ```
 
-Use the buttons to look at each plot, and take note of the y axis because the number of records added changes quite a bit between kingdoms
+
 
 ## Plots {.tabset .tabset-fade .tabset-pills}
 
@@ -288,44 +267,480 @@ Use the buttons to look at each plot, and take note of the y axis because the nu
 
 ### Animalia
 ```{r}
-stream_plot_function("Animalia", 200000)
+plot_stream_plot_stacked("Animalia", 200000)
+```
+
+```{r}
+plot_stream_plot_prop("Animalia", 200000)
 ```
 
 ### Plantae
 ```{r}
-stream_plot_function("Plantae", 125000)
+plot_stream_plot_stacked("Plantae", 125000)
+```
+
+```{r}
+plot_stream_plot_prop("Plantae", 125000)
 ```
 
 ### Fungi
 ```{r}
-stream_plot_function("Fungi", 5000)
+plot_stream_plot_stacked("Fungi", 5000)
+```
+
+```{r}
+plot_stream_plot_prop("Fungi", 5000)
 ```
 
 ### Bacteria
 ```{r}
-stream_plot_function("Bacteria", 50)
+plot_stream_plot_stacked("Bacteria", 50)
+```
+
+```{r}
+plot_stream_plot_prop("Bacteria", 50)
 ```
 
 ### Chromista
 ```{r}
-stream_plot_function("Chromista", 10000)
+plot_stream_plot_stacked("Chromista", 10000)
+```
+
+```{r}
+plot_stream_plot_prop("Chromista", 10000)
 ```
 
 ### Protista
 ```{r}
-stream_plot_function("Protista", 1)
+plot_stream_plot_stacked("Protista", 1)
+```
+
+```{r}
+plot_stream_plot_prop("Protista", 1)
 ```
 
 ### Protozoa
 ```{r}
-stream_plot_function("Protozoa", 1)
+plot_stream_plot_stacked("Protozoa", 1)
 ```
 
-# Future ideas
+```{r}
+plot_stream_plot_prop("Protozoa", 1)
+```
 
-There are still other visualisations I am looking to try. These include:
 
-* Some sort of comparison of yearly rates of change in different types of record counts
-* Growth rate of popular vs unpopular species records in the ALA
-* Records in bushfire areas before vs after bushfires (this requires some sort of geographic coordinates of bushfires, so could be complicated)
+# Rate of change per year
+
+It might also be useful to see the rate that observations from data providers are inflating/deflating. Considering records from eBird appear to be growing the fastest, let's have a look at the numbers:
+
+```{r}
+# Calculate rate of change in observations by year
+
+rate_of_change <- full_counts %>%
+  group_by(kingdom, dataResourceName) %>%
+  mutate(pct_change = (((lead(count)/count) - 1)*100))
+
+rate_of_change <- rate_of_change %>% group_by(kingdom, year) %>% mutate(yearly_total = sum(count),
+                                                                        prop = count/yearly_total)
+
+rate_of_change$pct_change[is.nan(rate_of_change$pct_change)]<-0
+
+# Table of percent change
+rate_of_change %>% 
+  filter(kingdom == "Animalia") %>% 
+  filter(dataResourceName == "eBird Australia") %>% kbl() %>% kable_styling()
+```
+
+It's worth noting 2 things:   
+- The rate of change from 2008 to 2012 is massive  
+- Anything more than a 20% increase after 2012 translates to an increase of > 100000 records. So just because the rate of change is lower than in 2012 doesn't tell the full story because we are talking about so many records    
+
+***
+
+In the following plot, increasing observations are on the x axis, the proportion of records that year are on the y axis, and the size of the dot represents the cumulative count of records in the ALA. Small dots near the bottom left corner are data providers that provide relatively small numbers of observations each year, whereas large dots near the upper right corner are data providers that provide relatively large numbers of observations each year
+
+What is interesting is that only more recently did citizen science app data like eBird become the majority of yearly records added to the ALA. This change happens closer to 2017 rather than 2010/11. <br>
+
+(This plot only shows Animalia data)
+
+```{r message = FALSE}
+# list of names for the plot
+data_resource_names <- full_counts_tidy %>%
+  drop_na() %>%
+  filter(kingdom == as.character("Animalia")) %>%
+  group_by(kingdom, dataResourceName) %>%
+  dplyr::summarise(total = cumsum(count),
+                   year = year) %>%
+  filter(total > 200000) %>%
+  distinct(dataResourceName) %>%
+  ungroup(.) %>%
+  select(dataResourceName)
+
+library(gganimate)
+library(ggrepel)
+
+## animated ggplot2
+rate_of_change %>% 
+  filter(kingdom == "Animalia") %>% 
+  # filter(count > 1) %>% 
+  filter(pct_change < 20) %>%
+  filter(year > 2000) %>%
+  filter(dataResourceName %in% data_resource_names$dataResourceName) %>%
+  mutate(label = case_when(dataResourceName == "eBird Australia" ~ dataResourceName,
+                           dataResourceName == "iNaturalist" ~ dataResourceName,
+                           prop > 0.1 ~ dataResourceName,
+                           TRUE ~ '')) %>%
+  
+ggplot(aes(cum_count, prop, size = cum_count, colour = dataResourceName, label = label)) +
+  geom_point(alpha = 0.7, show.legend = FALSE) +
+  geom_hline(yintercept = 0, color = "black", size = 1) + 
+  geom_vline(xintercept = 0, color = "black", size = 1) + 
+  scale_colour_viridis_d() +
+  geom_text_repel(max.overlaps = 100,
+                  box.padding = 1) + 
+  theme_minimal() +
+  theme(legend.position = "none") +
+  # Here comes the gganimate specific bits
+  labs(title = 'year: {frame_time}', x = 'Number of obvs in Atlas', y = 'Proportion of total records each year') +
+  transition_time(year) +
+  ease_aes('linear')
+
+```
+ 
+<br>
+
+***
+
+# Popular species vs unpopular species 
+
+Earlier this year we figured out how to build flexible decision trees that make hierarchical decisions based on some variable, for example observation counts. In other words, we can build a tree of "importance" based on which clades have the most observations in the ALA. <br>
+
+What could be useful is to compare the number of observations from citizen science vs non-citizen science data providers between clades with the most observations and the rest of the ALA. <br>
+
+I have pulled that info from that analysis to see what the top 20(ish) clades are in the ALA by number of observations. <br>
+
+### List of most popular clades
+
+```{r}
+# Get data of clades with highest number of observations
+top_clades <- readRDS(here::here("projects", "data_holdings", "taxonomic", "data", "summary-tree_top-taxa-list.rds"))
+
+# Extract names
+top_clade_names <- top_clades %>% filter(type == 2) %>% pull(., label)
+
+# Find taxon concept id within ALA
+top_orders_dfr <- top_clade_names %>% 
+  map( ~ select_taxa(list(.x))) %>% # run select_taxa() for each name
+  plyr::ldply (., data.frame) %>%   # convert to df
+  # filter(kingdom == "Animalia") %>% # filter to only animal kingdom
+  filter(!is.na(order))   # select only those down to order
+
+top_orders_dfr %>% select(vernacular_name, class) %>% distinct(class, vernacular_name)
+```
+
+Wow they are nearly all birds. Perhaps it might be best to compare other taxonomic classes with Aves to see how different bird observations are compared with observations of other species. <br>
+
+Here are the top 10 classes
+
+```{r}
+# Extract class names
+classes <- ala_counts(group_by = "class", limit = 320)
+class_names <- pull(classes, class)
+
+classes[1:10,] # top 10
+```
+
+
+## Birds vs the rest
+
+Let's try comparing the proportion of occurrences from citizen science and non-citizen science data providers for Aves vs all the other classes.
+
+```{r aves-not-aves-counts}
+# Separate Aves
+class_aves <- "Aves"
+class_not_aves <- class_names[!class_names %in% "Aves"]
+
+# Create a function that gets counts for all classes and converts to data frame
+get_year_counts_by_class <- function(year_filter, year_number, class_df) {
+  ala_counts(
+    taxa = select_taxa(as.list(class_df)),
+    filters = year_filter,
+    group_by = "dataResourceName",
+    limit = 900) %>%
+    tibble() %>%
+    mutate(year = rep(year_number))
+}
+
+# Run this function for each year
+all_filters <- list(year_filter_1999, year_filter_2000, year_filter_2001,
+                    year_filter_2002, year_filter_2003, year_filter_2004,
+                    year_filter_2005, year_filter_2006, year_filter_2007, 
+                    year_filter_2008, year_filter_2009, year_filter_2010,
+                    year_filter_2011, year_filter_2012, year_filter_2013,
+                    year_filter_2014, year_filter_2015, year_filter_2016, 
+                    year_filter_2017, year_filter_2018, year_filter_2019,
+                    year_filter_2020)
+all_years <- 1999:2020
+
+# Get counts for Aves
+class_counts_aves <- map2_dfr(.x = all_filters, .y = all_years, 
+                              ~ {get_year_counts_by_class(.x, .y, class_aves)})
+
+# Use crossing() to find all possible combinations dataProviders and years
+# resource_names[1:5] # We already have a full list of resource names
+all_combos_of_years <- crossing(all_years, resource_names)
+
+# Do some renaming before merging
+all_combos_of_years <- all_combos_of_years %>% 
+  rename(year = all_years,
+         dataResourceName = resource_names)
+
+# Merge and replace NAs with zeros
+class_aves_full_counts <- all_combos_of_years %>%
+  left_join(class_counts_aves) %>%
+  replace_na(list(count = 0)) # replace NAs
+
+# class_aves_full_counts %>% slice(1:10)
+
+
+
+# Get counts for all other not Aves classes
+class_counts_not_aves <- map2_dfr(.x = all_filters, .y = all_years, 
+                              ~ {get_year_counts_by_class(.x, .y, class_not_aves)})
+
+# Merge with all_combos_of_years and replace NAs with zeros
+class_not_aves_full_counts <- all_combos_of_years %>%
+  left_join(class_counts_not_aves) %>%
+  replace_na(list(count = 0)) # replace NAs
+
+# class_not_aves_full_counts %>% slice(1:10)
+```
+
+<br>
+
+#### Plot {.tabset .tabset-fade .tabset-pills}
+
+Use the buttons to see plots
+
+```{r plot-functions}
+make_plotting_df <- function(df, at_least_this_many_records) {
+  df %>%
+    drop_na() %>%
+    group_by(dataResourceName) %>%
+    dplyr::summarise(total = cumsum(count),
+                     year = year) %>% 
+    filter(total > at_least_this_many_records) %>% # filter records
+    mutate(across(where(is.character), as.factor))
+}
+
+# Plotting stacked area chart function
+plot_stream_plot_stacked <- function(df){
+  df %>%
+    ggplot(aes(x = year, # Plot
+               y = total,
+               fill = str_wrap(dataResourceName))) +
+    geom_stream(color = "black",
+                extra_span = .013,
+                type = "ridge", bw = .9, sorting = "onset") +
+    geom_stream_label(aes(label = dataResourceName),
+                      size = 3, type = "ridge",
+                      colour = "black", sorting = "onset") +
+    scale_fill_viridis_d(option = "D", begin = 0.3) +
+    guides(fill = guide_legend(title = "Data provider")) +
+    scale_x_continuous(name = "Year") +
+    scale_y_continuous(name = "Total observations per year",
+                       labels = scales::comma) +
+    theme_minimal() + 
+    theme(legend.position = "none")
+}
+
+# Plotting proportional area chart function
+plot_stream_plot_prop <- function(df){
+  df %>%
+    ggplot(aes(x = year, # Plot
+               y = total,
+               fill = str_wrap(dataResourceName))) +
+    geom_stream(color = "black",
+                extra_span = .013,
+                type = "proportional", bw = .9, sorting = "onset") +
+    geom_stream_label(aes(label = dataResourceName),
+                      size = 3, type = "proportional",
+                      colour = "black", sorting = "onset") +
+    scale_fill_viridis_d(option = "D", begin = 0.3) +
+    # guides(fill = guide_legend(title = "Data provider")) +
+    scale_x_continuous(name = "Year") +
+    scale_y_continuous(name = "Proportion of total records",
+                       labels = scales::comma) +
+    theme_minimal() + 
+    theme(legend.position = "none")
+}
+```
+
+##### Cumulative number
+
+```{r}
+aves_plot_df <- make_plotting_df(class_aves_full_counts, 1000000)
+not_aves_plot_df <- make_plotting_df(class_not_aves_full_counts, 1000000)
+
+# plot 1
+library(patchwork)
+p1 <- plot_stream_plot_stacked(aves_plot_df)
+p2 <- plot_stream_plot_stacked(not_aves_plot_df)
+
+p1 
+p2
+```
+
+##### Proportions
+
+```{r}
+# plot 2
+p3 <- plot_stream_plot_prop(aves_plot_df)
+p4 <- plot_stream_plot_prop(not_aves_plot_df)
+
+p3 
+p4
+```
+
+<br>
+
+***
+
+#### Records from 2020 only {.tabset .tabset-fade .tabset-pills}
+
+Looking at only 2020 records shows how important citizen science records are for Aves. eBird records alone account for more than 95% of occurrence records added to the ALA in 2020 for birds. In comparison, iNaturalist records accounted for ~57% of all records added to the ALA in 2020 for all other classes. <br>
+
+It's worth noticing that these trends closely resemble the difference between Animalia and Plantae plots in the "Kingdoms" section above
+
+##### Tables 
+
+```{r aves-counts-2020}
+prop_table_aves <- class_counts_aves %>% 
+  group_by(year) %>%
+  mutate(yearly_total = sum(count),
+         dataResourceName = str_trim(dataResourceName)) %>%
+  group_by(dataResourceName, year) %>%
+  summarise(
+    prop = round((count/yearly_total)*100, 3)) %>%
+  filter(year == 2020) %>%
+  arrange(desc(prop))
+
+prop_table_not_aves <- class_counts_not_aves %>% 
+  group_by(year) %>%
+  mutate(yearly_total = sum(count),
+         dataResourceName = str_trim(dataResourceName)) %>%
+  group_by(dataResourceName, year) %>%
+  summarise(
+    prop = round((count/yearly_total)*100, 3)) %>%
+  filter(year == 2020) %>%
+  arrange(desc(prop))
+
+
+prop_table_aves %>%
+  kbl(caption = "Top record providers - Aves") %>% kable_styling()
+
+
+prop_table_not_aves %>%
+  kbl(caption = "Top record providers - Everything but Aves") %>% kable_styling()
+```
+
+##### Plot
+
+Plots only shows data providers that supply more than 0.1% of total observations
+
+```{r}
+prop_plot1 <- prop_table_aves %>% filter(prop > 0.1) %>%
+  ggplot(aes(x = reorder(dataResourceName, prop), y = prop, fill = dataResourceName)) + 
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = paste0(as.character(c(seq(0, 100, 25))), "%")) +
+  ylim(c(0, 100)) +
+  labs(title = "ALA Records 2020",
+       subtitle = "Aves",
+       x = "Data Providers", 
+       y = "Proportion of Records") +
+  theme_minimal() + 
+  theme(legend.position = "none") + 
+  coord_flip()
+
+prop_plot2 <- prop_table_not_aves %>% filter(prop > 0.1) %>%
+  ggplot(aes(x = reorder(dataResourceName, prop), y = prop, fill = dataResourceName)) + 
+  geom_bar(stat = "identity") +
+  ylim(c(0, 100)) +
+  # scale_y_continuous(labels = paste0(as.character(c(seq(0, 100, 25))), "%")) +
+  labs(subtitle = "All Classes but Aves",
+       x = "Data Providers", 
+       y = "Proportion of Records") +
+  theme_minimal() + 
+  theme(legend.position = "none") + 
+  coord_flip()
+
+prop_plot1
+prop_plot2
+```
+
+
+# Type of record
+
+So I made a version of this before that was wrong - I wasn't getting the correct number of records - but now it's fixed <br>
+
+Another way we might be able to see the growth of citizen records is to look at the cumulative number of different types of records added to the ALA over time. This is a replication of plots Matilda made in her Shiny app
+
+```{r record-type}
+# Create a function that gets counts by record type
+get_year_counts_by_record_type <- function(year_filter, year_number) {
+  ala_counts(
+    filters = year_filter,
+    group_by = "basisOfRecord",
+    limit = 900) %>%
+    tibble() %>%
+    mutate(year = rep(year_number))
+}
+
+# by record type
+record_type <- map2_dfr(.x = all_filters, .y = all_years, 
+                              ~ {get_year_counts_by_record_type(.x, .y)})
+
+record_type <- record_type %>%
+  mutate(basisOfRecord = stringr::str_to_title(basisOfRecord))
+
+record_type %>%
+  drop_na() %>%
+  group_by(basisOfRecord) %>%
+  dplyr::summarise(count = count,
+                   total = sum(count),
+                   cum_total = cumsum(count),
+                   year = year) %>%
+
+  ggplot(aes(x = year,
+             y = cum_total,
+             fill = reorder(basisOfRecord, -cum_total))) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = scales::label_number_si()) +
+  labs(x = "Year", y = "Number of Records") +
+  guides(fill = guide_legend(title = "Basis of Record")) +
+  theme_pilot() +
+  scale_color_pilot()
+```
+
+# Other
+```{r}
+#Ideas
+#   | Number of unique observations over time
+
+# Extract species names for a given year
+# species <- ala_counts(group_by = "species", filters = select_filters(year = 2001), limit = 50000)
+# species_names <- pull(species, species)
+
+#TODO : You can create a loop to extract names of species for each year, then compare unique values
+# But this doesn't get at whether phone apps brought about a change
+```
+
+
+```{r}
+#-------------------------------------------------------------------------------
+#   | Rate of observations in bushfire areas before vs after bushfires <- too difficult
+
+
+#   | Could check number of papers published using ALA species distributions over time
+```
 
