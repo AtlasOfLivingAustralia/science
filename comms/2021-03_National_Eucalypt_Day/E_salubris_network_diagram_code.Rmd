@@ -1,29 +1,57 @@
 ---
 title: "National Eucalypt Day"
 description: |
-  A plot of E. salubris for National Eucalypt Day 2021
+  [National Eucalypt Day](https://www.eucalyptaustralia.org.au/national-eucalypt-day/national-eucalypt-day/) aims to raise awareness about Eucalypts and celebrate their influence on the lives of Australians. In honour of National Eucalypt day, we created a network plot based on occurrences data held in the Atlas of Living Australia, themed using colours from actual Eucalypts
 author:
-  - name: Martin Westgate 
-    url: "people/Westgate_Martin/index.html"
+  - name: Martin Westgate
 date: "March 2021"
 categories: 
-  - National Eucalypt Day
-  - Data Visualisation
+  - Plantae
+  - Counts
+  - Maps
 output: 
   distill::distill_article:
-    highlight: pygments
+    highlight: tango
     toc: true
     toc_float: true
     toc_depth: 3
 ---
 
+<!-- Complete title, description, author and date for website metadata -->
 
-[National Eucalypt Day](https://www.eucalyptaustralia.org.au/national-eucalypt-day/national-eucalypt-day/) aims to raise awareness about Eucalypts and celebrate their influence on the lives of Australians. In honour of National Eucalypt day, we created a network plot based on occurrences data held in the Atlas of Living Australia, themed using colours from actual Eucalypts
+```{r, include=FALSE}
+library(htmltools)
+date.func <- format(Sys.time(), '%d %B, %Y')
+```
 
-See the the [original R script](https://github.com/AtlasOfLivingAustralia/science/blob/main/comms/2021-03_National_Eucalypt_Day/E_salubris_network_diagram_code.R) for this plot
+<!-- remove distill metadata section -->
+```{css, echo = FALSE}
+d-byline {
+    display: none;
+  }
+```
 
 
-***
+<!-- Author card -->
+
+:::author-card
+:::float-image
+
+```{r out.width='120px', out.extra='style="float:right; margin-left:15px; margin-right:50px; clip-path: circle();"', echo=FALSE}
+knitr::include_graphics("https://raw.githubusercontent.com/AtlasOfLivingAustralia/SDS_website/main/images/people/martin.jpg")
+```
+
+:::author-card-text
+<h4 style = "margin-bottom:5px">Author:</h4>
+[Martin Westgate](people/Westgate_Martin/index.html)
+
+<h4 style = "margin-bottom:5px">Date:</h4>
+March 2021
+:::
+
+:::
+:::
+
 
 # Creating a network plot
 
@@ -41,7 +69,7 @@ library(galah)
 (If running this code yourself, you need to first set an email associated with your data download request, substituting your email with `myemail@email.com`)
 
 ```{r, eval = FALSE}
-ala_config(email = "myemail@email.com")
+galah_config(email = "myemail@email.com")
 ```
 
 
@@ -61,12 +89,21 @@ occurrences$date <- lubridate::ymd(occurrences$eventDate) # change date format
 occurrences$year <- lubridate::year(occurrences$date)     # extract year
 ```
 
-```{r}
-str(occurrences)
+So the data frame looks like:
+
+```{r, warning = FALSE, message = FALSE, layout = "l-page"}
+library(tidyverse)
+library(kableExtra)
+
+occurrences %>% 
+  as_tibble() %>% 
+  slice(1:5) %>% 
+  kbl() %>% kable_styling(full_width = FALSE)
 ```
 
 
 ## Create Eucalypt colour scheme
+
 Then get a color scheme from images of the species in question using the [paletter](https://github.com/AndreaCirilloAC/paletter) package (which needs to be installed from github) <br>
 
 <div class = "blue" style = "background-color:#B7CD96; border-radius: 5px; padding: 10px;">
@@ -99,10 +136,18 @@ colour_index <- c(colour_index,
   rep(length(image_pal), nrow(occurrences) - length(colour_index)))
 # add an index of colours to occurrences
 occurrences$colour_index <- as.factor(colour_index)
-occurrences %>% filter(is.na(colour_index))
 ```
 
-***
+Our data frame now looks like this
+
+```{r, layout = "l-page"}
+occurrences %>% 
+  as_tibble() %>% 
+  slice(1:5) %>% 
+  kbl() %>% kable_styling(full_width = FALSE)
+```
+
+------------------------------------------------------------------------------
 
 # Create plot
 
@@ -118,7 +163,7 @@ graph_list <- lapply(c(1:15), function(a){
     to = lookup[c(2:length(lookup))]))
   })
 graph_df <- as.matrix(do.call(rbind, graph_list))         # build matrix
-colour_graph <- graph_from_edgelist(graph_df)             # make network graph
+colour_graph <- graph_from_edgelist(graph_df)             # create network graph
 
 # convert to a set of point locations
 test_layout <- as.data.frame(layout_nicely(colour_graph)) # convert to df
@@ -149,3 +194,4 @@ ggsave("plot_image.pdf", p)
 ```
 
 
+See the the [original R script](https://github.com/AtlasOfLivingAustralia/science/blob/main/comms/2021-03_National_Eucalypt_Day/E_salubris_network_diagram_code.R)
