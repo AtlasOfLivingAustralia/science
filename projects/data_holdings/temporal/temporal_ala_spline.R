@@ -5,96 +5,78 @@
 ## ------------------------------------------------------#
 
 
-# NOTE: This code is not reproducible for others at the moment. Stay tuned!
+#-----------------------------------------------------------------#
+# Average number of records added daily to the ALA from 2010 2020 #
+#-----------------------------------------------------------------#
+#                   Splines by state/territory
+#-----------------------------------------------------------------#
 
 
-rm(list = ls())
-
-#-----------------------------------------------------#
-#               Multiple state splines                #
-#-----------------------------------------------------#
-
-
-# Call saved local data files
 library(tidyverse)
 library(lubridate)
 
-path1 <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/ALA/Projects/Data Holdings/data_ALA/eventDate"
-df <- list.files(path = path1, full.names = TRUE) %>%
-  map_dfr(readRDS, .id = 'source')
-
-
-
-#------------- Prepare data frame --------------#
-
-# to get a list of what order the data sets were loaded into R, check out the files paths
-list.files(path = path1)
-
-# create column to identify states by name & select columns
-df <- df %>%
-  mutate(state = recode(source,
-                        "1" = "NSW",
-                        "2" = "QLD",
-                        "3" = "VIC",
-)) %>%
-  select(state, eventDate)
-
-
-# set dates to date format
-df$eventDate <- ymd(df$eventDate)
-
-# nest states into data frame
-occ_nested <- df %>% 
-  group_by(state) %>% 
-  nest()
-occ_nested
-
-rm(df)
-
-
-
-#--------------- Extract data -----------------#
-
-# set time interval of interest
-day_interval <- seq(ymd("2012-01-01"), ymd("2020-12-31"), by = "days")
-
-
-# NOTE:
-# On line 92, change number for event date and run to line 145
-# Then save model prediction results, run plotting function, save plot
-
-
-
-# set up date dataset
-date_df <- data.frame(
-  date = day_interval,
-  date_numeric = as.numeric(day_interval),
-  date_julian = yday(day_interval))
-
-# states
-# states <-  c("TAS", "WA")
-# date_df_list <- states %>% map_df(., ~data.frame(
-#     date = day_interval,
-#     date_numeric = as.numeric(day_interval),
-#     date_julian = yday(day_interval),
-#     state = map_chr(., ~as.character(.x), id = "id"))) %>%
-#   group_by(state) %>%
-#   nest()
-# date_df_list
-
-
-# count records on each day
-func <- function(eventDate, date_df_date){
-  return(length(which(eventDate == date_df_date)))
+# Call saved local data files
+read_data_in <- function(file_path) {
+  data <- readRDS(file = file_path) %>% select(eventDate) # read data, select eventDate col
+  data <- data %>%
+    mutate(
+      state = rep(str_sub(file_path, start = -19, end = -17)) %>% str_remove(c("/")), # get state id
+      eventDate = ymd(eventDate)
+    ) # set dates to date format
+  tib <- tidyr::nest(data, y = c(eventDate)) # nest dates
+  names(tib$y) <- as.character(tib$state) # rename nested data to state names
+  return(tib)
 }
 
-#---------------------------------------------------------------------------------#
-event_date <- occ_nested %>% pluck("data", 2) # change number for different states
-#_________________________________________________________________________________
+# set local path
+path1 <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/ALA/Projects/Data Holdings/data_ALA/eventDate"
 
-date_df <- date_df %>% mutate(
-  record_count = pmap_dbl( list(event_date,day_interval), func))
+# read RDS files into dataframe containing list
+occ_nested <- list.files(path = path1, full.names = TRUE) %>%
+  map_dfr(read_data_in)
+occ_nested
 
+
+
+#--------------- Extract day counts data -----------------#
+
+find_daily_record_counts <- function(state_event_dates) {
+  
+  # time interval of interest
+  day_interval <- seq(ymd("2010-01-01"), ymd("2020-12-31"), by = "days")
+  
+  # set up date dataset
+  date_df <- data.frame(
+    date = day_interval,
+    date_numeric = as.numeric(day_interval),
+    date_julian = yday(day_interval)
+  )
+  
+  # count records on each day
+  count_daily_records <- function(eventDate, date_df_date) {
+    return(length(which(eventDate == date_df_date)))
+  }
+  
+  date_df <- date_df %>% mutate(
+    record_count = pmap_dbl(list(state_event_dates, day_interval), count_daily_records)
+  )
+  # tib <- tidyr::nest(date_df, data = everything()) # nest dataframe output
+  # return(tib)
+}
+
+# ______________________________________________________________________________
+day_counts_ACT <- occ_nested %>% pluck("y", "ACT") %>% find_daily_record_counts(.)
+day_counts_NSW <- occ_nested %>% pluck("y", "NSW") %>% find_daily_record_counts(.)
+day_counts_NT <- occ_nested %>% pluck("y", "NT") %>% find_daily_record_counts(.)
+day_counts_QLD <- occ_nested %>% pluck("y", "QLD") %>% find_daily_record_counts(.)
+day_counts_SA <- occ_nested %>% pluck("y", "SA") %>% find_daily_record_counts(.)
+day_counts_TAS <- occ_nested %>% pluck("y", "TAS") %>% find_daily_record_counts(.)
+day_counts_VIC <- occ_nested %>% pluck("y", "VIC") %>% find_daily_record_counts(.)
+day_counts_WA <- occ_nested %>% pluck("y", "WA") %>% find_daily_record_counts(.)
+# ______________________________________________________________________________
+
+# This code almost works (but not quite) to loop the above into one line
+# x <- occ_nested %>% mutate(date_counts = map_dfr(y, ~ {find_daily_record_counts(.x[1])}))
 
 
 
@@ -103,41 +85,38 @@ date_df <- date_df %>% mutate(
 
 library(mgcv)
 
-# first of change over time
+# Find records over time interval + CIs
+calculate_records_over_time_period <- function(df) {
 
-# scale date for predictions
-date_df$date_scaled <- scale(date_df$date_numeric)
-date_df$julian_scaled <- scale(date_df$date_julian)
-
-
-# Run a GAM model
-model <- gam(record_count ~ s(date_scaled) + s(julian_scaled),
-             data = date_df,
-             family = poisson(link = "log"))
-
-
-
-# Prediction function 1
-calc_prediction_1 <- function(df){
+  # scale date for predictions
+  df$date_scaled <- scale(df$date_numeric)
+  df$julian_scaled <- scale(df$date_julian)
+  
+  # Run a GAM model
+  model <- gam(record_count ~ s(date_scaled) + s(julian_scaled),
+               data = df,
+               family = poisson(link = "log")
+  )
   
   # make prediction dataframe
   prediction_1 <- data.frame(
     date_scaled = seq(
       min(df$date_scaled),
       max(df$date_scaled),
-      length.out = 100),
-    julian_scaled = 0)
-  
+      length.out = 100
+    ),
+    julian_scaled = 0
+  )
+
   # predict
   model_prediction <- predict(model, newdata = prediction_1, se.fit = TRUE)
-  
+
   # add fit & CIs to prediction dataframe
-  prediction_1 <- prediction_1 %>% 
+  prediction_1 <- prediction_1 %>%
     mutate(
       fit = exp(model_prediction$fit),
       lci = exp(model_prediction$fit - (2 * model_prediction$se.fit)),
       uci = exp(model_prediction$fit + (2 * model_prediction$se.fit)),
-      
       date_unscaled = seq(min(df$date), max(df$date), length.out = 100) # readjusting scale for plotting
     )
   return(prediction_1)
@@ -145,160 +124,196 @@ calc_prediction_1 <- function(df){
 
 #------------------------------------------------------------------------------#
 # run prediction function for each state/territory
-prediction_1_NSW <- calc_prediction_1(date_df)
-prediction_1_QLD <- calc_prediction_1(date_df)
-prediction_1_VIC <- calc_prediction_1(date_df)
-#______________________________________________________________________________
+daily_count_prediction_ACT <- calculate_records_over_time_period(day_counts_ACT)
+daily_count_prediction_NSW <- calculate_records_over_time_period(day_counts_NSW)
+daily_count_prediction_NT <- calculate_records_over_time_period(day_counts_NT)
+daily_count_prediction_QLD <- calculate_records_over_time_period(day_counts_QLD)
+daily_count_prediction_SA <- calculate_records_over_time_period(day_counts_SA)
+daily_count_prediction_TAS <- calculate_records_over_time_period(day_counts_TAS)
+daily_count_prediction_VIC <- calculate_records_over_time_period(day_counts_VIC)
+daily_count_prediction_WA <- calculate_records_over_time_period(day_counts_WA)
+# ______________________________________________________________________________
 
 
-# draw
+#-------------- Plot GAMs --------------#
 library(patchwork)
-library(animation)
-# library(magick)
+library(pilot)
+
+# merge prediction data frames
+data_daily <- bind_rows(daily_count_prediction_ACT,
+                   daily_count_prediction_NSW, 
+                   daily_count_prediction_NT,
+                   daily_count_prediction_QLD,
+                   daily_count_prediction_SA,
+                   daily_count_prediction_TAS,
+                   daily_count_prediction_VIC,
+                   daily_count_prediction_WA, .id = c("state")) %>%
+  mutate(state = recode(state,
+    "1" = "ACT",
+    "2" = "NSW",
+    "3" = "NT",
+    "4" = "QLD",
+    "5" = "SA",
+    "6" = "TAS",
+    "7" = "VIC",
+    "8" = "WA"
+  ))
+
+set_pilot_family("Lato")
+
+plot_ten_year_trend <- ggplot(
+  data = data_daily,
+  mapping = aes(x = date_unscaled, y = fit, fill = state, colour = state)) +
+  geom_ribbon(aes(ymin = lci, ymax = uci), size = 1) +
+  geom_path() +
+  guides(fill = guide_legend(title = "State")) +
+  theme_pilot(axes = c("bl"),
+              grid = "") +
+  scale_x_date(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_fill_pilot(breaks = c("QLD", "NSW", "VIC", "NT", "WA", "ACT", "SA", "TAS")) + 
+  scale_color_pilot(breaks = "") +
+  ylim(c(0, 4500)) +
+  labs(x = "Year", y = "Number of Records")
+
+plot_ten_year_trend <- add_pilot_titles(
+  plot_ten_year_trend,
+  title = "Number of Observation Records Added Daily \nto the Atlas of Living Australia",
+  subtitle = "10-year Trend (2010-2021)")
+
+plot_ten_year_trend
+
+
+ggsave(here::here("projects", "data_holdings", "temporal", "plots", "2021-09_obs_ten_year_trends.png"))
+
+# _____________________________________________________________
 
 
 
 
-plotting_func <- function(df, colour, state_name){
-  plot <- ggplot(data = df, 
-                 mapping = aes(x = date_unscaled, y = fit)) +
-    geom_ribbon(aes(ymin = lci, ymax = uci), fill = as.character(colour)) +
-    geom_area(fill = as.character(colour), alpha = 0.2) +
-    geom_path() +
-    theme_bw() +
-    ggtitle("Number of Observation Records Added \nto the Atlas of Living Australia from 2012-2021", 
-            subtitle = as.character(state_name)) +
-    ylim(c(0, 4250)) +
-    labs(x = "Year", y = "Number of Records")
-  return(plot)
-}
-
-# a1 <- plotting_func(prediction_1_ACT, "#ff6e6e", "ACT")
-# a2 <- plotting_func(prediction_1_SA, "blue", "SA")
-# a3 <- plotting_func(prediction_1_TAS, "green", "TAS")
-# a4 <- plotting_func(prediction_1_VIC, "purple", "VIC")
-# a5 <- plotting_func(prediction_1_WA, "orange", "WA")
-
-a1 <- plotting_func(prediction_1_NSW, "light blue", "NSW")  # NSW
-a2 <- plotting_func(prediction_1_QLD, "pink", "QLD")     # QLD
-a3 <- plotting_func(prediction_1_VIC, "purple", "VIC")  # VIC
 
 
-
-# make GIF
-animation::saveGIF(
-  expr = {
-    plot(a1)
-    plot(a2)
-    plot(a3)
-  },
-  movie.name = "temporalA_NSW_QLD_VIC.gif"
-)
-
-
-#_____________________________________________________________
-
-
-
-# then repeat for Julian Date
+#-----------------------------------------------------------------#
+#               Seasonal trends by state/territory
+#-----------------------------------------------------------------#
 
 # Prediction function 2
-calc_prediction_2 <- function(df){
+calculate_records_seasonal <- function(df) {
+
+  # scale date for predictions
+  df$date_scaled <- scale(df$date_numeric)
+  df$julian_scaled <- scale(df$date_julian)
+  
+  # Run a GAM model
+  model <- gam(record_count ~ s(date_scaled) + s(julian_scaled),
+               data = df,
+               family = poisson(link = "log")
+  )
   
   # make prediction dataframe
   prediction_2 <- data.frame(
     julian_scaled = seq(
       min(df$julian_scaled),
       max(df$julian_scaled),
-      length.out = 100),
-    date_scaled = 0)
-  
+      length.out = 100
+    ),
+    date_scaled = 0
+  )
+
   # predict
   model_prediction <- predict(model, newdata = prediction_2, se.fit = TRUE)
-  
+
   # add fit & CIs to prediction dataframe
-  prediction_2 <- prediction_2 %>% 
+  prediction_2 <- prediction_2 %>%
     mutate(
       fit = exp(model_prediction$fit),
       lci = exp(model_prediction$fit - (2 * model_prediction$se.fit)),
       uci = exp(model_prediction$fit + (2 * model_prediction$se.fit)),
-      
-      julian_unscaled = seq(min(df$date_julian), max(df$date_julian), length.out = 100) # readjusting scale for plotting
+      julian_unscaled = seq(min(df$date_julian), max(df$date_julian), length.out = 100), # readjusting scale for plotting
+      fit_total = sum(fit),
+      fit_percent = fit/fit_total * 100,
+      lci_percent = lci/fit_total * 100,
+      uci_percent = uci/fit_total * 100
     )
+  return(prediction_2)
 }
+
 
 #------------------------------------------------------------------------------#
 # run prediction function for each state/territory
-prediction_2_NSW <- calc_prediction_2(date_df)
-prediction_2_QLD <- calc_prediction_2(date_df)
-prediction_2_VIC <- calc_prediction_2(date_df)
-#______________________________________________________________________________
+seasonal_count_prediction_ACT <- calculate_records_seasonal(day_counts_ACT)
+seasonal_count_prediction_NSW <- calculate_records_seasonal(day_counts_NSW)
+seasonal_count_prediction_NT <- calculate_records_seasonal(day_counts_NT)
+seasonal_count_prediction_QLD <- calculate_records_seasonal(day_counts_QLD)
+seasonal_count_prediction_SA <- calculate_records_seasonal(day_counts_SA)
+seasonal_count_prediction_TAS <- calculate_records_seasonal(day_counts_TAS)
+seasonal_count_prediction_VIC <- calculate_records_seasonal(day_counts_VIC)
+seasonal_count_prediction_WA <- calculate_records_seasonal(day_counts_WA)
+# ______________________________________________________________________________
+
+
+#---------------------------------------------------#
+
+# merge prediction data frames
+data_seasonal <- bind_rows(seasonal_count_prediction_ACT,
+                   seasonal_count_prediction_NSW, 
+                   seasonal_count_prediction_NT,
+                   seasonal_count_prediction_QLD,
+                   seasonal_count_prediction_SA,
+                   seasonal_count_prediction_TAS,
+                   seasonal_count_prediction_VIC,
+                   seasonal_count_prediction_WA, .id = c("state")) %>%
+  mutate(state = recode(state,
+                        "1" = "ACT",
+                        "2" = "NSW",
+                        "3" = "NT",
+                        "4" = "QLD",
+                        "5" = "SA",
+                        "6" = "TAS",
+                        "7" = "VIC",
+                        "8" = "WA"
+  ))
+
+
+plot_seasonal <- data_seasonal %>%
+  ggplot(
+    mapping = aes(x = julian_unscaled, y = fit, fill = state, colour = state)) +
+  geom_ribbon(aes(ymin = lci, ymax = uci), size = 1) +
+  # geom_area(alpha = 0.5) +
+  geom_path() +
+  facet_wrap(~ state, scales = "free") +
+  guides(fill = guide_legend(title = "State")) +
+  theme_pilot(axes = "bl", 
+              grid = "",
+              legend_position = "none") +
+  scale_fill_pilot() + 
+  scale_color_pilot(breaks = "") +
+  scale_x_continuous(limits = c(0, 366), breaks = c(0, 92, 183, 275), labels = c("Jan", "Apr", "Jul", "Oct")) +
+  labs(x = "Month of Year", y = "Number of Records")  #+ coord_polar()
+
+plot_seasonal <- add_pilot_titles(
+  plot_seasonal,
+  title = "Number of Observation Records Added Daily \nto the Atlas of Living Australia",
+  subtitle = "Yearly Seasonal Trends 2010-2021")
+
+plot_seasonal
+
+ggsave(here::here("projects", "data_holdings", "temporal", "plots", "2021-09_obs_seasonal_trends.png"))
+
+
+#---------------------------------------------------#
+
+
+
 
 
 
 # finally calculate residuals from the model
 date_df$residuals <- resid(model)
 
-
-
-
-
-
-
-
-#---------------------------------------------------#
-
-
-plotting_func_2 <- function(df, colour, state_name){
-  plot <- ggplot(data = df, 
-                 mapping = aes(x = julian_unscaled, y = fit)) +
-    geom_ribbon(aes(ymin = lci, ymax = uci), fill = as.character(colour)) +
-    geom_area(fill = as.character(colour), alpha = 0.2) +
-    geom_path() +
-    theme_bw() +
-    ggtitle("Number of Observation Records Added per Day \nto the Atlas of Living Australia from 2012-2021", 
-            subtitle = as.character(state_name)) +
-    # ylim(c(0, 4250)) +
-    labs(x = "Day of Year", y = "Number of Records")
-  return(plot)
-}
-
-
-b1 <- plotting_func_2(prediction_2_NSW, "light blue", "NSW")  # NSW
-b2 <- plotting_func_2(prediction_2_QLD, "pink", "QLD")     # QLD
-b3 <- plotting_func_2(prediction_2_VIC, "purple", "VIC")  # VIC
-
-
-# make GIF
-animation::saveGIF(
-  expr = {
-    plot(b1)
-    plot(b2)
-    plot(b3)
-  },
-  movie.name = "temporalB_NSW_QLD_VIC.gif"
-)
-
-
-
-
-#---------------------------------------------------#
-
-a <- ggplot(prediction_1, aes(x = date_unscaled, y = fit)) +
-  geom_area(aes(ymin = lci, ymax = uci), fill = "#ff6e6e", alpha = 0.2) +
-  geom_path() +
-  theme_bw() +
-  labs(x = "Year", y = "Number of Records")
-
-b <- ggplot(prediction_2, aes(x = date_unscaled, y = fit)) +
-  geom_ribbon(aes(ymin = lci, ymax = uci), fill = "#6e9eff") +
-  geom_path() +
-  theme_bw() + 
-  labs(x = "Day of year", y = "Number of Records")
-
-c <- ggplot(date_df, aes(x = date, y = residuals)) +
+c <- ggplot(data_seasonal, aes(x = date, y = residuals)) +
   geom_path() +
   # geom_point() +
   theme_bw()
 
-a / b / c
+c
