@@ -1,0 +1,380 @@
+---
+title: "Koala Records"
+author: "Dax"
+date: "07/10/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r}
+# packages
+
+library(tidyverse)
+library(purrr)
+library(janitor)
+library(kableExtra)
+
+# use ala_counts branch for multiple `group_by` and `select_filters` args
+# remotes::install_github("AtlasOfLivingAustralia/galah@ala_counts")
+library(galah)
+
+# for mapping
+library(ozmaps)
+library(sf)
+library(mapsf)
+
+# Might need to install these:
+# devtools::install_github('ropensci/rnaturalearthhires')
+# install.packages("rgeos")
+```
+
+
+
+
+# Koala records in ALA
+
+```{r, warning = FALSE, message = FALSE}
+# select taxa and filters
+taxa <- select_taxa("koala")
+filters <- select_filters(year > 2005)
+
+# Download counts from ALA
+koala_counts <- ala_counts(taxa = taxa, filters = filters, group_by = "year")
+
+# Wrangle
+koala_counts <- koala_counts %>% 
+  mutate(
+    year = as.integer(year)) %>%
+  arrange(desc(year))
+
+# Plot
+
+# Set font for {pilot} titles
+pilot::set_pilot_family("Lato", title_family = "Lato") # Set font
+
+# Counts by year
+yearly_counts <- koala_counts %>%
+  ggplot(aes(x = year,
+             y = count)) + 
+  geom_bar(stat = "identity", fill = "#E06E53") + 
+  scale_x_continuous(breaks = c(2005, 2010, 2015, 2020),
+                     expand = c(0,0)) +
+  labs(x = "Year",
+       y = "Number of Records",
+       subtitle = "Yearly Observations (2005-2021)") +
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot()
+
+yearly_counts
+```
+
+***
+
+
+# Data Providers
+
+```{r}
+# Download data providers
+
+data_providers <- ala_counts(taxa = taxa, 
+                             # filters = filters, 
+                             group_by = "dataResourceName")
+
+# Table: Which data providers provide the most records?
+perc_data_providers <- data_providers %>%
+  mutate(
+    dataResourceName = str_trim(dataResourceName),
+    percent = (count / sum(count)) * 100
+  ) %>% 
+  filter(percent > .01)
+
+perc_data_providers %>% 
+  select(dataResourceName, count) %>%
+  rename("Data Provider" = dataResourceName) %>%
+  rename("Records" = count) %>%
+  kbl() %>% kable_styling(full_width = FALSE)
+
+
+# Plot
+
+# Proportion of data from different data providers
+plot_data_providers <- perc_data_providers %>% 
+  filter(percent > .1) %>%
+  
+  ggplot(aes(x = reorder(dataResourceName, percent),
+             y = percent,
+             fill = dataResourceName,
+             label = scales::percent(percent, suffix = "%"))) +
+  geom_bar(stat = "identity") + 
+  scale_x_discrete(labels = scales::label_wrap(35)) +
+  scale_y_continuous(limits = c(0, 100), labels = function(x) paste0(x, "%")) + 
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot(legend_position = "none") + 
+  labs(x = "Data Provider",
+       y = "Percentage of total records",
+       subtitle = "Data Providers") +
+  coord_flip() + 
+  theme(axis.text.y = element_text(size=8.5))
+
+plot_data_providers
+
+```
+
+
+***
+
+
+# Locations
+
+## Cartograph
+
+```{r}
+# Retrieve AUS map from {rnaturalearth}
+aus_ne <- rnaturalearth::ne_states(country = "australia", returnclass = "sf")
+mf_map(aus_ne)
+
+
+# Counts of koalas by state
+state_layers <- search_fields("australian states and territories") # id = "cl22"
+koalas_by_state <- ala_counts(taxa = taxa, group_by = "cl22")
+
+# Rename column and trim "cl22" prefix
+koalas_by_state <- koalas_by_state %>% 
+  mutate(state = str_remove(cl22, "cl22:")) %>% 
+  select(-cl22)
+
+# join with data from {ozmaps}
+state_map <- merge(
+  ozmaps::ozmap_states,
+  koalas_by_state,
+  by.x = "NAME",
+  by.y = "state"
+)
+
+# convert map coordinates to match ALA coordinates
+state_map <- st_transform(state_map, crs = st_crs(3577))
+
+par(mfrow=c(1,1))
+# Map using mf_map() from {mapsf}
+
+mf_map(x = state_map, var = "count", type = "choro",
+       pal = "Dark Mint", border = "darkseagreen4", leg_title = "Number of Records") %>%
+  mf_label(var = "count", col = "#E06E53", cex = 1, overlap = FALSE, halo = TRUE, font = 2)
+```
+
+
+## Points map
+
+```{r}
+# Plot
+
+points_map <- ggplot(koalas_records_filtered) + 
+  geom_sf(data = ozmap_states, fill = "white") + 
+    # stat_density2d(aes(x = decimalLongitude, y= decimalLatitude, 
+    #                  fill = ..level..,  alpha = I(.5)),
+    #              size = 1, bins = 5, geom = "polygon") +
+  geom_point(aes(x = decimalLongitude,
+                 y = decimalLatitude), color = "#B8573E") +
+  theme_void() + 
+  theme(legend.position = "none")
+
+points_map
+```
+
+
+## Hexagon map
+
+Download data
+
+```{r}
+# Download occurrence records
+koalas_records <- ala_occurrences(taxa = taxa)
+
+# Remove NAs
+koalas_records <- koalas_records %>% filter(!is.na(.))
+
+# filter records to only those on mainland/tasmania
+koalas_records_filtered <- koalas_records %>%
+  filter(decimalLongitude < 155,
+         decimalLongitude > 110, 
+         decimalLatitude > -45,
+         decimalLatitude < -10)
+
+# Plot
+
+hex_map <- ggplot(koalas_records_filtered) +
+  geom_sf(data = ozmap_states, fill = "white") +
+  geom_hex(mapping = aes(x = decimalLongitude, 
+                         y = decimalLatitude,
+                         alpha=log(..count..)), bins = 50) +
+  ylim(-45, -10) +
+  xlim(110, 155) +
+  # viridis::scale_fill_viridis(option = "E") +
+  scale_fill_gradientn(colours = c("#FFC557", "#B8573E")) +
+  theme_bw() +
+  theme(
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title = element_blank(),
+    legend.position = "bottom") + 
+  guides(alpha = "none")
+
+hex_map
+```
+
+
+
+
+***
+
+# Seaonsal Trends
+
+```{r}
+# Get daily observation counts
+
+library(lubridate)
+
+# Get observation dates and convert to useable format
+koalas_records_dates <- koalas_records %>% 
+  filter(!eventDate == "") %>% 
+  select(eventDate) %>%
+  mutate(
+    eventDate = as_date(eventDate)
+  )
+koalas_records_dates %>% select(eventDate) %>% slice(1:10) %>% glimpse
+
+# set time interval of interest (2005 to 2021)
+day_interval <- seq(ymd("2005-01-01"), ymd("2020-12-31"), by = "days")
+  
+# set up date dataset to fill with predicted values
+date_df <- data.frame(
+  date = day_interval,
+  date_numeric = as.numeric(day_interval),
+  date_julian = yday(day_interval)
+)
+  
+# count records on each day
+count_daily_records <- function(eventDate, date_df_date) {
+  return(length(which(eventDate == date_df_date)))
+}
+  
+date_df <- date_df %>% mutate(
+  record_count = pmap_dbl(list(koalas_records_dates, day_interval), count_daily_records)
+)
+```
+
+
+```{r}
+# Predict trends (we do this to create a smooth line with CIs for plotting)
+
+library(mgcv)
+
+# Prediction function
+calculate_records_seasonal <- function(df) {
+
+  # scale date for predictions
+  df$date_scaled <- scale(df$date_numeric)
+  df$julian_scaled <- scale(df$date_julian)
+  
+  # Run a GAM model
+  model <- gam(record_count ~ s(date_scaled) + s(julian_scaled),
+               data = df,
+               family = poisson(link = "log")
+  )
+  
+  # make prediction dataframe
+  prediction <- data.frame(
+    julian_scaled = seq(
+      min(df$julian_scaled),
+      max(df$julian_scaled),
+      length.out = 100
+    ),
+    date_scaled = 0
+  )
+
+  # predict
+  model_prediction <- predict(model, newdata = prediction, se.fit = TRUE)
+
+  # add fit & CIs to prediction dataframe
+  prediction <- prediction %>%
+    mutate(
+      fit = exp(model_prediction$fit),
+      lci = exp(model_prediction$fit - (2 * model_prediction$se.fit)),
+      uci = exp(model_prediction$fit + (2 * model_prediction$se.fit)),
+      julian_unscaled = seq(min(df$date_julian), max(df$date_julian), length.out = 100), # readjusting scale for plotting
+      fit_total = sum(fit),
+      fit_percent = fit/fit_total * 100,
+      lci_percent = lci/fit_total * 100,
+      uci_percent = uci/fit_total * 100
+    )
+  return(prediction)
+}
+
+koalas_seasonal_count_prediction <- calculate_records_seasonal(date_df)
+```
+
+
+```{r}
+# Plot
+
+# Seasonal trend 2005 - 2020
+plot_seasonal <- koalas_seasonal_count_prediction %>%
+  ggplot(
+    mapping = aes(x = julian_unscaled, y = fit)) +
+  geom_ribbon(aes(ymin = lci, ymax = uci), size = 1, fill = "#E06E53", colour = "#E06E53") +
+  # geom_area(alpha = 0.5) +
+  geom_path(colour = "#B8573E", size = 2) +
+  pilot::theme_pilot(axes = "bl", 
+              grid = "",
+              legend_position = "none") +
+  pilot::scale_fill_pilot() + 
+  pilot::scale_color_pilot(breaks = "") +
+  scale_x_continuous(limits = c(0, 366), 
+                     breaks = c(0, 60, 152, 244, 335), 
+                     labels = c("Jan", "March", "Jun", "Sep", "Dec")) +
+  labs(x = "Month of Year", y = "Number of Records",
+       subtitle = "Seasonal trends (2005-2021)")
+
+plot_seasonal
+```
+
+# Final Output
+
+```{r}
+library(patchwork)
+
+plots_temporal_and_data_providers <- pilot::add_pilot_titles(
+  ((yearly_counts / plot_seasonal) | plot_data_providers),
+  title = "Koala Records in the ALA",
+  subtitle = "Temporal snapshot and data providers")
+
+plots_temporal_and_data_providers
+
+# ggsave(here::here("projects", "koala-counts", "plots", "2021-10_koala-temporal-data-providers.png"),
+#        width = 11, height = 11, dpi = 600)
+
+observations_maps <- pilot::add_pilot_titles(
+  (points_map | hex_map),
+  title = "Locations of Koala Observations in the ALA")
+
+observations_maps
+
+# ggsave(here::here("projects", "koala-counts", "plots", "2021-10_koala-locations.png"),
+#        width = 10, height = 10, dpi = 600)
+
+ala_counts(taxa = taxa)
+```
+
+
+
+
+```{r}
+# TODO Try using {tmap} for a more useful plot?
+# TODO Add dots and distribution of koalas on 3d plot
+```
+
