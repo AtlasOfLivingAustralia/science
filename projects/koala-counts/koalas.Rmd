@@ -168,27 +168,6 @@ mf_map(x = state_map, var = "count", type = "choro",
 ## Points map
 
 ```{r}
-# Plot
-
-points_map <- ggplot(koalas_records_filtered) + 
-  geom_sf(data = ozmap_states, fill = "white") + 
-    # stat_density2d(aes(x = decimalLongitude, y= decimalLatitude, 
-    #                  fill = ..level..,  alpha = I(.5)),
-    #              size = 1, bins = 5, geom = "polygon") +
-  geom_point(aes(x = decimalLongitude,
-                 y = decimalLatitude), color = "#B8573E") +
-  theme_void() + 
-  theme(legend.position = "none")
-
-points_map
-```
-
-
-## Hexagon map
-
-Download data
-
-```{r}
 # Download occurrence records
 koalas_records <- ala_occurrences(taxa = taxa)
 
@@ -201,6 +180,31 @@ koalas_records_filtered <- koalas_records %>%
          decimalLongitude > 110, 
          decimalLatitude > -45,
          decimalLatitude < -10)
+
+# Plot
+library(ggpointdensity)
+
+points_map <- ggplot(koalas_records_filtered) + 
+  geom_sf(data = ozmap_states, fill = "white") + 
+    # stat_density2d(aes(x = decimalLongitude, y= decimalLatitude, 
+    #                  fill = ..level..,  alpha = I(.5)),
+    #              size = 1, bins = 5, geom = "polygon") +
+  # geom_point(aes(x = decimalLongitude,
+  #                y = decimalLatitude), color = "#B8573E") +
+  geom_pointdensity(aes(x = decimalLongitude,
+                        y = decimalLatitude)) + 
+  viridis::scale_color_viridis() +
+  theme_void()
+
+points_map
+```
+
+
+## Hexagon map
+
+Download data
+
+```{r}
 
 # Plot
 
