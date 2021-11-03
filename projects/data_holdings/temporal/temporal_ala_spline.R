@@ -184,7 +184,7 @@ plot_ten_year_trend <- add_pilot_titles(
 plot_ten_year_trend
 
 
-ggsave(here::here("projects", "data_holdings", "temporal", "plots", "2021-09_obs_ten_year_trends.png"))
+# ggsave(here::here("projects", "data_holdings", "temporal", "plots", "2021-09_obs_ten_year_trends.png"))
 
 # _____________________________________________________________
 
@@ -205,7 +205,7 @@ calculate_records_seasonal <- function(df) {
   df$julian_scaled <- scale(df$date_julian)
   
   # Run a GAM model
-  model <- gam(record_count ~ s(date_scaled) + s(julian_scaled),
+  model <- gam(record_count ~ s(date_scaled, bs = "cc") + s(julian_scaled, bs = "cc"),
                data = df,
                family = poisson(link = "log")
   )
@@ -227,8 +227,11 @@ calculate_records_seasonal <- function(df) {
   prediction_2 <- prediction_2 %>%
     mutate(
       fit = exp(model_prediction$fit),
+      fit_prop = fit/sum(fit),
       lci = exp(model_prediction$fit - (2 * model_prediction$se.fit)),
       uci = exp(model_prediction$fit + (2 * model_prediction$se.fit)),
+      lci_prop = lci/sum(lci),
+      uci_prop = uci/sum(uci),
       julian_unscaled = seq(min(df$date_julian), max(df$date_julian), length.out = 100), # readjusting scale for plotting
       fit_total = sum(fit),
       fit_percent = fit/fit_total * 100,
@@ -277,29 +280,34 @@ data_seasonal <- bind_rows(seasonal_count_prediction_ACT,
 
 plot_seasonal <- data_seasonal %>%
   ggplot(
-    mapping = aes(x = julian_unscaled, y = fit, fill = state, colour = state)) +
-  geom_ribbon(aes(ymin = lci, ymax = uci), size = 1) +
+    mapping = aes(x = julian_unscaled, y = fit_prop, fill = state, colour = state)) +
+  geom_ribbon(aes(ymin = lci_prop, ymax = uci_prop), size = 1) +
   # geom_area(alpha = 0.5) +
   geom_path() +
-  facet_wrap(~ state, scales = "free") +
+  facet_wrap(~ state) +
   guides(fill = guide_legend(title = "State")) +
-  theme_pilot(axes = "bl", 
-              grid = "",
+  theme_pilot(axes = "", 
+              grid = "hv",
               legend_position = "none") +
   scale_fill_pilot() + 
   scale_color_pilot(breaks = "") +
   scale_x_continuous(limits = c(0, 366), breaks = c(0, 92, 183, 275), labels = c("Jan", "Apr", "Jul", "Oct")) +
-  labs(x = "Month of Year", y = "Number of Records")  #+ coord_polar()
+  labs(x = "Month of Year", y = "Number of Records (Proportional)")  + 
+  coord_polar() + 
+  theme(axis.text.y = element_blank(),
+        axis.text.x = element_text(size = 11),
+        )
 
-plot_seasonal <- add_pilot_titles(
-  plot_seasonal,
-  title = "Number of Observation Records Added Daily \nto the Atlas of Living Australia",
-  subtitle = "Yearly Seasonal Trends 2010-2021")
+# plot_seasonal <- add_pilot_titles(
+#   plot_seasonal,
+#   title = "Number of Observation Records Added Daily \nto the Atlas of Living Australia",
+#   subtitle = "Yearly Seasonal Trends 2010-2021",
+#   title_color = "#E06E53")
 
 plot_seasonal
 
-ggsave(here::here("projects", "data_holdings", "temporal", "plots", "2021-09_obs_seasonal_trends.png"))
-
+# ggsave(here::here("projects", "data_holdings", "temporal", "plots", "2021-09_obs_seasonal_trends.png"),
+#        width = 10, height = 10, units = "in", dpi = 600)
 
 #---------------------------------------------------#
 
