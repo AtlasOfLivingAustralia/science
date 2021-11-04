@@ -278,6 +278,7 @@ data_seasonal <- bind_rows(seasonal_count_prediction_ACT,
   ))
 
 
+
 plot_seasonal <- data_seasonal %>%
   ggplot(
     mapping = aes(x = julian_unscaled, y = fit_prop, fill = state, colour = state)) +
@@ -311,11 +312,91 @@ plot_seasonal
 
 #---------------------------------------------------#
 
+# Add the above plots to a map for ultimate awesomeness
+?pilot_color()
+library(ozmaps)
+library(patchwork)
+
+# Make the above plot into a single plot function
+plot_seasonal_by_state <- function(state_name, state_colour) {
+  plot <- data_seasonal %>%
+    filter(state == as.character(state_name)) %>%
+    ggplot(
+      mapping = aes(x = julian_unscaled, y = fit_prop)
+    ) +
+    geom_ribbon(aes(ymin = lci_prop, ymax = uci_prop),
+      fill = state_colour,
+      colour = state_colour,
+      size = 1
+    ) +
+    # geom_area(alpha = 0.5) +
+    geom_path(colour = state_colour) +
+    # facet_wrap(~ state) +
+    guides(fill = guide_legend(title = "State")) +
+    theme_pilot(
+      axes = "",
+      grid = "hv",
+      legend_position = "none"
+    ) +
+    # scale_fill_pilot() +
+    # scale_color_pilot(breaks = "") +
+    scale_x_continuous(
+      limits = c(0, 366),
+      breaks = c(0, 92, 183, 275),
+      labels = c("Jan", "Apr", "Jul", "Oct")
+    ) +
+    ggtitle(as.character(state_name)) +
+    labs(x = "", y = "") +
+    coord_polar() +
+    theme(
+      axis.text.y = element_blank(),
+      axis.text.x = element_text(size = 9, hjust = 5),
+      panel.background = element_rect(fill = "transparent", colour = NA),
+      plot.background = element_rect(fill = "transparent", colour = NA),
+      axis.title = element_text(colour = state_colour, hjust = 0.5)
+    )
+  
+  return(plot)
+}
+
+s_plot_ACT <- plot_seasonal_by_state("ACT", pilot_color("navy"))
+s_plot_NSW <- plot_seasonal_by_state("NSW", pilot_color("blue"))
+s_plot_VIC <- plot_seasonal_by_state("VIC", pilot_color("purple"))
+s_plot_QLD <- plot_seasonal_by_state("QLD", "#6A9057")
+s_plot_SA <- plot_seasonal_by_state("SA", pilot_color("green"))
+s_plot_WA <- plot_seasonal_by_state("WA", pilot_color("orange"))
+s_plot_TAS <- plot_seasonal_by_state("TAS", pilot_color("yellow"))
+s_plot_NT <- plot_seasonal_by_state("NT", pilot_color("brown"))
+
+# ggsave(here::here("projects", "data_holdings", "temporal", 
+#                   "plots", "state-plots", "2021-11_NT_season.png"),
+#        width = 3.5, height = 3.5, units = "in", dpi = 600)
+
+
+map <- ggplot(data = ozmap_states) + 
+  geom_sf(aes(fill = NAME)) + 
+  scale_fill_manual(values = c(
+    "New South Wales" = pilot::pilot_color("blue"),
+    "Victoria" = pilot_color("purple"),
+    "Queensland"= "#6A9057",
+    "South Australia" = pilot_color("green"),
+    "Western Australia" = pilot_color("orange"),
+    "Tasmania" = pilot_color("yellow"),
+    "Northern Territory" = pilot_color("brown"),
+    "Australian Capital Territory" = pilot_color("navy"),
+    "Other Territories" = "white"
+  )) +
+  theme_void() +
+  theme(legend.position = "none")
+
+# ggsave(here::here("projects", "data_holdings", "temporal",
+#                   "plots", "state-plots", "2021-11_map.png"),
+#        width = 12, height = 12, units = "in", dpi = 600)
 
 
 
 
-
+#---------------------------------------------------#
 # finally calculate residuals from the model
 date_df$residuals <- resid(model)
 
