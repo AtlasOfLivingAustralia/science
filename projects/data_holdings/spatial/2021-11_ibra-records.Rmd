@@ -1,0 +1,184 @@
+---
+title: "Number of records by IBRA / IMCRA region"
+author: "Dax"
+date: "04/11/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+# map number of ALA records across IBRA & IMCRA regions
+
+library(tidyverse)
+library(galah)
+library(sf)
+library(ggplot2)
+library(ggnewscale)
+library(patchwork)
+```
+
+
+```{r}
+# download ala counts
+ibra_counts <- ala_counts(
+  filters = select_filters(profile = "ALA"),
+  group_by = "cl1048")
+
+imcra_counts <- ala_counts(
+  filters = select_filters(profile = "ALA"),
+  group_by = "cl966")
+  
+# # import data from other NCRIS facilities
+# imos <- read.csv("./data/NCRIS/IMOS Facilities - Point Data.csv")
+# imos <- imos[imos$Facility.Fullname != "Ships of Opportunity ", ]
+# imos_xtab <- as.data.frame(xtabs(~imos$Facility.Fullname))
+# imos$type <- imos$Facility.Fullname
+# imos$type[
+#   imos$type %in% as.character(imos_xtab[[1]][imos_xtab$Freq < 40])] <- "Other"
+
+# TERN data
+# tern <- read.csv("./data//NCRIS/TERN_Sites.csv")
+# # xtabs(~type_name, data = tern)
+# tern$type <- gsub("TERN ", "", tern$type_name)
+# tern$type[grepl("SuperSite", tern$type_name)] <- "Ecosystem Processes SuperSite"
+# tern$type[grepl("CosmOz|flux", tern$type_name)] <- "Flux & CosmOz Station"
+# # xtabs(~type, data = tern)
+```
+
+
+```{r}
+# maps
+sf::sf_use_s2(FALSE) # hack to preserve past behaviour
+
+# ibra
+path_ibra <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/ALA/Projects/Data Holdings/IBRA7_regions/ibra7_regions.shp"
+ibra_map <- sf::read_sf(path_ibra)
+ibra_map <- sf::st_simplify(ibra_map, dTolerance = 0.05)
+ibra_map_ala <- merge(ibra_map, ibra_counts,
+  by.x = "REG_NAME_7",
+  by.y = "cl1048",
+  all = TRUE)
+ibra_map_ala$z <- log10(ibra_map_ala$count / ibra_map_ala$SQ_KM)
+
+# imcra  
+path_imcra <- "C:/Users/KEL329/OneDrive - CSIRO/Documents/ALA/Projects/Data Holdings/imcra_mesoscale_bioregions/imcra4_meso.shp"
+imcra_map <- sf::read_sf(path_imcra)
+imcra_map <- sf::st_simplify(imcra_map, dTolerance = 0.05)
+imcra_map_ala <- merge(imcra_map, imcra_counts,
+  by.x = "MESO_NAME",
+  by.y = "cl966",
+  all = TRUE)
+imcra_map_ala$z <- log10(imcra_map_ala$count / imcra_map_ala$AREA_KM2)
+
+# work out pretty labels for breaks
+break_vals <- seq(-2, 4, 1)
+number_text <- format(10 ^ break_vals, 
+  digits = 2, big.mark = ",", scientific = FALSE, trim = TRUE)
+number_text[2] <- "0.1"
+number_text[3:7] <- unlist(lapply(
+  strsplit(number_text[3:7], "\\."), 
+  function(a){a[[1]]}))
+```
+
+
+```{r}
+# plot main figure
+map <- ggplot() +
+  geom_sf(
+    data = ibra_map_ala,
+    mapping = aes(fill = z), 
+    color = NA) +
+  scale_fill_steps("IBRA", 
+    breaks = break_vals, 
+    low = "#EEECEA", 
+    high = "#B8573E",
+    guide = "none"
+  ) +
+  new_scale("fill") +
+  geom_sf(
+    data = imcra_map_ala,
+    mapping = aes(fill = z), 
+    color = NA) +
+  scale_fill_steps("IMCRA", 
+    breaks = break_vals, 
+    low = "#6BDAD5", 
+    high = "#003A70", 
+    guide = "none"
+  ) +  
+  lims(x = c(110, 155), y = c(-45, -10)) +
+  theme_void()
+  
+# simple panel
+key_df_ibra <- do.call(rbind, lapply(seq_len(6), function(a){
+  data.frame(
+    x = c(0.5, 0.5, 1.5, 1.5),
+    y = break_vals[c(a, (a+1), (a+1), a)],
+    z = break_vals[a],
+    group = a
+  )
+}))
+key_df_imcra <- do.call(rbind, lapply(c(2:5), function(a){
+  data.frame(
+    x = c(2, 2, 3, 3),
+    y = break_vals[c(a, (a+1), (a+1), a)],
+    z = break_vals[a],
+    group = a
+  )
+}))
+
+# draw combined key for ALA fill levels
+key_1 <- ggplot() +
+  geom_polygon(
+    data = key_df_ibra,
+    mapping = aes(x = x, y = y, group = group, fill = z)) +
+  scale_fill_steps("IBRA", 
+    breaks = break_vals, 
+    low = "#EEECEA", 
+    high = "#B8573E") +
+  new_scale("fill") +
+  geom_polygon(
+    data = key_df_imcra,
+    mapping = aes(x = x, y = y, group = group, fill = z)) +
+  scale_fill_steps("IMCRA", 
+    breaks = break_vals, 
+    low = "#6BDAD5", 
+    high = "#003A70") +  
+  geom_text(
+    data = data.frame(x = c(1, 2.5), y = 4.5, label = c("IBRA", "IMCRA")),
+    mapping = aes(x = x, y = y, label = label),
+    hjust = 0.5) +
+  scale_y_continuous(
+    breaks = break_vals,
+    labels = number_text) +
+  geom_hline(
+    yintercept = break_vals,
+    size = 0.1) +
+  labs(x = "", y = "Number of records per square kilometer") +
+  ggtitle("ALA") +
+  theme_bw() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    axis.title.y = element_text(size = 9),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    panel.border = element_blank(),
+    panel.grid = element_blank()
+  )
+ 
+# arrange plot as desired
+layout <- "
+  AAAB
+  AAAC
+"
+result <- map + key_1 + guide_area() + plot_layout(
+  design = layout,
+  guides = "collect")
+
+result
+
+# ggsave(here::here("projects", "data_holdings", "spatial", "plots", "2021-11_ibra-map.png"), 
+#        result, width = 26, height = 17, units = "cm")
+```
+
