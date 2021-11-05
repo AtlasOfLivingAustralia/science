@@ -292,7 +292,7 @@ plot_seasonal <- data_seasonal %>%
               legend_position = "none") +
   scale_fill_pilot() + 
   scale_color_pilot(breaks = "") +
-  scale_x_continuous(limits = c(0, 366), breaks = c(0, 92, 183, 275), labels = c("Jan", "Apr", "Jul", "Oct")) +
+  scale_x_continuous(limits = c(1, 366), breaks = c(1, 92, 183, 275), labels = c("Jan", "Apr", "Jul", "Oct")) +
   labs(x = "Month of Year", y = "Number of Records (Proportional)")  + 
   coord_polar() + 
   theme(axis.text.y = element_blank(),
@@ -313,7 +313,6 @@ plot_seasonal
 #---------------------------------------------------#
 
 # Add the above plots to a map for ultimate awesomeness
-?pilot_color()
 library(ozmaps)
 library(patchwork)
 
@@ -329,7 +328,7 @@ plot_seasonal_by_state <- function(state_name, state_colour) {
       colour = state_colour,
       size = 1
     ) +
-    # geom_area(alpha = 0.5) +
+    geom_area(aes(y = lci_prop), stat = "identity", alpha = 0.5, fill = state_colour) +
     geom_path(colour = state_colour) +
     # facet_wrap(~ state) +
     guides(fill = guide_legend(title = "State")) +
@@ -341,8 +340,8 @@ plot_seasonal_by_state <- function(state_name, state_colour) {
     # scale_fill_pilot() +
     # scale_color_pilot(breaks = "") +
     scale_x_continuous(
-      limits = c(0, 366),
-      breaks = c(0, 92, 183, 275),
+      limits = c(1, 366),
+      breaks = c(1, 92, 183, 275),
       labels = c("Jan", "Apr", "Jul", "Oct")
     ) +
     ggtitle(as.character(state_name)) +
@@ -368,7 +367,7 @@ s_plot_WA <- plot_seasonal_by_state("WA", pilot_color("orange"))
 s_plot_TAS <- plot_seasonal_by_state("TAS", pilot_color("yellow"))
 s_plot_NT <- plot_seasonal_by_state("NT", pilot_color("brown"))
 
-# ggsave(here::here("projects", "data_holdings", "temporal", 
+# ggsave(here::here("projects", "data_holdings", "temporal",
 #                   "plots", "state-plots", "2021-11_NT_season.png"),
 #        width = 3.5, height = 3.5, units = "in", dpi = 600)
 
