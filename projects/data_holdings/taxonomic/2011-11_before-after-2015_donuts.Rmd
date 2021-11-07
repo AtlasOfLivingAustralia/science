@@ -1,0 +1,143 @@
+---
+title: "Taxonomic breakdown of records before and after 2015"
+author: "Dax"
+date: "07/11/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r}
+# packages
+
+# remotes::install_github("AtlasOfLivingAustralia/galah@ala_counts")
+library(galah)
+library(extrafont)
+# extrafont::loadfonts(device="win")
+library(tidyverse)
+library(ggpubr) # for ggdonutplot()
+library(viridis)
+library(pilot)
+
+
+# galah_config(email = "email")
+```
+
+# Download data
+
+```{r}
+# build filters for each clade
+filter_list <- list(
+  vertebrates = select_filters(
+    taxonConceptID = select_taxa("Chordata")$taxon_concept_id),
+  invertebrates = select_filters(
+    taxonConceptID = select_taxa("Animalia")$taxon_concept_id,
+    taxonConceptID != select_taxa("Chordata")$taxon_concept_id),
+  plants = select_filters(
+    taxonConceptID = select_taxa("Plantae")$taxon_concept_id),
+  fungi = select_filters(
+    taxonConceptID = select_taxa("Fungi")$taxon_concept_id),
+  other = select_filters(
+    taxonConceptID != select_taxa("Animalia")$taxon_concept_id,
+    taxonConceptID != select_taxa("Plantae")$taxon_concept_id,
+    taxonConceptID != select_taxa("Fungi")$taxon_concept_id)
+)
+
+
+# Define years
+
+years_before_2015 <- select_filters(year < 2015)
+years_after_2015 <- select_filters(year >= 2015)
+
+
+# Extract counts of records
+
+# Before 2015
+before_2015 <- filter_list %>%
+  map_dfr( ~ ala_counts(
+    filters = rbind(.x, years_before_2015)
+  )) %>%
+  as_tibble() %>%
+  pivot_longer(cols = vertebrates:other, # transpose tibble
+               values_to = "records",
+               names_to = "group") %>%
+  mutate(
+    group = str_to_title(group), # capitalise for plotting
+    percent = round((records / sum(records)*100), 0) # find percentage
+    # label = paste(group, "(", percent, "%)")
+  )
+
+# 2015 and onwards
+after_2015 <- filter_list %>%
+  map_dfr( ~ ala_counts(
+    filters = rbind(.x, years_after_2015)
+  )) %>%
+  as_tibble() %>%
+  pivot_longer(cols = vertebrates:other, # transpose tibble
+               values_to = "records",
+               names_to = "group") %>%
+  mutate(
+    group = str_to_title(group), # capitalise for plotting
+    percent = round((records / sum(records)*100), 0) # find percentage
+    # label = paste(group, "(", percent, "%)")
+  )
+```
+
+
+# Plot
+
+```{r}
+taxonomy_before_2015 <- ggdonutchart(before_2015, "percent", 
+             label = "group", 
+             fill = "group", 
+             color = "white",
+             palette = c("#6BDAD5", "#9E9E9F", "#A191B2", "#B7CD96", "#FFC557"),
+             font.family = "Lato",
+             lab.font = "bold",
+             lab.pos = "out") +
+  geom_text(aes(label = paste(percent, "%", sep = ""), fontface = "bold"),
+            position = position_stack(vjust = 0.5),
+            size = 4,
+            family = "Lato",
+            colour = "black") + 
+  ggtitle("Before 2015") +
+  theme(legend.position = "none",
+        text=element_text(size=11,  family="Lato"),
+        title = element_text(size = 17.5, family = "Lato"))
+
+
+taxonomy_after_2015 <- ggdonutchart(after_2015, "percent", 
+             label = "group", 
+             fill = "group", 
+             color = "white",
+             palette = c("#6BDAD5", "#9E9E9F", "#A191B2", "#B7CD96", "#FFC557"),
+             font.family = "Lato",
+             lab.font = "bold",
+             lab.pos = "out") +
+  geom_text(aes(label = paste(percent, "%", sep = ""), fontface = "bold"),
+            position = position_stack(vjust = 0.5),
+            size = 4,
+            family = "Lato",
+            colour = "black") + 
+  ggtitle("2015 and After") +
+  theme(legend.position = "none",
+        text=element_text(size=11,  family="Lato"),
+        title = element_text(size = 17.5, family = "Lato"))
+```
+
+Patchwork it and save
+
+```{r}
+library(patchwork)
+
+taxonomy_before_2015 / taxonomy_after_2015
+```
+
+
+```{r, eval = FALSE}
+ggsave(here::here("projects", "data_holdings", "taxonomic",
+                  "plots", "2021-11_donuts.png"),
+       width = 8, height = 11, units = "in", dpi = 600)
+```
+
