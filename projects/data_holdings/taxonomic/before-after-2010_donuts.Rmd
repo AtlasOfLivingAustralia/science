@@ -19,8 +19,11 @@ library(tidyverse)
 library(ggpubr) # for ggdonutplot()
 library(viridis)
 library(pilot)
+library(patchwork)
+```
 
 
+```{r}
 # galah_config(email = "email")
 ```
 
@@ -47,16 +50,16 @@ filter_list <- list(
 
 # Define years
 
-years_before_2015 <- select_filters(year < 2015)
-years_after_2015 <- select_filters(year >= 2015)
+years_before_2010 <- select_filters(year < 2010)
+years_after_2010 <- select_filters(year >= 2010)
 
 
 # Extract counts of records
 
 # Before 2015
-before_2015 <- filter_list %>%
+before_2010 <- filter_list %>%
   map_dfr( ~ ala_counts(
-    filters = rbind(.x, years_before_2015)
+    filters = rbind(.x, years_before_2010)
   )) %>%
   as_tibble() %>%
   pivot_longer(cols = vertebrates:other, # transpose tibble
@@ -69,9 +72,9 @@ before_2015 <- filter_list %>%
   )
 
 # 2015 and onwards
-after_2015 <- filter_list %>%
+after_2010 <- filter_list %>%
   map_dfr( ~ ala_counts(
-    filters = rbind(.x, years_after_2015)
+    filters = rbind(.x, years_after_2010)
   )) %>%
   as_tibble() %>%
   pivot_longer(cols = vertebrates:other, # transpose tibble
@@ -88,7 +91,7 @@ after_2015 <- filter_list %>%
 # Plot
 
 ```{r}
-taxonomy_before_2015 <- ggdonutchart(before_2015, "percent", 
+taxonomy_before_2010 <- ggdonutchart(before_2010, "percent", 
              label = "group", 
              fill = "group", 
              color = "white",
@@ -101,13 +104,15 @@ taxonomy_before_2015 <- ggdonutchart(before_2015, "percent",
             size = 4,
             family = "Lato",
             colour = "black") + 
-  ggtitle("Before 2015") +
+  ggtitle("Before 2010") +
   theme(legend.position = "none",
         text=element_text(size=11,  family="Lato"),
-        title = element_text(size = 17.5, family = "Lato"))
+        title = element_text(size = 17.5, family = "Lato"),
+        plot.margin = unit(c(t = 1, r = 3, b = 1, l = 2),"cm"),
+        plot.background = element_rect(fill = "white",colour = "white",size = 2))
 
 
-taxonomy_after_2015 <- ggdonutchart(after_2015, "percent", 
+taxonomy_after_2010 <- ggdonutchart(after_2010, "percent", 
              label = "group", 
              fill = "group", 
              color = "white",
@@ -120,24 +125,24 @@ taxonomy_after_2015 <- ggdonutchart(after_2015, "percent",
             size = 4,
             family = "Lato",
             colour = "black") + 
-  ggtitle("2015 and After") +
+  ggtitle("2010 and After") +
   theme(legend.position = "none",
         text=element_text(size=11,  family="Lato"),
-        title = element_text(size = 17.5, family = "Lato"))
+        title = element_text(size = 17.5, family = "Lato"),
+        plot.margin = unit(c(t = 1, r = 2, b = 1, l = 2),"cm"),
+        plot.background = element_rect(fill = "white",colour = "white",size = 2))
 ```
 
 Patchwork it and save
 
 ```{r}
-library(patchwork)
-
-taxonomy_before_2015 / taxonomy_after_2015
+taxonomy_before_2010 / taxonomy_after_2010
 ```
 
 
 ```{r, eval = FALSE}
-ggsave(here::here("projects", "data_holdings", "taxonomic",
-                  "plots", "2021-11_donuts.png"),
-       width = 8, height = 11, units = "in", dpi = 600)
+# ggsave(here::here("projects", "data_holdings", "taxonomic",
+#                   "plots", "2021-11_donuts.png"),
+#        width = 8, height = 12, units = "in", dpi = 600)
 ```
 
