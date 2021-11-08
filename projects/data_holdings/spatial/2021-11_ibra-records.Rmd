@@ -28,7 +28,47 @@ ibra_counts <- ala_counts(
 imcra_counts <- ala_counts(
   filters = select_filters(profile = "ALA"),
   group_by = "cl966")
-  
+```
+
+
+```{r}
+library(kableExtra)
+
+ibra_table <- ibra_counts %>% 
+  rename("Region" = "cl1048",
+         "Records" = "count") %>%
+  arrange(desc(Records)) %>%
+  slice(1:3, 87:89)
+
+kbl(ibra_table, escape = F) %>%
+  kable_styling(font_size = 15) %>%
+  kable_paper("striped", full_width = F) %>%
+  row_spec(1:3, bold = F, color = "white", background = "#B8573E") %>%
+  row_spec(4:6, bold = F, color = "black", background = "#EEECEA") %>%
+  kable_minimal() %>%
+  add_header_above(c("IBRA" = 2)) # %>%
+  # save_kable(here::here("projects", "data_holdings", "spatial", "plots", "2021-11_top-bottom-ibra_table.png"))
+
+
+imcra_table <- imcra_counts %>% 
+  rename("Region" = "cl966",
+         "Records" = "count") %>%
+  arrange(desc(Records)) %>%
+  slice(1:3, 58:60)
+
+kbl(imcra_table, escape = F) %>%
+  kable_styling(font_size = 15) %>%
+  kable_paper("striped", full_width = F) %>%
+  row_spec(1:3, bold = F, color = "white", background = "#003A70") %>%
+  row_spec(4:6, bold = F, color = "black", background = "#6BDAD5") %>%
+  kable_minimal() %>%
+  add_header_above(c("IMCRA" = 2)) # %>%
+  # save_kable(here::here("projects", "data_holdings", "spatial", "plots", "2021-11_top-bottom-imcra_table.png"))
+
+```
+
+
+```{r}
 # # import data from other NCRIS facilities
 # imos <- read.csv("./data/NCRIS/IMOS Facilities - Point Data.csv")
 # imos <- imos[imos$Facility.Fullname != "Ships of Opportunity ", ]
