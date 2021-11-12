@@ -48,13 +48,32 @@ cumulative_species <- do.call(rbind, result_list)
 cumulative_species <- cumulative_species %>%
   group_by(year) %>%
   group_by(group) %>%
-  mutate(diff_species = lead(cumulative_spp) - cumulative_spp) # add count of species each year
+  mutate(diff_species = lead(cumulative_spp) - cumulative_spp,
+         group = str_to_title(group)) # add count of species each year
+
+library(showtext)
+font_paths()
+font_files() %>% filter(family == "Lato")
+font_add("Lato", "Lato-Regular.ttf")
+font_families()
 
 # plot
 ggplot(cumulative_species, aes(year, diff_species, fill = group)) +
-  geom_stream(bw = 1) +
-  pilot::scale_fill_pilot() +
-  theme_bw()
+  geom_stream(color = "black", 
+              bw = .95) + 
+  scale_fill_manual(values = c("#6BDAD5", "#9E9E9F", "#A191B2", "#B7CD96", "#FFC557")) +
+  labs(x = "Year",
+       y = "Number of species",
+       title = "Number of new species compared to the previous year") +
+  guides(fill = guide_legend(title = "Group")) +
+  theme_minimal() + 
+  theme(text=element_text(family="Lato"))
+
+
+# Save
+# ggsave(here::here("projects", "data_holdings", "taxonomic",
+#                   "plots", "2021-11_new-species_stream.png"),
+#        width = 8, height = 8, units = "in", dpi = 600)
 
 
 
