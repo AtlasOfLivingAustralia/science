@@ -97,8 +97,8 @@ taxonomy_before_2010 <- ggdonutchart(before_2010, "percent",
              color = "white",
              palette = c("#6BDAD5", "#9E9E9F", "#A191B2", "#B7CD96", "#FFC557"),
              font.family = "Lato",
-             lab.font = "bold",
-             lab.pos = "out") +
+             lab.pos = "out",
+             size = 1) +
   geom_text(aes(label = paste(percent, "%", sep = ""), fontface = "bold"),
             position = position_stack(vjust = 0.5),
             size = 4,
@@ -106,7 +106,7 @@ taxonomy_before_2010 <- ggdonutchart(before_2010, "percent",
             colour = "black") + 
   ggtitle("Before 2010") +
   theme(legend.position = "none",
-        text=element_text(size=11,  family="Lato"),
+        text=element_text(size=14,  family="Lato"),
         title = element_text(size = 17.5, family = "Lato"),
         plot.margin = unit(c(t = 1, r = 3, b = 1, l = 2),"cm"),
         plot.background = element_rect(fill = "white",colour = "white",size = 2))
