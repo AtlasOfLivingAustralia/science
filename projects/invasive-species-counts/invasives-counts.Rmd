@@ -1,0 +1,1187 @@
+---
+title: "Australian Invasive Species"
+author: "Atlas of Living Australia"
+date: "`r Sys.Date()`"
+always_allow_html: true
+output:
+  html_document:
+    highlight: default
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+    include:
+      in_header: template-files/header.html
+      after_body: template-files/footer.html
+    css: template-files/style.css
+    self_contained: FALSE
+editor_options: 
+  chunk_output_type: console
+
+---
+
+```{r setup, include=FALSE}
+library(htmltools)
+source("template-files/functions.R")
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+------------------------------------------------------------------------------
+
+This document uses data from the Atlas of Living Australia to provide counts and distributions of <br>
+  - camels 
+  - feral pigs 
+  - feral goats
+  - brumbies 
+  - cane toads
+
+------------------------------------------------------------------------------
+
+```{r, message = FALSE, warning = FALSE}
+# packages
+
+library(tidyverse)
+library(purrr)
+library(janitor)
+library(kableExtra)
+
+# use ala_counts branch for multiple `group_by` and `select_filters` args
+# remotes::install_github("AtlasOfLivingAustralia/galah@ala_counts")
+library(galah)
+
+# for mapping
+library(ozmaps)
+library(sf)
+library(mapsf)
+
+# Might need to install these:
+# devtools::install_github('ropensci/rnaturalearthhires')
+# install.packages("rgeos")
+```
+
+```{r, eval = FALSE}
+# Don't forget to use galah_config:
+# galah_config(email = "your_email@email.com")
+```
+
+
+# Camels {.tabset .tabset-fade}
+
+## Yearly Observations
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+# select taxa and filters
+taxa <- select_taxa("camelus")
+filters <- select_filters(year > 2005)
+
+# Download counts from ALA
+total_camel_counts <- ala_counts(taxa = taxa)
+camel_counts <- ala_counts(taxa = taxa, filters = filters, group_by = "year")
+
+# Wrangle
+camel_counts <- camel_counts %>% 
+  mutate(
+    year = as.integer(year)) %>%
+  arrange(desc(year))
+```
+
+
+```{r, warning = FALSE, message = FALSE}
+# Plot
+
+# Fonts
+library(extrafont)
+library(showtext)
+extrafont::loadfonts()
+font_add_google(name = "Lato")
+
+showtext_auto()
+
+# Set font for {pilot} titles
+pilot::set_pilot_family("Lato", title_family = "Lato") # Set font
+
+# Counts by year
+camel_yearly_counts <- camel_counts %>%
+  ggplot(aes(x = year,
+             y = count)) + 
+  geom_bar(stat = "identity", fill = "#E06E53", width = 0.8) + 
+  scale_x_continuous(breaks = c(2005, 2010, 2015, 2020),
+                     expand = c(0,0)) +
+  labs(x = "Year",
+       y = "Number of Records",
+       title = "Yearly Observations",
+       subtitle = "(2006-2021)") +
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot() + 
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)),
+        plot.subtitle = element_text(size = 19, margin = margin(0,0,20,0)))
+
+camel_yearly_counts
+
+# pilot::add_pilot_titles(camel_yearly_counts, title = "Yearly Observations (2006-2021)")
+```
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+# Table
+camel_counts %>%
+  rename_with(str_to_title) %>%
+  kbl() %>%
+  kable_styling("striped", full_width = FALSE) %>%
+  kable_paper() %>%
+  add_header_above(c("Yearly Counts" = 2))
+```   
+
+***
+
+
+## Data Providers
+
+```{r}
+# Download data providers
+
+camel_data_providers <- ala_counts(taxa = taxa, 
+                             # filters = filters, 
+                             group_by = "dataResourceName",
+                             limit = 1e5)
+```
+
+```{r, echo = FALSE, results = FALSE}
+# | Note: This table is set to not appear in knitted document
+# | It is here in case exact numbers are requested, 
+# | and can be added by removing `results = FALSE` in the chunk options
+
+perc_camel_data_providers <- camel_data_providers %>%
+  mutate(
+    dataResourceName = str_trim(dataResourceName),
+    percent = (count / sum(count)) * 100
+  ) %>% 
+  filter(percent > .01)
+
+perc_camel_data_providers %>% 
+  select(dataResourceName, count) %>%
+  rename("Data Provider" = dataResourceName) %>%
+  rename("Records" = count) %>%
+  kbl() %>% kable_styling(full_width = FALSE)
+```
+
+```{r, fig.cap = "Note: Plot displays data providers that provide more than 0.1% of overall data in the ALA"}
+# Plot
+
+# Proportion of data from different data providers
+plot_camel_data_providers <- perc_camel_data_providers %>% 
+  filter(percent > .1) %>%
+  
+  ggplot(aes(x = reorder(dataResourceName, percent),
+             y = percent,
+             fill = dataResourceName,
+             label = scales::percent(percent, suffix = "%"))) +
+  geom_bar(stat = "identity") + 
+  scale_x_discrete(labels = scales::label_wrap(35)) +
+  scale_y_continuous(limits = c(0, 100), labels = function(x) paste0(x, "%")) + 
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot(legend_position = "none") + 
+  labs(x = "Data Provider",
+       y = "Percentage of total records",
+       title = "Data Providers") +
+  coord_flip() + 
+  theme(axis.text.y = element_text(size = 11),
+        axis.text.x = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)))
+
+plot_camel_data_providers
+
+# pilot::add_pilot_titles(plot_camel_data_providers, title = "Data Providers")
+```
+
+***
+
+## Cartograph Map
+
+```{r, eval = FALSE}
+# Retrieve AUS map from {rnaturalearth}
+aus_ne <- rnaturalearth::ne_states(country = "australia", returnclass = "sf")
+
+# Counts of koalas by state
+state_layers <- search_fields("australian states and territories") # id = "cl22"
+camels_by_state <- ala_counts(taxa = taxa, group_by = "cl22")
+
+# Rename column and trim "cl22" prefix
+camels_by_state <- camels_by_state %>% 
+  mutate(state = str_remove(cl22, "cl22:")) %>% 
+  select(-cl22)
+
+# join with data from {ozmaps}
+camels_state_map <- merge(
+  ozmaps::ozmap_states,
+  camels_by_state,
+  by.x = "NAME",
+  by.y = "state"
+)
+
+# convert map coordinates to match ALA coordinates
+camels_state_map <- st_transform(camels_state_map, crs = st_crs(3577))
+
+par(mfrow=c(1,1))
+# Map using mf_map() from {mapsf}
+
+mf_theme(bg = "white")
+mf_map(x = camels_state_map, var = "count", type = "choro",
+       pal = "Dark Mint", border = "darkseagreen4", leg_pos = "n") %>%
+  mf_label(var = "count", col = "#E06E53", cex = 2, overlap = FALSE, halo = TRUE, font = 2) <- mappy
+
+```
+
+
+## Density Map
+
+```{r, message = FALSE, warning = FALSE, include = FALSE}
+# Download occurrence records
+camels_records <- ala_occurrences(taxa = taxa)
+
+# Remove NAs
+camels_records <- camels_records %>% filter(!is.na(.))
+
+# filter records to only those on mainland/tasmania
+camels_records_filtered <- camels_records %>%
+  filter(decimalLongitude < 155,
+         decimalLongitude > 110, 
+         decimalLatitude > -45,
+         decimalLatitude < -10)
+
+# Plot
+library(ggpointdensity)
+showtext_auto()
+
+camel_points_map <- ggplot(camels_records_filtered) + 
+  geom_sf(data = ozmap_states, fill = "white") + 
+  # geom_point(aes(x = decimalLongitude,
+  #                y = decimalLatitude), color = "#B8573E") +
+  geom_pointdensity(aes(x = decimalLongitude,
+                        y = decimalLatitude)) +
+  viridis::scale_color_viridis(option = "F", begin = 0.1) +
+  # scale_colour_gradient(low = "#9E9E9F", high = "#B8573E") +
+  labs(title = "Spatial Distribution",
+       x = NULL, y = NULL) +
+  pilot::theme_pilot(axes = "",
+                     grid = "") + 
+  guides(colour = guide_colourbar(title = "Number of \nOverlapping points"), alpha = "none") +
+  theme(legend.position="bottom",
+        legend.margin=margin(0,0,0,0),
+        legend.box.margin=margin(0,0,0,0),
+        legend.title.align=0.5,
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(size = 27, face = "bold", color = "#404040", hjust = 0.5, margin = margin(0,0,20,0)))
+```
+
+
+```{r, message = FALSE, warning = FALSE}
+camel_points_map
+```
+
+
+## Hexagon map
+
+Download data
+
+```{r}
+# Plot
+
+camel_hex_map <- ggplot(camels_records_filtered) +
+  geom_sf(data = ozmap_states, fill = "white") +
+  geom_hex(mapping = aes(x = decimalLongitude, 
+                         y = decimalLatitude,
+                         alpha=log(..count..)), bins = 50) +
+  ylim(-45, -10) +
+  xlim(110, 155) +
+  # viridis::scale_fill_viridis(option = "E") +
+  scale_fill_gradientn(colours = c("#FFC557", "#B8573E")) +
+  theme_bw() +
+  theme(
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title = element_blank(),
+    legend.position = "bottom") + 
+  guides(fill = guide_colourbar(title = "Count"), alpha = "none")
+
+camel_hex_map
+```
+
+## Final Plot
+
+```{r}
+library(patchwork)
+
+camels <- ((camel_yearly_counts / plot_camel_data_providers) | camel_points_map) + 
+  plot_layout(widths = c(1, 4), heights = c(1, 4))
+
+camel_title <- expression(paste("Camels (", italic("Camelus"), ")", sep = ""))
+camel_subtitle <- paste("Atlas of Living Australia (Total number of records = ", total_camel_counts, ")")
+
+camels <- pilot::add_pilot_titles(camels,
+                                  title = camel_title,
+                                  subtitle = camel_subtitle,
+                                  title_family = "Lato",
+                                  title_size = 30,
+                                  title_color = element_text(color = "#E06E53"),
+                                  subtitle_color = "#B8573E")
+camels
+```
+
+```{r, eval = FALSE}
+ggsave(here::here("projects", "invasive-species-counts", "plots", "camels.pdf"),
+       dpi = 600, width = 20, height = 13, units = "in")
+```
+
+
+# Feral Pigs
+
+## Yearly Observations
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+# select taxa and filters
+taxa <- select_taxa("sus scrofa")
+filters <- select_filters(year > 2005)
+
+# Download counts from ALA
+total_pig_counts <- ala_counts(taxa = taxa)
+
+pig_counts <- ala_counts(taxa = taxa, filters = filters, group_by = "year")
+
+# Wrangle
+pig_counts <- pig_counts %>% 
+  mutate(
+    year = as.integer(year)) %>%
+  arrange(desc(year))
+```
+
+
+```{r, warning = FALSE, message = FALSE}
+# Plot
+
+showtext_auto()
+
+# Set font for {pilot} titles
+pilot::set_pilot_family("Lato", title_family = "Lato") # Set font
+
+# Counts by year
+pig_yearly_counts <- pig_counts %>%
+  ggplot(aes(x = year,
+             y = count)) + 
+  geom_bar(stat = "identity", fill = "#E06E53", width = 0.8) + 
+  scale_x_continuous(breaks = c(2005, 2010, 2015, 2020),
+                     expand = c(0,0)) +
+  labs(x = "Year",
+       y = "Number of Records",
+       title = "Yearly Observations",
+       subtitle = "(2006-2021)") +
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot() + 
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)),
+        plot.subtitle = element_text(size = 19, margin = margin(0,0,20,0)))
+
+pig_yearly_counts
+
+# pilot::add_pilot_titles(camel_yearly_counts, title = "Yearly Observations (2006-2021)")
+```
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+# Table
+pig_counts %>%
+  rename_with(str_to_title) %>%
+  kbl() %>%
+  kable_styling("striped", full_width = FALSE) %>%
+  kable_paper() %>%
+  add_header_above(c("Yearly Counts" = 2))
+```   
+
+***
+
+
+## Data Providers
+
+```{r}
+# Download data providers
+
+pig_data_providers <- ala_counts(taxa = taxa, 
+                             # filters = filters, 
+                             group_by = "dataResourceName",
+                             limit = 1e5)
+```
+
+```{r, echo = FALSE, results = FALSE}
+# | Note: This table is set to not appear in knitted document
+# | It is here in case exact numbers are requested, 
+# | and can be added by removing `results = FALSE` in the chunk options
+
+perc_pig_data_providers <- pig_data_providers %>%
+  mutate(
+    dataResourceName = str_trim(dataResourceName),
+    percent = (count / sum(count)) * 100
+  ) %>% 
+  filter(percent > .01)
+
+perc_pig_data_providers %>% 
+  select(dataResourceName, count) %>%
+  rename("Data Provider" = dataResourceName) %>%
+  rename("Records" = count) %>%
+  kbl() %>% kable_styling(full_width = FALSE)
+```
+
+```{r, fig.cap = "Note: Plot displays data providers that provide more than 0.1% of overall data in the ALA"}
+# Plot
+
+# Proportion of data from different data providers
+plot_pig_data_providers <- perc_pig_data_providers %>% 
+  filter(percent > 0.5) %>%
+  
+  ggplot(aes(x = reorder(dataResourceName, percent),
+             y = percent,
+             fill = dataResourceName,
+             label = scales::percent(percent, suffix = "%"))) +
+  geom_bar(stat = "identity") + 
+  scale_x_discrete(labels = scales::label_wrap(35)) +
+  scale_y_continuous(limits = c(0, 100), labels = function(x) paste0(x, "%")) + 
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot(legend_position = "none") + 
+  labs(x = "Data Provider",
+       y = "Percentage of total records",
+       title = "Data Providers") +
+  coord_flip() + 
+  theme(axis.text.y = element_text(size = 10),
+        axis.text.x = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)))
+
+plot_pig_data_providers
+
+# pilot::add_pilot_titles(plot_camel_data_providers, title = "Data Providers")
+```
+
+***
+
+
+## Density Map
+
+```{r, message = FALSE, warning = FALSE, include = FALSE}
+# Download occurrence records
+pig_records <- ala_occurrences(taxa = taxa)
+
+# Remove NAs
+pig_records <- pig_records %>% filter(!is.na(.))
+
+# filter records to only those on mainland/tasmania
+pig_records_filtered <- pig_records %>%
+  filter(decimalLongitude < 155,
+         decimalLongitude > 110, 
+         decimalLatitude > -45,
+         decimalLatitude < -10)
+
+# Plot
+library(ggpointdensity)
+showtext_auto()
+
+pig_points_map <- ggplot(pig_records_filtered) + 
+  geom_sf(data = ozmap_states, fill = "white") + 
+  # geom_point(aes(x = decimalLongitude,
+  #                y = decimalLatitude), color = "#B8573E") +
+  geom_pointdensity(aes(x = decimalLongitude,
+                        y = decimalLatitude)) +
+  viridis::scale_color_viridis(option = "F", 
+                               begin = 0.1, 
+                               breaks = c(1000, 3000, 5000)) +
+  # scale_colour_gradient(low = "#9E9E9F", high = "#B8573E") +
+  labs(title = "Spatial Distribution",
+       x = NULL, y = NULL) +
+  pilot::theme_pilot(axes = "",
+                     grid = "") + 
+  guides(colour = guide_colourbar(title = "Number of \nOverlapping points"), alpha = "none") +
+  theme(legend.position="bottom",
+        legend.margin=margin(0,0,0,0),
+        legend.box.margin=margin(0,0,0,0),
+        legend.title.align=0.5,
+        legend.text = element_text(angle = 0),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(size = 27, face = "bold", color = "#404040", hjust = 0.5, margin = margin(0,0,20,0)))
+```
+
+
+```{r, message = FALSE, warning = FALSE}
+pig_points_map
+```
+
+***
+
+## Final Plot
+
+```{r}
+library(patchwork)
+
+pigs <- ((pig_yearly_counts / plot_pig_data_providers) | pig_points_map) + 
+  plot_layout(widths = c(1, 4), heights = c(1, 4))
+
+pig_title <- expression(paste("Feral Pigs (", italic("Sus scrofa"), ")", sep = ""))
+pig_subtitle <- paste("Atlas of Living Australia (Total number of records = ", total_pig_counts, ")")
+
+feral_pigs <- pilot::add_pilot_titles(pigs,
+                                  title = pig_title,
+                                  subtitle = pig_subtitle,
+                                  title_family = "Lato",
+                                  title_size = 30,
+                                  title_color = element_text(color = "#E06E53"),
+                                  subtitle_color = "#B8573E")
+feral_pigs
+```
+
+```{r, eval = FALSE}
+ggsave(here::here("projects", "invasive-species-counts", "plots", "feral-pigs.pdf"),
+       dpi = 600, width = 20, height = 13, units = "in")
+```
+
+
+
+
+
+
+
+# Feral Goats
+
+## Yearly Observations
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+# select taxa and filters
+taxa <- select_taxa("capra hircus")
+filters <- select_filters(year > 2005)
+
+# Download counts from ALA
+total_goat_counts <- ala_counts(taxa = taxa)
+
+goat_counts <- ala_counts(taxa = taxa, filters = filters, group_by = "year")
+
+# Wrangle
+goat_counts <- goat_counts %>% 
+  mutate(
+    year = as.integer(year)) %>%
+  arrange(desc(year))
+```
+
+
+```{r, warning = FALSE, message = FALSE}
+# Plot
+
+showtext_auto()
+
+# Set font for {pilot} titles
+pilot::set_pilot_family("Lato", title_family = "Lato") # Set font
+
+# Counts by year
+goat_yearly_counts <- goat_counts %>%
+  ggplot(aes(x = year,
+             y = count)) + 
+  geom_bar(stat = "identity", fill = "#E06E53", width = 0.8) + 
+  scale_x_continuous(breaks = c(2005, 2010, 2015, 2020),
+                     expand = c(0,0)) +
+  labs(x = "Year",
+       y = "Number of Records",
+       title = "Yearly Observations",
+       subtitle = "(2006-2021)") +
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot() + 
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)),
+        plot.subtitle = element_text(size = 19, margin = margin(0,0,20,0)))
+
+goat_yearly_counts
+
+# pilot::add_pilot_titles(camel_yearly_counts, title = "Yearly Observations (2006-2021)")
+```
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+# Table
+goat_counts %>%
+  rename_with(str_to_title) %>%
+  kbl() %>%
+  kable_styling("striped", full_width = FALSE) %>%
+  kable_paper() %>%
+  add_header_above(c("Yearly Counts" = 2))
+```   
+
+***
+
+
+## Data Providers
+
+```{r}
+# Download data providers
+
+goat_data_providers <- ala_counts(taxa = taxa, 
+                             # filters = filters, 
+                             group_by = "dataResourceName",
+                             limit = 1e5)
+```
+
+```{r, echo = FALSE, results = FALSE}
+# | Note: This table is set to not appear in knitted document
+# | It is here in case exact numbers are requested, 
+# | and can be added by removing `results = FALSE` in the chunk options
+
+perc_goat_data_providers <- goat_data_providers %>%
+  mutate(
+    dataResourceName = str_trim(dataResourceName),
+    percent = (count / sum(count)) * 100
+  ) %>% 
+  filter(percent > .01)
+
+perc_goat_data_providers %>% 
+  select(dataResourceName, count) %>%
+  rename("Data Provider" = dataResourceName) %>%
+  rename("Records" = count) %>%
+  kbl() %>% kable_styling(full_width = FALSE)
+```
+
+```{r, fig.cap = "Note: Plot displays data providers that provide more than 0.1% of overall data in the ALA"}
+# Plot
+
+# Proportion of data from different data providers
+plot_goat_data_providers <- perc_goat_data_providers %>% 
+  filter(percent > 0.1) %>%
+  
+  ggplot(aes(x = reorder(dataResourceName, percent),
+             y = percent,
+             fill = dataResourceName,
+             label = scales::percent(percent, suffix = "%"))) +
+  geom_bar(stat = "identity") + 
+  scale_x_discrete(labels = scales::label_wrap(35)) +
+  scale_y_continuous(limits = c(0, 100), labels = function(x) paste0(x, "%")) + 
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot(legend_position = "none") + 
+  labs(x = "Data Provider",
+       y = "Percentage of total records",
+       title = "Data Providers") +
+  coord_flip() + 
+  theme(axis.text.y = element_text(size = 10),
+        axis.text.x = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)))
+
+plot_goat_data_providers
+
+# pilot::add_pilot_titles(plot_camel_data_providers, title = "Data Providers")
+```
+
+***
+
+
+## Density Map
+
+```{r, message = FALSE, warning = FALSE, include = FALSE}
+# Download occurrence records
+goat_records <- ala_occurrences(taxa = taxa)
+
+# Remove NAs
+goat_records <- goat_records %>% filter(!is.na(.))
+
+# filter records to only those on mainland/tasmania
+goat_records_filtered <- goat_records %>%
+  filter(decimalLongitude < 155,
+         decimalLongitude > 110, 
+         decimalLatitude > -45,
+         decimalLatitude < -10)
+
+# Plot
+library(ggpointdensity)
+showtext_auto()
+
+goat_points_map <- ggplot(goat_records_filtered) + 
+  geom_sf(data = ozmap_states, fill = "white") + 
+  # geom_point(aes(x = decimalLongitude,
+  #                y = decimalLatitude), color = "#B8573E") +
+  geom_pointdensity(aes(x = decimalLongitude,
+                        y = decimalLatitude)) +
+  viridis::scale_color_viridis(option = "F", 
+                               begin = 0.1, 
+                               breaks = c(1000, 4000, 7000)) +
+  # scale_colour_gradient(low = "#9E9E9F", high = "#B8573E") +
+  labs(title = "Spatial Distribution",
+       x = NULL, y = NULL) +
+  pilot::theme_pilot(axes = "",
+                     grid = "") + 
+  guides(colour = guide_colourbar(title = "Number of \nOverlapping points"), alpha = "none") +
+  theme(legend.position="bottom",
+        legend.margin=margin(0,0,0,0),
+        legend.box.margin=margin(0,0,0,0),
+        legend.title.align=0.5,
+        legend.text = element_text(angle = 0),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(size = 27, face = "bold", color = "#404040", hjust = 0.5, margin = margin(0,0,20,0)))
+```
+
+
+```{r, message = FALSE, warning = FALSE}
+goat_points_map
+```
+
+***
+
+## Final Plot
+
+```{r}
+library(patchwork)
+
+goats <- ((goat_yearly_counts / plot_goat_data_providers) | goat_points_map) + 
+  plot_layout(widths = c(1, 4), heights = c(1, 4))
+
+goat_title <- expression(paste("Feral Goats (", italic("Capra hircus"), ")", sep = ""))
+goat_subtitle <- paste("Atlas of Living Australia (Total number of records = ", total_goat_counts, ")")
+
+feral_goats <- pilot::add_pilot_titles(goats,
+                                  title = goat_title,
+                                  subtitle = goat_subtitle,
+                                  title_family = "Lato",
+                                  title_size = 30,
+                                  title_color = element_text(color = "#E06E53"),
+                                  subtitle_color = "#B8573E")
+feral_goats
+```
+
+```{r, eval = FALSE}
+ggsave(here::here("projects", "invasive-species-counts", "plots", "feral-goats.pdf"),
+       dpi = 600, width = 20, height = 13, units = "in")
+```
+
+
+
+
+
+
+# Brumbies
+
+## Yearly Observations
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+# select taxa and filters
+taxa <- select_taxa("equus caballus")
+filters <- select_filters(year > 2005)
+
+# Download counts from ALA
+total_brumby_counts <- ala_counts(taxa = taxa)
+
+brumby_counts <- ala_counts(taxa = taxa, filters = filters, group_by = "year")
+
+# Wrangle
+brumby_counts <- brumby_counts %>% 
+  mutate(
+    year = as.integer(year)) %>%
+  arrange(desc(year))
+```
+
+
+```{r, warning = FALSE, message = FALSE}
+# Plot
+
+showtext_auto()
+
+# Set font for {pilot} titles
+pilot::set_pilot_family("Lato", title_family = "Lato") # Set font
+
+# Counts by year
+brumby_yearly_counts <- brumby_counts %>%
+  ggplot(aes(x = year,
+             y = count)) + 
+  geom_bar(stat = "identity", fill = "#E06E53", width = 0.8) + 
+  scale_x_continuous(breaks = c(2005, 2010, 2015, 2020),
+                     expand = c(0,0)) +
+  labs(x = "Year",
+       y = "Number of Records",
+       title = "Yearly Observations",
+       subtitle = "(2006-2021)") +
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot() + 
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)),
+        plot.subtitle = element_text(size = 19, margin = margin(0,0,20,0)))
+
+brumby_yearly_counts
+
+# pilot::add_pilot_titles(camel_yearly_counts, title = "Yearly Observations (2006-2021)")
+```
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+# Table
+brumby_counts %>%
+  rename_with(str_to_title) %>%
+  kbl() %>%
+  kable_styling("striped", full_width = FALSE) %>%
+  kable_paper() %>%
+  add_header_above(c("Yearly Counts" = 2))
+```   
+
+***
+
+
+## Data Providers
+
+```{r}
+# Download data providers
+
+brumby_data_providers <- ala_counts(taxa = taxa, 
+                             # filters = filters, 
+                             group_by = "dataResourceName",
+                             limit = 1e5)
+```
+
+```{r, echo = FALSE, results = FALSE}
+# | Note: This table is set to not appear in knitted document
+# | It is here in case exact numbers are requested, 
+# | and can be added by removing `results = FALSE` in the chunk options
+
+perc_brumby_data_providers <- brumby_data_providers %>%
+  mutate(
+    dataResourceName = str_trim(dataResourceName),
+    percent = (count / sum(count)) * 100
+  ) %>% 
+  filter(percent > .01)
+
+perc_brumby_data_providers %>% 
+  select(dataResourceName, count) %>%
+  rename("Data Provider" = dataResourceName) %>%
+  rename("Records" = count) %>%
+  kbl() %>% kable_styling(full_width = FALSE)
+```
+
+```{r, fig.cap = "Note: Plot displays data providers that provide more than 0.1% of overall data in the ALA"}
+# Plot
+
+# Proportion of data from different data providers
+plot_brumby_data_providers <- perc_brumby_data_providers %>% 
+  filter(percent > 0.1) %>%
+  
+  ggplot(aes(x = reorder(dataResourceName, percent),
+             y = percent,
+             fill = dataResourceName,
+             label = scales::percent(percent, suffix = "%"))) +
+  geom_bar(stat = "identity") + 
+  scale_x_discrete(labels = scales::label_wrap(35)) +
+  scale_y_continuous(limits = c(0, 100), labels = function(x) paste0(x, "%")) + 
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot(legend_position = "none") + 
+  labs(x = "Data Provider",
+       y = "Percentage of total records",
+       title = "Data Providers") +
+  coord_flip() + 
+  theme(axis.text.y = element_text(size = 10),
+        axis.text.x = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)))
+
+plot_brumby_data_providers
+
+# pilot::add_pilot_titles(plot_camel_data_providers, title = "Data Providers")
+```
+
+***
+
+
+## Density Map
+
+```{r, message = FALSE, warning = FALSE, include = FALSE}
+# Download occurrence records
+brumby_records <- ala_occurrences(taxa = taxa)
+
+# Remove NAs
+brumby_records <- brumby_records %>% filter(!is.na(.))
+
+# filter records to only those on mainland/tasmania
+brumby_records_filtered <- brumby_records %>%
+  filter(decimalLongitude < 155,
+         decimalLongitude > 110, 
+         decimalLatitude > -45,
+         decimalLatitude < -10)
+
+# Plot
+library(ggpointdensity)
+showtext_auto()
+
+brumby_points_map <- ggplot(brumby_records_filtered) + 
+  geom_sf(data = ozmap_states, fill = "white") + 
+  # geom_point(aes(x = decimalLongitude,
+  #                y = decimalLatitude), color = "#B8573E") +
+  geom_pointdensity(aes(x = decimalLongitude,
+                        y = decimalLatitude)) +
+  viridis::scale_color_viridis(option = "F", 
+                               begin = 0.1, 
+                               breaks = c(100, 1000, 2000)) +
+  # scale_colour_gradient(low = "#9E9E9F", high = "#B8573E") +
+  labs(title = "Spatial Distribution",
+       x = NULL, y = NULL) +
+  pilot::theme_pilot(axes = "",
+                     grid = "") + 
+  guides(colour = guide_colourbar(title = "Number of \nOverlapping points"), alpha = "none") +
+  theme(legend.position="bottom",
+        legend.margin=margin(0,0,0,0),
+        legend.box.margin=margin(0,0,0,0),
+        legend.title.align=0.5,
+        legend.text = element_text(angle = 0),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(size = 27, face = "bold", color = "#404040", hjust = 0.5, margin = margin(0,0,20,0)))
+```
+
+
+```{r, message = FALSE, warning = FALSE}
+brumby_points_map
+```
+
+***
+
+
+## Final Plot
+
+```{r}
+library(patchwork)
+
+brumbys <- ((brumby_yearly_counts / plot_brumby_data_providers) | brumby_points_map) + 
+  plot_layout(widths = c(1, 4), heights = c(1, 4))
+
+brumby_title <- expression(paste("Feral Brumbies (", italic("Equus caballus"), ")", sep = ""))
+brumby_subtitle <- paste("Atlas of Living Australia (Total number of records = ", total_brumby_counts, ")")
+
+feral_brumbys <- pilot::add_pilot_titles(brumbys,
+                                  title = brumby_title,
+                                  subtitle = brumby_subtitle,
+                                  title_family = "Lato",
+                                  title_size = 30,
+                                  title_color = element_text(color = "#E06E53"),
+                                  subtitle_color = "#B8573E")
+feral_brumbys
+```
+
+```{r, eval = FALSE}
+ggsave(here::here("projects", "invasive-species-counts", "plots", "brumbies.pdf"),
+       dpi = 600, width = 20, height = 13, units = "in")
+```
+
+
+
+
+
+# Cane Toads
+
+## Yearly Observations
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+# select taxa and filters
+taxa <- select_taxa("Rhinella marina")
+filters <- select_filters(year > 2005)
+
+# Download counts from ALA
+total_toad_counts <- ala_counts(taxa = taxa)
+
+toad_counts <- ala_counts(taxa = taxa, filters = filters, group_by = "year")
+
+# Wrangle
+toad_counts <- toad_counts %>% 
+  mutate(
+    year = as.integer(year)) %>%
+  arrange(desc(year))
+```
+
+
+```{r, warning = FALSE, message = FALSE}
+# Plot
+
+showtext_auto()
+
+# Set font for {pilot} titles
+pilot::set_pilot_family("Lato", title_family = "Lato") # Set font
+
+# Counts by year
+toad_yearly_counts <- toad_counts %>%
+  ggplot(aes(x = year,
+             y = count)) + 
+  geom_bar(stat = "identity", fill = "#E06E53", width = 0.8) + 
+  scale_x_continuous(breaks = c(2005, 2010, 2015, 2020),
+                     expand = c(0,0)) +
+  labs(x = "Year",
+       y = "Number of Records",
+       title = "Yearly Observations",
+       subtitle = "(2006-2021)") +
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot() + 
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)),
+        plot.subtitle = element_text(size = 19, margin = margin(0,0,20,0)))
+
+toad_yearly_counts
+
+# pilot::add_pilot_titles(camel_yearly_counts, title = "Yearly Observations (2006-2021)")
+```
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+# Table
+toad_counts %>%
+  rename_with(str_to_title) %>%
+  kbl() %>%
+  kable_styling("striped", full_width = FALSE) %>%
+  kable_paper() %>%
+  add_header_above(c("Yearly Counts" = 2))
+```   
+
+***
+
+
+## Data Providers
+
+```{r}
+# Download data providers
+
+toad_data_providers <- ala_counts(taxa = taxa, 
+                             # filters = filters, 
+                             group_by = "dataResourceName",
+                             limit = 1e5)
+```
+
+```{r, echo = FALSE, results = FALSE}
+# | Note: This table is set to not appear in knitted document
+# | It is here in case exact numbers are requested, 
+# | and can be added by removing `results = FALSE` in the chunk options
+
+perc_toad_data_providers <- toad_data_providers %>%
+  mutate(
+    dataResourceName = str_trim(dataResourceName),
+    percent = (count / sum(count)) * 100
+  ) %>% 
+  filter(percent > .01)
+
+perc_toad_data_providers %>% 
+  select(dataResourceName, count) %>%
+  rename("Data Provider" = dataResourceName) %>%
+  rename("Records" = count) %>%
+  kbl() %>% kable_styling(full_width = FALSE)
+```
+
+```{r, fig.cap = "Note: Plot displays data providers that provide more than 0.1% of overall data in the ALA"}
+# Plot
+
+# Proportion of data from different data providers
+plot_toad_data_providers <- perc_toad_data_providers %>% 
+  filter(percent > 1) %>%
+  
+  ggplot(aes(x = reorder(dataResourceName, percent),
+             y = percent,
+             fill = dataResourceName,
+             label = scales::percent(percent, suffix = "%"))) +
+  geom_bar(stat = "identity") + 
+  scale_x_discrete(labels = scales::label_wrap(35)) +
+  scale_y_continuous(limits = c(0, 100), labels = function(x) paste0(x, "%")) + 
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot(legend_position = "none") + 
+  labs(x = "Data Provider",
+       y = "Percentage of total records",
+       title = "Data Providers") +
+  coord_flip() + 
+  theme(axis.text.y = element_text(size = 10),
+        axis.text.x = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)))
+
+plot_toad_data_providers
+
+# pilot::add_pilot_titles(plot_camel_data_providers, title = "Data Providers")
+```
+
+***
+
+
+## Density Map
+
+```{r, message = FALSE, warning = FALSE, include = FALSE}
+# Download occurrence records
+toad_records <- ala_occurrences(taxa = taxa)
+
+# Remove NAs
+toad_records <- toad_records %>% filter(!is.na(.))
+
+# filter records to only those on mainland/tasmania
+toad_records_filtered <- toad_records %>%
+  filter(decimalLongitude < 155,
+         decimalLongitude > 110, 
+         decimalLatitude > -45,
+         decimalLatitude < -10)
+
+# Plot
+library(ggpointdensity)
+showtext_auto()
+
+toad_points_map <- ggplot(toad_records_filtered) + 
+  geom_sf(data = ozmap_states, fill = "white") + 
+  # geom_point(aes(x = decimalLongitude,
+  #                y = decimalLatitude), color = "#B8573E") +
+  geom_pointdensity(aes(x = decimalLongitude,
+                        y = decimalLatitude)) +
+  viridis::scale_color_viridis(option = "F", 
+                               begin = 0.1, 
+                               breaks = c(1000, 2500, 4000)) +
+  # scale_colour_gradient(low = "#9E9E9F", high = "#B8573E") +
+  labs(title = "Spatial Distribution",
+       x = NULL, y = NULL) +
+  pilot::theme_pilot(axes = "",
+                     grid = "") + 
+  guides(colour = guide_colourbar(title = "Number of \nOverlapping points"), alpha = "none") +
+  theme(legend.position="bottom",
+        legend.margin=margin(0,0,0,0),
+        legend.box.margin=margin(0,0,0,0),
+        legend.title.align=0.5,
+        legend.text = element_text(angle = 0),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(size = 27, face = "bold", color = "#404040", hjust = 0.5, margin = margin(0,0,20,0)))
+```
+
+
+```{r, message = FALSE, warning = FALSE}
+toad_points_map
+```
+
+***
+
+
+## Final Plot
+
+```{r}
+library(patchwork)
+
+toads <- ((toad_yearly_counts / plot_toad_data_providers) | toad_points_map) + 
+  plot_layout(widths = c(1, 4), heights = c(1, 4))
+
+toad_title <- expression(paste("Cane Toads (", italic("Rhinella marina"), ")", sep = ""))
+toad_subtitle <- paste("Atlas of Living Australia (Total number of records = ", total_toad_counts, ")")
+
+feral_toads <- pilot::add_pilot_titles(toads,
+                                  title = toad_title,
+                                  subtitle = toad_subtitle,
+                                  title_family = "Lato",
+                                  title_size = 30,
+                                  title_color = element_text(color = "#E06E53"),
+                                  subtitle_color = "#B8573E")
+feral_toads
+```
+
+```{r, eval = FALSE}
+ggsave(here::here("projects", "invasive-species-counts", "plots", "cane-toads.pdf"),
+       dpi = 600, width = 20, height = 13, units = "in")
+```
