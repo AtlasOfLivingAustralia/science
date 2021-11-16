@@ -1,0 +1,97 @@
+---
+title: "FrogID donut chart"
+author: "Dax"
+date: "16/11/2021"
+output: html_document
+---
+
+```{r}
+# packages
+library(tidyverse)
+library(galah)
+library(ggpubr)
+library(pilot)
+library(showtext)
+
+font_add_google(name = "Lato")
+
+showtext_auto()
+```
+
+```{r, eval = FALSE}
+galah_config(email = "your-email@email.com")
+```
+
+```{r}
+# Download counts of frog records since 2016 by data provider
+taxa = select_taxa("frog")
+providers <- ala_counts(taxa = taxa,
+                        filters > 2015,
+                        group_by = "dataResourceName")
+
+# Wrangle
+providers_brief <- providers %>%
+  mutate(
+    dataResourceName = case_when(
+      dataResourceName == "FrogID" ~ "FrogID",
+      dataResourceName == "NSW BioNet Atlas" ~ "NSW BioNet Atlas"
+      dataResourceName == "iNaturalist" ~ "iNaturalist",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  group_by(dataResourceName) %>%
+  summarise_all(sum) %>%
+  mutate(percent = round((count / sum(count)) * 100), 0)
+
+# Plot
+ggdonutchart(providers_brief, "percent", 
+             # label = NA, 
+             fill = "dataResourceName", 
+             color = "white",
+             palette = c(pilot::pilot_color("green"), 
+                         "#9E9E9F", 
+                         "#A191B2", 
+                         "#B7CD96"),
+             font.family = "Lato",
+             lab.pos = "out",
+             size = 1) +
+  geom_text_pilot(aes(label = paste(percent, "%", sep = ""), fontface = "bold"),
+            position = position_stack(vjust = 0.5),
+            size = 21,
+            family = "Lato",
+            color = "white") + 
+  annotate_pilot(
+    x = 0.5,
+    y = 0,
+    label = paste((sum(count)), "Frog Records", sep = ""),
+    color = "white",
+    family = "Lato"
+  ) + 
+  annotate_pilot(
+    x = 2.5,
+    y = 87,
+    label = "FrogID",
+    color = pilot_color("green"),
+    fontface = "bold",
+    family = "Lato",
+    size = 15
+  ) +
+  annotate_pilot(
+    x = 2.5,
+    y = 45,
+    hjust = 2,
+    vjust = 1,
+    label = "iNaturalist",
+    color = pilot_color("yellow"),
+    fontface = "bold",
+    family = "Lato",
+    size = 15
+  ) +
+  theme(legend.position = "none",
+        text=element_text(size = 20,  family="Lato"),
+        title = element_text(size = 23.5, family = "Lato"),
+        plot.margin = unit(c(t = 1, r = 3, b = 1, l = 2),"cm"),
+        plot.background = element_rect(fill = "#222322", colour = "#222322"),
+        plot.background = element_rect(fill = "#222322", colour = "#222322"))
+```
+
