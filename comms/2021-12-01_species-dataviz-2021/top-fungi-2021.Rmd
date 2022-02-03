@@ -1,0 +1,116 @@
+---
+title: "Top Fungi 2021"
+author: "Dax"
+date: "09/12/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(galah)
+library(lubridate)
+library(pilot)
+```
+
+
+```{r}
+galah_config(email = "dax.kellie@csiro.au", run_checks = FALSE)
+```
+
+## Download data
+
+```{r}
+# Get number of records of top species
+# Inverts counts for 2021
+species_counts <- atlas_counts(taxa = select_taxa(c("Insecta", "Arachnida", "Gastropoda")),
+                               filter = galah_filter(year == 2021,
+                                 taxonConceptID != conceptID_b),
+                               group_by = galah_group_by(species),
+                               limit = 4)
+```
+
+
+# Wrangle and Tidy
+
+```{r}
+# Get common names
+species_names <- ala_species(taxa = select_taxa(species_counts$species))
+
+# Because there are no vernacular names (??), name them explicitly
+species_names$vernacular_name[species_names$species == 'Apis (Apis) mellifera'] <- 'Western Honey Bee'
+species_names$vernacular_name[species_names$species == 'Harmonia conformis'] <- 'Large Spotted Ladybird'
+
+# Get species/common names and match names in species_counts
+species_names <- species_names %>%
+  select(species, vernacular_name) %>%
+  mutate(
+    species = str_replace(species, " \\s*\\([^\\)]+\\)", "") # remove parentheses and words between
+    )
+
+# Merge record counts and names
+species_counts <- species_counts %>% 
+  left_join(., species_names, by = ("species"))
+```
+
+# Plot
+
+```{r}
+# Create labels for plotting
+species_labels <- paste(species_counts$species, sep = "")
+common_name_labels <- paste(species_counts$vernacular_name, sep = "")
+
+# Get fonts
+library(extrafont)
+library(showtext)
+extrafont::loadfonts()
+font_add_google(name = "Roboto")
+
+showtext_auto()
+
+# Set font for {pilot} titles
+pilot::set_pilot_family("Roboto", title_family = "Roboto") # Set font
+```
+
+
+```{r}
+# Plot
+species_counts %>%
+  ggplot(aes(x = reorder(species, count), y = count, fill = species)) + 
+  geom_bar(stat = "identity") + 
+  geom_text_pilot(mapping = aes(x = species, y = 0.5, label = species_labels),
+                  # position = position_dodge(width = 1),
+                  size = 7,
+                  hjust = -0.04,
+                  vjust = -0.9,
+                  fontface = "italic"
+                  ) +
+  geom_text_pilot(mapping = aes(x = species, y = 0.5, label = common_name_labels),
+                  # position = position_dodge(width = 1),
+                  size = 7,
+                  hjust = -0.05,
+                  vjust = 0.9
+                  ) +
+  labs(x = "",
+       y = "Number of Records") +
+  scale_fill_manual(values = c(
+    "Apis mellifera" = "#E06E53",
+    "Harmonia conformis" = pilot_color("yellow"),
+    "Heteronympha merope" = pilot_color("yellow"),
+    "Vanessa kershawi" = pilot_color("yellow")
+  )) + 
+  theme_pilot(axes = "b",
+                     grid = "v") + 
+  coord_flip() + 
+  theme(legend.position = "none",
+        axis.text.y = element_blank(),
+        axis.text.x = element_text(size = 22),
+        axis.title.x = element_text(size = 25))
+```
+
+
+```{r, eval = FALSE}
+ggsave(here::here("comms", "2021-12-01_species-dataviz-2021", "plots", "top-inverts-2021.png"),
+       dpi = 150, width = 7, height = 7, units = "in")
+```
