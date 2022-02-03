@@ -75,7 +75,7 @@ flies_counts <- flies_counts %>%
 library(extrafont)
 library(showtext)
 extrafont::loadfonts()
-font_add_google(name = "Roboto")
+# font_add_google(name = "Roboto")
 
 showtext_auto()
 
@@ -92,7 +92,7 @@ flies_yearly_counts <- flies_counts %>%
   labs(x = "Year",
        y = "Number of Records",
        title = "Yearly Observations",
-       subtitle = "(2006-2021)") +
+       subtitle = "(1950-2022)") +
   pilot::scale_fill_pilot() + 
   pilot::theme_pilot() + 
   theme(axis.text = element_text(size = 14),
@@ -297,8 +297,6 @@ ggsave(here::here("projects", "fruit-flies", "plots", "fruit-flies.pdf"),
 # select taxa and filters
 fruit_flies <- search_taxa("Ceratitis capitata")
 
-# "Anastrepha ludens" - mexican fruit fly did not appear
-
 # Download counts from ALA
 total_fruit_flies <- galah_call() %>%
   galah_identify(fruit_flies) %>%
@@ -330,7 +328,7 @@ flies_counts <- flies_counts %>%
 library(extrafont)
 library(showtext)
 extrafont::loadfonts()
-font_add_google(name = "Roboto")
+# font_add_google(name = "Roboto")
 
 showtext_auto()
 
@@ -347,7 +345,7 @@ flies_yearly_counts <- flies_counts %>%
   labs(x = "Year",
        y = "Number of Records",
        title = "Yearly Observations",
-       subtitle = "(2006-2021)") +
+       subtitle = "(1950-2022)") +
   pilot::scale_fill_pilot() + 
   pilot::theme_pilot() + 
   theme(axis.text = element_text(size = 14),
@@ -522,10 +520,10 @@ flies_hex_map
 ```{r}
 library(patchwork)
 
-flies <- ((flies_yearly_counts / plot_flies_data_providers) | flies_points_map) + 
+flies <- ((flies_yearly_counts / plot_flies_data_providers) | flies_hex_map) + 
   plot_layout(widths = c(1, 4), heights = c(1, 4))
 
-flies_title <- expression(paste("Mediterranean fruit fly (", italic("Ceratitis capitata"), ")", sep = ""))
+flies_title <- expression(paste("Mediterranean fruit fly ( ", italic("Ceratitis capitata"), " )", sep = ""))
 flies_subtitle <- paste("Atlas of Living Australia (Total number of records = ", total_fruit_flies, ")")
 
 flies <- pilot::add_pilot_titles(flies,
@@ -539,6 +537,6 @@ flies
 ```
 
 ```{r, eval = FALSE}
-ggsave(here::here("projects", "fruit-flies", "plots", "fruit-flies.pdf"),
+ggsave(here::here("projects", "fruit-flies", "plots", "ceratitis-capitata.pdf"),
        dpi = 600, width = 20, height = 13, units = "in")
 ```
