@@ -1,0 +1,544 @@
+---
+title: "Fruit Fly Data Visualisation"
+author: "Dax Kellie"
+date: "03/02/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+------------------------------------------------------------------------------
+
+This document uses data from the Atlas of Living Australia to provide counts and distributions of fruit flies.
+
+------------------------------------------------------------------------------
+
+```{r, message = FALSE, warning = FALSE}
+# packages
+
+library(tidyverse)
+library(purrr)
+library(janitor)
+library(kableExtra)
+
+library(galah)
+
+# for mapping
+library(ozmaps)
+library(sf)
+library(mapsf)
+
+# Might need to install these:
+# devtools::install_github('ropensci/rnaturalearthhires')
+# install.packages("rgeos")
+```
+
+# All fruit flies
+
+## Yearly Observations
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+# select taxa and filters
+fruit_flies <- search_taxa("Bactrocera tryoni", "Ceratitis capitata", " Ceratitis rosa",
+                           "Zeugodacus cucurbitae", "Zeugodacus cucumis", "Bactericera cockerelli","Bactericera trigonica","Bactrocera albistrigata","Bactrocera carambolae","Bactrocera correcta","Bactrocera cucurbitae","Bactrocera curvipennis","Bactrocera dorsalis","Bactrocera facialis","Bactrocera invadens","Bactrocera kandiensis","Bactrocera kirki","Bactrocera latifrons","Bactrocera melanotus","Bactrocera occipitalis","Bactrocera oleae","Bactrocera papayae","Bactrocera passiflorae","Bactrocera philippinensis","Bactrocera psidii","Bactrocera trilineola","Bactrocera trivialis","Bactrocera tsuneonis","Bactrocera tuberculata","Bactrocera xanthodes","Bactrocera zonata")
+
+# "Anastrepha ludens" - mexican fruit fly did not appear
+
+# Download counts from ALA
+total_fruit_flies <- galah_call() %>%
+  galah_identify(fruit_flies) %>%
+  atlas_counts()
+
+flies_counts <- galah_call() %>%
+  galah_identify(fruit_flies) %>%
+  galah_filter(year > 1950) %>%
+  galah_group_by(year) %>%
+  atlas_counts()
+
+galah_call() %>%
+  galah_identify(fruit_flies) %>%
+  galah_filter(year > 2005) %>%
+  atlas_counts()
+  
+# Wrangle
+flies_counts <- flies_counts %>% 
+  mutate(
+    year = as.integer(year)) %>%
+  arrange(desc(year))
+```
+
+
+```{r, warning = FALSE, message = FALSE}
+# Plot
+
+# Fonts
+library(extrafont)
+library(showtext)
+extrafont::loadfonts()
+font_add_google(name = "Roboto")
+
+showtext_auto()
+
+# Set font for {pilot} titles
+pilot::set_pilot_family("Roboto", title_family = "Roboto") # Set font
+
+# Counts by year
+flies_yearly_counts <- flies_counts %>%
+  ggplot(aes(x = year,
+             y = count)) + 
+  geom_bar(stat = "identity", fill = "#E06E53", width = 0.8) + 
+  scale_x_continuous(breaks = c(1960, 1980, 2000, 2020),
+                     expand = c(0,0)) +
+  labs(x = "Year",
+       y = "Number of Records",
+       title = "Yearly Observations",
+       subtitle = "(2006-2021)") +
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot() + 
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)),
+        plot.subtitle = element_text(size = 19, margin = margin(0,0,20,0)))
+
+flies_yearly_counts
+
+# pilot::add_pilot_titles(camel_yearly_counts, title = "Yearly Observations (2006-2021)")
+```
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+# Table
+flies_counts %>%
+  rename_with(str_to_title) %>%
+  kbl() %>%
+  kable_styling("striped", full_width = FALSE) %>%
+  kable_paper() %>%
+  add_header_above(c("Yearly Counts" = 2))
+```   
+
+***
+
+
+## Data Providers
+
+```{r}
+# Download data providers
+flies_data_providers <- galah_call() %>%
+  galah_identify(fruit_flies) %>%
+  galah_group_by(dataResourceName) %>%
+  atlas_counts(limit = 1e5)
+```
+
+```{r, echo = FALSE, results = FALSE}
+# | Note: This table is set to not appear in knitted document
+# | It is here in case exact numbers are requested, 
+# | and can be added by removing `results = FALSE` in the chunk options
+
+perc_flies_data_providers <- flies_data_providers %>%
+  mutate(
+    dataResourceName = str_trim(dataResourceName),
+    percent = (count / sum(count)) * 100
+  ) %>% 
+  filter(percent > .01)
+
+perc_flies_data_providers %>% 
+  select(dataResourceName, count) %>%
+  rename("Data Provider" = dataResourceName) %>%
+  rename("Records" = count) %>%
+  kbl() %>% kable_styling(full_width = FALSE)
+```
+
+```{r, fig.cap = "Note: Plot displays data providers that provide more than 0.1% of overall data in the ALA"}
+# Plot
+
+# Proportion of data from different data providers
+plot_flies_data_providers <- perc_flies_data_providers %>% 
+  filter(percent > .1) %>%
+  
+  ggplot(aes(x = reorder(dataResourceName, percent),
+             y = percent,
+             fill = dataResourceName,
+             label = scales::percent(percent, suffix = "%"))) +
+  geom_bar(stat = "identity") + 
+  scale_x_discrete(labels = scales::label_wrap(35)) +
+  scale_y_continuous(limits = c(0, 100), labels = function(x) paste0(x, "%")) + 
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot(legend_position = "none") + 
+  labs(x = "Data Provider",
+       y = "Percentage of total records",
+       title = "Data Providers") +
+  coord_flip() + 
+  theme(axis.text.y = element_text(size = 11),
+        axis.text.x = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)))
+
+plot_flies_data_providers
+
+# pilot::add_pilot_titles(plot_camel_data_providers, title = "Data Providers")
+```
+
+***
+
+## Density Map
+
+```{r, message = FALSE, warning = FALSE, include = FALSE}
+# Download occurrence records
+flies_records <- galah_call() %>%
+  galah_identify(fruit_flies) %>%
+  atlas_occurrences()
+
+# Remove NAs
+flies_records <- flies_records %>% filter(!is.na(.))
+
+# filter records to only those on mainland/tasmania
+flies_records_filtered <- flies_records %>%
+  filter(decimalLongitude < 155,
+         decimalLongitude > 110, 
+         decimalLatitude > -45,
+         decimalLatitude < -10)
+
+# Plot
+library(ggpointdensity)
+library(showtext)
+showtext_auto()
+
+flies_points_map <- ggplot(flies_records_filtered) + 
+  geom_sf(data = ozmap_states, fill = "white") + 
+  # geom_point(aes(x = decimalLongitude,
+  #                y = decimalLatitude), color = "#B8573E") +
+  geom_pointdensity(aes(x = decimalLongitude,
+                        y = decimalLatitude)) +
+  viridis::scale_color_viridis(option = "F", 
+                               begin = 0.1, 
+                               breaks = c(500, 1250, 2000)) +
+  # scale_colour_gradient(low = "#9E9E9F", high = "#B8573E") +
+  labs(title = "Spatial Distribution",
+       x = NULL, y = NULL) +
+  pilot::theme_pilot(axes = "",
+                     grid = "") + 
+  guides(colour = guide_colourbar(title = "Number of \nOverlapping points"), alpha = "none") +
+  theme(legend.position="bottom",
+        legend.margin=margin(0,0,0,0),
+        legend.box.margin=margin(0,0,0,0),
+        legend.title.align=0.5,
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(size = 27, face = "bold", color = "#404040", hjust = 0.5, margin = margin(0,0,20,0)))
+```
+
+
+```{r, message = FALSE, warning = FALSE}
+flies_points_map
+```
+
+
+## Hexagon map
+
+Download data
+
+```{r}
+# Plot
+
+flies_hex_map <- ggplot(flies_records_filtered) +
+  geom_sf(data = ozmap_states, fill = "white") +
+  geom_hex(mapping = aes(x = decimalLongitude, 
+                         y = decimalLatitude,
+                         alpha=log(..count..)), bins = 50) +
+  ylim(-45, -10) +
+  xlim(110, 155) +
+  # viridis::scale_fill_viridis(option = "E") +
+  scale_fill_gradientn(colours = c("#FFC557", "#B8573E")) +
+  theme_bw() +
+  theme(
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title = element_blank(),
+    legend.position = "bottom") + 
+  guides(fill = guide_colourbar(title = "Count"), alpha = "none")
+
+flies_hex_map
+```
+
+## Final Plot
+
+```{r}
+library(patchwork)
+
+flies <- ((flies_yearly_counts / plot_flies_data_providers) | flies_points_map) + 
+  plot_layout(widths = c(1, 4), heights = c(1, 4))
+
+flies_title <- expression(paste("Fruit Flies", sep = ""))
+flies_subtitle <- paste("Atlas of Living Australia (Total number of records = ", total_fruit_flies, ")")
+
+flies <- pilot::add_pilot_titles(flies,
+                                  title = flies_title,
+                                  subtitle = flies_subtitle,
+                                  title_family = "Lato",
+                                  title_size = 30,
+                                  title_color = element_text(color = "#E06E53"),
+                                  subtitle_color = "#B8573E")
+flies
+```
+
+```{r, eval = FALSE}
+ggsave(here::here("projects", "fruit-flies", "plots", "fruit-flies.pdf"),
+       dpi = 600, width = 20, height = 13, units = "in")
+```
+
+
+# Ceratis capitata
+
+## Yearly Observations
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+# select taxa and filters
+fruit_flies <- search_taxa("Ceratitis capitata")
+
+# "Anastrepha ludens" - mexican fruit fly did not appear
+
+# Download counts from ALA
+total_fruit_flies <- galah_call() %>%
+  galah_identify(fruit_flies) %>%
+  atlas_counts()
+
+flies_counts <- galah_call() %>%
+  galah_identify(fruit_flies) %>%
+  galah_filter(year > 1950) %>%
+  galah_group_by(year) %>%
+  atlas_counts()
+
+galah_call() %>%
+  galah_identify(fruit_flies) %>%
+  galah_filter(year > 2005) %>%
+  atlas_counts()
+  
+# Wrangle
+flies_counts <- flies_counts %>% 
+  mutate(
+    year = as.integer(year)) %>%
+  arrange(desc(year))
+```
+
+
+```{r, warning = FALSE, message = FALSE}
+# Plot
+
+# Fonts
+library(extrafont)
+library(showtext)
+extrafont::loadfonts()
+font_add_google(name = "Roboto")
+
+showtext_auto()
+
+# Set font for {pilot} titles
+pilot::set_pilot_family("Roboto", title_family = "Roboto") # Set font
+
+# Counts by year
+flies_yearly_counts <- flies_counts %>%
+  ggplot(aes(x = year,
+             y = count)) + 
+  geom_bar(stat = "identity", fill = "#E06E53", width = 0.8) + 
+  scale_x_continuous(breaks = c(1960, 1980, 2000, 2020),
+                     expand = c(0,0)) +
+  labs(x = "Year",
+       y = "Number of Records",
+       title = "Yearly Observations",
+       subtitle = "(2006-2021)") +
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot() + 
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)),
+        plot.subtitle = element_text(size = 19, margin = margin(0,0,20,0)))
+
+flies_yearly_counts
+
+# pilot::add_pilot_titles(camel_yearly_counts, title = "Yearly Observations (2006-2021)")
+```
+
+```{r, warning = FALSE, message = FALSE, eval = FALSE}
+# Table
+flies_counts %>%
+  rename_with(str_to_title) %>%
+  kbl() %>%
+  kable_styling("striped", full_width = FALSE) %>%
+  kable_paper() %>%
+  add_header_above(c("Yearly Counts" = 2))
+```   
+
+***
+
+
+## Data Providers
+
+```{r}
+# Download data providers
+flies_data_providers <- galah_call() %>%
+  galah_identify(fruit_flies) %>%
+  galah_group_by(dataResourceName) %>%
+  atlas_counts(limit = 1e5)
+```
+
+```{r, echo = FALSE, results = FALSE}
+# | Note: This table is set to not appear in knitted document
+# | It is here in case exact numbers are requested, 
+# | and can be added by removing `results = FALSE` in the chunk options
+
+perc_flies_data_providers <- flies_data_providers %>%
+  mutate(
+    dataResourceName = str_trim(dataResourceName),
+    percent = (count / sum(count)) * 100
+  ) %>% 
+  filter(percent > .01)
+
+perc_flies_data_providers %>% 
+  select(dataResourceName, count) %>%
+  rename("Data Provider" = dataResourceName) %>%
+  rename("Records" = count) %>%
+  kbl() %>% kable_styling(full_width = FALSE)
+```
+
+```{r, fig.cap = "Note: Plot displays data providers that provide more than 0.1% of overall data in the ALA"}
+# Plot
+
+# Proportion of data from different data providers
+plot_flies_data_providers <- perc_flies_data_providers %>% 
+  filter(percent > .1) %>%
+  
+  ggplot(aes(x = reorder(dataResourceName, percent),
+             y = percent,
+             fill = dataResourceName,
+             label = scales::percent(percent, suffix = "%"))) +
+  geom_bar(stat = "identity") + 
+  scale_x_discrete(labels = scales::label_wrap(35)) +
+  scale_y_continuous(limits = c(0, 100), labels = function(x) paste0(x, "%")) + 
+  pilot::scale_fill_pilot() + 
+  pilot::theme_pilot(legend_position = "none") + 
+  labs(x = "Data Provider",
+       y = "Percentage of total records",
+       title = "Data Providers") +
+  coord_flip() + 
+  theme(axis.text.y = element_text(size = 11),
+        axis.text.x = element_text(size = 14),
+        axis.title = element_text(size = 18),
+        plot.title = element_text(size = 25, margin = margin(0,0,20,0)))
+
+plot_flies_data_providers
+
+# pilot::add_pilot_titles(plot_camel_data_providers, title = "Data Providers")
+```
+
+***
+
+## Density Map
+
+```{r, message = FALSE, warning = FALSE, include = FALSE}
+# Download occurrence records
+flies_records <- galah_call() %>%
+  galah_identify(fruit_flies) %>%
+  atlas_occurrences()
+
+# Remove NAs
+flies_records <- flies_records %>% filter(!is.na(.))
+
+# filter records to only those on mainland/tasmania
+flies_records_filtered <- flies_records %>%
+  filter(decimalLongitude < 155,
+         decimalLongitude > 110, 
+         decimalLatitude > -45,
+         decimalLatitude < -10)
+
+# Plot
+library(ggpointdensity)
+library(showtext)
+showtext_auto()
+
+flies_points_map <- ggplot(flies_records_filtered) + 
+  geom_sf(data = ozmap_states, fill = "white") + 
+  # geom_point(aes(x = decimalLongitude,
+  #                y = decimalLatitude), color = "#B8573E") +
+  geom_pointdensity(aes(x = decimalLongitude,
+                        y = decimalLatitude)) +
+  viridis::scale_color_viridis(option = "F", 
+                               begin = 0.1) + 
+                               # breaks = c(500, 1250, 2000)) +
+  # scale_colour_gradient(low = "#9E9E9F", high = "#B8573E") +
+  labs(title = "Spatial Distribution",
+       x = NULL, y = NULL) +
+  pilot::theme_pilot(axes = "",
+                     grid = "") + 
+  guides(colour = guide_colourbar(title = "Number of \nOverlapping points"), alpha = "none") +
+  theme(legend.position="bottom",
+        legend.margin=margin(0,0,0,0),
+        legend.box.margin=margin(0,0,0,0),
+        legend.title.align=0.5,
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(size = 27, face = "bold", color = "#404040", hjust = 0.5, margin = margin(0,0,20,0)))
+```
+
+
+```{r, message = FALSE, warning = FALSE}
+flies_points_map
+```
+
+
+## Hexagon map
+
+Download data
+
+```{r}
+# Plot
+
+flies_hex_map <- ggplot(flies_records_filtered) +
+  geom_sf(data = ozmap_states, fill = "white") +
+  geom_hex(mapping = aes(x = decimalLongitude, 
+                         y = decimalLatitude,
+                         alpha=log(..count..)), bins = 50) +
+  ylim(-45, -10) +
+  xlim(110, 155) +
+  # viridis::scale_fill_viridis(option = "E") +
+  scale_fill_gradientn(colours = c("#FFC557", "#B8573E")) +
+  theme_bw() +
+  theme(
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title = element_blank(),
+    legend.position = "bottom") + 
+  guides(fill = guide_colourbar(title = "Count"), alpha = "none")
+
+flies_hex_map
+```
+
+## Final Plot
+
+```{r}
+library(patchwork)
+
+flies <- ((flies_yearly_counts / plot_flies_data_providers) | flies_points_map) + 
+  plot_layout(widths = c(1, 4), heights = c(1, 4))
+
+flies_title <- expression(paste("Mediterranean fruit fly (", italic("Ceratitis capitata"), ")", sep = ""))
+flies_subtitle <- paste("Atlas of Living Australia (Total number of records = ", total_fruit_flies, ")")
+
+flies <- pilot::add_pilot_titles(flies,
+                                  title = flies_title,
+                                  subtitle = flies_subtitle,
+                                  title_family = "Lato",
+                                  title_size = 30,
+                                  title_color = element_text(color = "#E06E53"),
+                                  subtitle_color = "#B8573E")
+flies
+```
+
+```{r, eval = FALSE}
+ggsave(here::here("projects", "fruit-flies", "plots", "fruit-flies.pdf"),
+       dpi = 600, width = 20, height = 13, units = "in")
+```
