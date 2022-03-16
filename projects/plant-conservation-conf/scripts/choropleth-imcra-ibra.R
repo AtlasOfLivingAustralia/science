@@ -70,8 +70,8 @@ ibra_join <- ibra_counts |>
 # to avoid constantly downloading data and joining
 # saveRDS(ibra_join, here("projects", "plant-conservation-conf", "data", "ibra_density.rds"))
 # saveRDS(imcra_join, here("projects", "plant-conservation-conf", "data", "imcra_density.rds"))
-# imcra_join <- readRDS(here("projects", "plant-conservation-conf", "data", "imcra_density.rds"))
-# ibra_join <- readRDS(here("projects", "plant-conservation-conf", "data", "ibra_density.rds"))
+imcra_join <- readRDS(here("projects", "plant-conservation-conf", "data", "imcra_density.rds"))
+ibra_join <- readRDS(here("projects", "plant-conservation-conf", "data", "ibra_density.rds"))
 
 
 # plot -------
@@ -88,6 +88,7 @@ p <- ggplot() +
   scale_fill_distiller(name = "IMCRA",
                        type = "seq",
                        palette = "BuPu",
+                       direction = 1,
                        labels = c("0.001", "0.01", "0.1", "1", "10"),
                        guide = guide_colorsteps(direction = "horizontal",
                                                 label.position = "bottom",
@@ -99,6 +100,7 @@ p <- ggplot() +
   scale_fill_distiller(name = "IBRA",
                        type = "seq",
                        palette = "YlOrBr",
+                       direction = 1,
                        labels = c("0.1", "1", "10", "100"),
                        guide = guide_colorsteps(direction = "horizontal",
                                                 label.position = "bottom",
@@ -118,7 +120,7 @@ ggsave(here(
   "projects",
   "plant-conservation-conf",
   "plots",
-  "choropleth-ibra-imcra.png"),
+  "choropleth-ibra-imcra_reversed.png"),
   p, height = 10, width = 10, units = "in")
 
 
