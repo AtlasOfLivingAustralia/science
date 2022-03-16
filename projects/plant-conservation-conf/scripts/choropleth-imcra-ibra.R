@@ -81,6 +81,7 @@ font_add_google("Lato", "lato")
 showtext_auto()
 
 # map
+# NOTE: direction = 1 in scale_fill_distiller() reverses order of colours 
 p <- ggplot() + 
   geom_sf(data = imcra_join,
           aes(fill = density_log10),
