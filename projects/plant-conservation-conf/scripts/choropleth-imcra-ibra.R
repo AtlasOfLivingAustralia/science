@@ -29,6 +29,13 @@ imcra_counts <- galah_call() |>
   galah_group_by("cl966") |>      # IMCRA bioregions
   atlas_counts()
 
+# rename incorrectly spelled Pilbara regions
+imcra_counts <- imcra_counts %>%
+  mutate(
+    cl966 = recode(cl966,
+                   "Pilbarra (nearshore)" = "Pilbara (nearshore)",
+                   "Pilbarra (offshore)" = "Pilbara (offshore)"))
+
 
 # spatial layers 
 imcra_shp <- st_read(here(
@@ -70,15 +77,18 @@ ibra_join <- ibra_counts |>
 # to avoid constantly downloading data and joining
 # saveRDS(ibra_join, here("projects", "plant-conservation-conf", "data", "ibra_density.rds"))
 # saveRDS(imcra_join, here("projects", "plant-conservation-conf", "data", "imcra_density.rds"))
-imcra_join <- readRDS(here("projects", "plant-conservation-conf", "data", "imcra_density.rds"))
-ibra_join <- readRDS(here("projects", "plant-conservation-conf", "data", "ibra_density.rds"))
+# imcra_join <- readRDS(here("projects", "plant-conservation-conf", "data", "imcra_density.rds"))
+# ibra_join <- readRDS(here("projects", "plant-conservation-conf", "data", "ibra_density.rds"))
+
 
 
 # plot -------
 
 # make it look nice
 font_add_google("Lato", "lato")
-showtext_auto()
+# showtext_auto()
+showtext_opts(dpi = 300)
+showtext_auto(enable = TRUE)
 
 # map
 # NOTE: direction = 1 in scale_fill_distiller() reverses order of colours 
@@ -124,6 +134,12 @@ ggsave(here(
   "choropleth-ibra-imcra_reversed.png"),
   p, height = 10, width = 10, units = "in")
 
-
+# save as tiff for high def
+# ggsave(here(
+#   "projects",
+#   "plant-conservation-conf",
+#   "plots",
+#   "choropleth-ibra-imcra_reversed.tiff"),
+#   p, height = 10, width = 10, units = "in", device='tiff', dpi = 300)
 
 
