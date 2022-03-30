@@ -1,89 +1,22 @@
 
 # Counts of records within major groups from 1970 onwards
 # Author: Shandiya Balasubramaniam
-# Date: 2022-03-29
+# Date: 2022-03-30
 
 library(galah)
 library(here)
 library(dplyr)
 library(ggplot2)
+library(shadowtext)
 
-# OVERVIEW vertebrates, invertebrates, plants, fungi -------
+# overview of counts of records in different groups -------
 # some notes on filtering and grouping
-# vertebrates = Phylum Chordata
+# vertebrates = Classes Aves, Reptilia, Amphibia, Mammalia, Actinopterygii, Chondrichthyes
 # invertebrates = ! Phylum Chordata within Kingdom Animalia
-# plants = Kingdom Plantae AND Phylum Chlorophyta
+# plants = Kingdom Plantae 
 # fungi = Kingdom Fungi
 
-# get counts
-verts <- galah_call() |> 
-  galah_identify("Chordata") |>
-  galah_filter(year >= 1970) |> 
-  atlas_counts() 
-
-inverts <-  galah_call() |> 
-  galah_identify("Animalia") |>
-  galah_filter(year >= 1970, 
-               phylum != "Chordata") |>
-  atlas_counts() 
-  
-plants <- galah_call() |> 
-  galah_identify("Plantae", "Chlorophyta") |>
-  galah_filter(year >= 1970) |> 
-  atlas_counts()
-
-fungi <- galah_call() |> 
-  galah_identify("Fungi") |>
-  galah_filter(year >= 1970) |> 
-  atlas_counts() 
-
-four_groups <- bind_rows(list(Vertebrates = verts, 
-                              Invertebrates = inverts, 
-                              Plants = plants, 
-                              Fungi = fungi), 
-                         .id = "group")
-
-
-# plot 
-source(here("projects", "ala101", "scripts", "theme_ala101.R"))
-
-# vertical barplot
-p1_v <- ggplot() +
-  geom_col(data = four_groups,
-           aes(x = group, y = count),
-           fill = "#003A70") +
-  labs(x = "", y = "") +
-  scale_y_continuous(labels = scales::comma) +
-  theme_ala101() +
-  theme(panel.grid.major.x = element_blank())
-
-ggsave(here("projects",
-            "ala101",
-            "plots",
-            "overview-counts-v.png"),
-       p1_v, height = 10, width = 10, units = "in")
-
-# same plot, just horizontal
-p1_h <- ggplot() +
-  geom_col(data = four_groups,
-           aes(x = group, y = count),
-           fill = "#003A70") +
-  labs(x = "", y = "") +
-  scale_y_continuous(labels = scales::comma) +
-  coord_flip() + 
-  theme_ala101() +
-  theme(panel.grid.major.y = element_blank())
-
-ggsave(here("projects",
-            "ala101",
-            "plots",
-            "overview-counts-h.png"), 
-       p1_h, height = 10, width = 10, units = "in")
-
-
-# VERTEBRATES -------
-# mammals, birds, fish (bony and cartilaginous), reptiles, amphibians
-
+# vertebrates counts -------
 vert_groups <- c("Reptilia",
                  "Amphibia",
                  "Aves",
@@ -93,118 +26,111 @@ vert_groups <- c("Reptilia",
 
 vert_counts <- galah_call() |> 
   galah_identify(vert_groups) |> 
-  galah_filter(year >= 1970) |> 
+  galah_filter(profile = "ALA",
+               year >= 1970) |> 
   galah_group_by(class) |> 
   atlas_counts() |> 
-  mutate(group = case_when(
+  mutate(categories = case_when(
     class == "Aves" ~ "Birds",
     class == "Mammalia" ~ "Mammals",
     class == "Actinopterygii" | class == "Chondrichthyes" ~ "Fishes",
     class == "Amphibia" ~ "Amphibians",
     class == "Reptilia" ~ "Reptiles")) |> 
-  group_by(group) |> 
+  group_by(categories) |> 
   summarise(count = sum(count))
 
+
+# invertebrates counts ------
+invert_counts <- galah_call() |> 
+  galah_identify("Animalia") |>
+  galah_filter(profile = "ALA",
+               year >= 1970, 
+               phylum != "Chordata") |>
+  atlas_counts() 
+  
+
+# plants counts ------
+plant_counts <- galah_call() |> 
+  galah_identify("Plantae") |>
+  galah_filter(profile = "ALA",
+               year >= 1970) |> 
+  atlas_counts()
+
+
+# fungi counts ------
+fungi_counts <- galah_call() |> 
+  galah_identify("Fungi") |>
+  galah_filter(profile = "ALA",
+               year >= 1970) |> 
+  atlas_counts()
+
+# tidy before plotting -------
+all_groups <- bind_rows(list(verts = vert_counts, 
+                             inverts = invert_counts, 
+                             plants = plant_counts, 
+                             fungi = fungi_counts),
+                        .id = "type")
+
+
+tidy_groups <- all_groups |>
+  mutate(categories = case_when(
+    type == "inverts" ~ "Invertebrates",
+    type == "plants" ~ "Plants",
+    type == "fungi" ~ "Fungi",
+    TRUE ~ categories)) |> 
+  select(-type)
+  
+  
+# plot --------
+source(here("projects", "ala101", "scripts", "theme_ala101.R"))
+
 # vertical barplot
-p2_v <- ggplot() +
-  geom_col(data = vert_counts,
-           aes(x = reorder(group, count), y = count),
+p_vertical <- ggplot() +
+  geom_col(data = tidy_groups,
+           aes(x = reorder(categories, count), y = count),
            fill = "#003A70") +
+  geom_shadowtext(data = tidy_groups,
+                  aes(x = categories, y = count, label = scales::comma(count)),
+                  bg.colour = "white", 
+                  colour = "#212121", 
+                  vjust = -0.3,
+                  size = 5) +
   labs(x = "", y = "") +
-  scale_y_continuous(labels = scales::comma, 
-                     limits = c(0, 6e+07)) +
+  scale_y_continuous(labels = scales::comma) + 
   theme_ala101() +
   theme(panel.grid.major.x = element_blank())
 
 ggsave(here("projects",
             "ala101",
             "plots",
-            "vert-counts-v.png"),
-       p2_v, height = 10, width = 10, units = "in")
+            "taxon_counts_vertical.png"),
+       p_vertical, height = 10, width = 15, units = "in")
 
-# same plot, just horizontal
-p2_h <- ggplot() +
-  geom_col(data = vert_counts,
-           aes(x = reorder(group, count), y = count),
+# horizontal bar plot
+p_horizontal <- ggplot() +
+  geom_col(data = tidy_groups,
+           aes(x = reorder(categories, count), y = count),
            fill = "#003A70") +
+  geom_shadowtext(data = tidy_groups,
+                  aes(x = categories, y = count, label = scales::comma(count)),
+                  bg.colour = "white", 
+                  colour = "#212121", 
+                  hjust = -0.1,
+                  size = 5) +
   labs(x = "", y = "") +
   scale_y_continuous(labels = scales::comma,
-                     limits = c(0, 6e+07)) +
-  coord_flip() + 
+                     breaks = seq(0, 5e+07, by = 1e+07)) +
+  expand_limits(y = 57000000) +
+  coord_flip(clip = "off") +
   theme_ala101() +
   theme(panel.grid.major.y = element_blank())
 
 ggsave(here("projects",
             "ala101",
             "plots",
-            "vert-counts-h.png"), 
-       p2_h, height = 10, width = 10, units = "in")
-
-
-# INVERTEBRATES -------
-# arthropods, mollusks, annelid and cnidarians
-
-invert_groups <- c("Mollusca",
-                 "Arthropoda",
-                 "Annelida",
-                 "Cnidaria")
-
-invert_counts <- galah_call() |> 
-  galah_identify(invert_groups) |> 
-  galah_filter(year >= 1970) |> 
-  galah_group_by(phylum) |> 
-  atlas_counts()
-
-# vertical barplot
-p3_v <- ggplot() +
-  geom_col(data = invert_counts,
-           aes(x = reorder(phylum, count), y = count),
-           fill = "#003A70") +
-  labs(x = "", y = "") +
-  scale_y_continuous(labels = scales::comma) +
-  theme_ala101() +
-  theme(panel.grid.major.x = element_blank())
-
-ggsave(here("projects",
-            "ala101",
-            "plots",
-            "invert-counts-v.png"),
-       p3_v, height = 10, width = 10, units = "in")
-
-# same plot, just horizontal
-p3_h <- ggplot() +
-  geom_col(data = invert_counts,
-           aes(x = reorder(phylum, count), y = count),
-           fill = "#003A70") +
-  labs(x = "", y = "") +
-  scale_y_continuous(labels = scales::comma) +
-  coord_flip() + 
-  theme_ala101() +
-  theme(panel.grid.major.y = element_blank())
-
-ggsave(here("projects",
-            "ala101",
-            "plots",
-            "invert-counts-h.png"), 
-       p3_h, height = 10, width = 10, units = "in")
-
-
-# PLANTS (incomplete) ------- 
-# angiosperms, gymnosperms, pteridophytes, bryophyte
-
-plant_groups <- c("Pteridophyta",
-                   "Bryophyta",
-                   #angiosperms "",
-                   #gymnosperms"")
-
-plant_counts <- galah_call() |> 
-  galah_identify(plant_groups) |> 
-  galah_filter(year >= 1970) |> 
-  galah_group_by(?) |> 
-  atlas_counts()
+            "taxon_counts_horizontal.png"),
+       p_horizontal, height = 10, width = 15, units = "in")
 
 
 
 
-
-all_subsets <- bind_rows(vert_counts, invert_counts) 
