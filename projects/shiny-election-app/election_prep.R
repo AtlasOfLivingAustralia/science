@@ -222,15 +222,16 @@ species_common <- species_common[, colnames(species_common)!="state"]
 elect <- boundaries_raw |>
   left_join(species_common, by = c("Elect_div" = "electorate"))
   
-  
 spdf_elect <- elect |> 
   st_zm() |> 
   as_Spatial()
-  
+
 saveRDS(spdf_elect, "./2022_electorate_map/spatial_data.rds")
 
+# try simplifying
+# doesn't seem to noticeably reduce loading time - simplify further?
+spdf_elect_simpl <- rmapshaper::ms_simplify(spdf_elect, keep = 0.01)
+saveRDS(spdf_elect_simpl, "./2022_electorate_map/simpl_spatial_data.rds")
+  
 # run app
 shiny::runApp("2022_electorate_map")
-
-# pre-calculate leaflet to improve load times?
-# simplify polygons?

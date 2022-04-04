@@ -4,7 +4,7 @@ library(htmltools)
 library(leaflet)
 library(dplyr)
 
-map_data <- readRDS("spatial_data.rds")
+map_data <- readRDS("simpl_spatial_data.rds")
 map_tibble <- as_tibble(map_data)
 leaflet_map <- readRDS("leaflet_map.rds")
 
