@@ -1,0 +1,33 @@
+.mapdiv {
+  border: 2px solid #cccccc;
+  border-radius: 0px;
+  height: 95vh;
+  margin: 30px 10px 10px 10px;
+}
+
+.textdiv {
+  border: 0px solid #ffffff;
+  height: 45vh;
+  margin: 30px 10px 10px 10px;
+}
+
+.profile {
+  width: 150px;
+  border: 2px solid #cccccc;
+  border-radius: 75px;
+  padding: 0px;
+  position: relative;
+  text-align: center;
+  display: inline-block;
+}
+
+.profile_text {
+  color: black;
+  font-size: 20px;
+  text-align: center;
+}
+
+.profile_div {
+  width: 150px;
+  height: 200px;
+}

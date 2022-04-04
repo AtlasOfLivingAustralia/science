@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://www.ala.org.au/commonui-bs3/css/ala-styles.css" rel="stylesheet"
+          media="screen,print"/>
+    <!--<title>Title</title>-->
+    <style>
+        /* The only override we need from ala-styles.css */
+
+        body {
+            padding-top: 0px;
+        }
+
+        /* DOI - taken from GBIF */
+        .doi {
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            font-weight: 500;
+            padding: 4px 6px;
+            white-space:nowrap;
+            white-space:nowrap;
+        }
+        .doi-sm {
+            font-size: 13px;
+            padding: 2px 0;
+        }
+        .doi span:first-of-type {
+            -webkit-transition: all .3s ease;
+            transition: all .3s ease;
+            background: #D5502A ;
+            /*#09c;*/
+            padding: 4px 6px;
+            /*border-radius: 5px 0 0 5px;*/
+            color: #fff;
+            border-right-width: 0;
+            border-color:#D5502A;
+            /*#09c;*/
+        }
+        .doi span:last-of-type {
+            color: #333;
+            background: #fff;
+            text-decoration: none;
+            padding: 4px 6px;
+            /*border-radius: 0 5px 5px 0;*/
+            border-left-width: 0;
+        }
+        .doi span {
+            border: 1px solid #adadad;
+        }
+        .doi:hover span:first-of-type {
+            background: #D5502A;
+            /*#004d66; */
+            border-color: #D5502A;
+            /*#004d66;*/
+        }
+        .doi:hover span:last-of-type {
+            background: #f9f9f9;
+        }
+
+    </style>
+</head>
+<body>
+When using this dataset please use the following citation:<br><br>
+<cite>Atlas of Living Australia occurrence download at <a href='https://biocache.ala.org.au/occurrences/search?q=data_resource_uid%3Adr17780&disableAllQualityFilters=true&fq=-outlierLayerCount%3A%5B3%20TO%20*%5D&fq=-coordinateUncertaintyInMeters%3A%5B10001%20TO%20*%5D&fq=-year%3A%5B*%20TO%201700%5D&fq=-establishmentMeans%3A%22MANAGED%22%20AND%20-decimalLatitude%3A0%20AND%20-decimalLongitude%3A0%20AND%20-assertions%3A%22PRESUMED_SWAPPED_COORDINATE%22%20AND%20-assertions%3A%22COORDINATES_CENTRE_OF_STATEPROVINCE%22%20AND%20-assertions%3A%22COORDINATES_CENTRE_OF_COUNTRY%22%20AND%20-assertions%3A%22PRESUMED_NEGATED_LATITUDE%22%20AND%20-assertions%3A%22PRESUMED_NEGATED_LONGITUDE%22&fq=-basisOfRecord%3A%22FOSSIL_SPECIMEN%22%20AND%20-%28basisOfRecord%3A%22MATERIAL_SAMPLE%22%20AND%20contentTypes%3A%22EnvironmentalDNA%22%29&fq=-userAssertions%3A50001%20AND%20-userAssertions%3A50005&fq=-occurrenceStatus%3AABSENT&fq=-spatiallyValid%3A%22false%22&fq=-assertions%3ATAXON_MATCH_NONE%20AND%20-assertions%3AINVALID_SCIENTIFIC_NAME%20AND%20-assertions%3ATAXON_HOMONYM%20AND%20-assertions%3AUNKNOWN_KINGDOM%20AND%20-assertions%3ATAXON_SCOPE_MISMATCH&fq=-duplicateType%3A%22DIFFERENT_DATASET%22'>https://biocache.ala.org.au/occurrences/search?q=data_resource_uid%3Adr17780&disableAllQualityFilters=true&fq=-outlierLayerCount%3A%5B3%20TO%20*%5D&fq=-coordinateUncertaintyInMeters%3A%5B10001%20TO%20*%5D&fq=-year%3A%5B*%20TO%201700%5D&fq=-establishmentMeans%3A%22MANAGED%22%20AND%20-decimalLatitude%3A0%20AND%20-decimalLongitude%3A0%20AND%20-assertions%3A%22PRESUMED_SWAPPED_COORDINATE%22%20AND%20-assertions%3A%22COORDINATES_CENTRE_OF_STATEPROVINCE%22%20AND%20-assertions%3A%22COORDINATES_CENTRE_OF_COUNTRY%22%20AND%20-assertions%3A%22PRESUMED_NEGATED_LATITUDE%22%20AND%20-assertions%3A%22PRESUMED_NEGATED_LONGITUDE%22&fq=-basisOfRecord%3A%22FOSSIL_SPECIMEN%22%20AND%20-%28basisOfRecord%3A%22MATERIAL_SAMPLE%22%20AND%20contentTypes%3A%22EnvironmentalDNA%22%29&fq=-userAssertions%3A50001%20AND%20-userAssertions%3A50005&fq=-occurrenceStatus%3AABSENT&fq=-spatiallyValid%3A%22false%22&fq=-assertions%3ATAXON_MATCH_NONE%20AND%20-assertions%3AINVALID_SCIENTIFIC_NAME%20AND%20-assertions%3ATAXON_HOMONYM%20AND%20-assertions%3AUNKNOWN_KINGDOM%20AND%20-assertions%3ATAXON_SCOPE_MISMATCH&fq=-duplicateType%3A%22DIFFERENT_DATASET%22</a> accessed on 06 September 2021.</cite> <br><br>
+The DOI for this download is available at <a href='https://doi.org/10.26197/ala.e5f24ef8-820e-4252-a1d6-2aa21fc8b1cc'>https://doi.org/10.26197/ala.e5f24ef8-820e-4252-a1d6-2aa21fc8b1cc</a><br><br>
+Data contributed by the following providers:<br>
+<ul><li>Ngukurr community; Numbulwar community; Russell, S; Sultana, R; Ngukurr Yangbala Rangers; Ens, E (2021). Mapimbat tedul proujek: Indigenous knowledge of freshwater turtle species occurrences in the South East Arnhem Land Indigenous Protected Area. Atlas of Living Australia. https://collections.ala.org.au/public/show/dr17780 (Creative Commons Attribution-Noncommercial (Australia) (CC-BY-NC 3.0 (Aus))). For more information: https://collections.ala.org.au/public/show/dr17780</li></ul><br>
+More information can be found at <a href="https://www.ala.org.au/about-the-atlas/terms-of-use/citing-the-atlas/">citing the ALA</a>.<br><br>
+</body>
+</html>
+For more information about the fields that are being downloaded please consult <a href='headings.csv'>Download Fields</a>.
