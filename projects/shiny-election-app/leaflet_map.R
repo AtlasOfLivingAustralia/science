@@ -4,7 +4,7 @@ map_data <- readRDS("2022_electorate_map/spatial_data.rds")
 
 leaflet_map <- leaflet() |> 
   fitBounds(112, -45, 154, -10) |>
-  addProviderTiles(providers$CartoDB.Positron) |> 
+  addProviderTiles(providers$CartoDB.Positron) |>  
   addPolygons(
     data = map_data,
     layerId = map_data$Elect_div,
@@ -14,8 +14,8 @@ leaflet_map <- leaflet() |>
     weight = 1, 
     stroke = TRUE,
     highlightOptions = highlightOptions(
-      color = "#E06E53", 
-      fillColor = "#E06E53",
+      color = "#C44D34", 
+      fillColor = "#C44D34", 
       fillOpacity = 0.6,
       weight = 3,
       bringToFront = TRUE),
