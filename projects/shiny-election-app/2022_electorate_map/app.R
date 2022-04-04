@@ -6,6 +6,7 @@ library(dplyr)
 
 map_data <- readRDS("spatial_data.rds")
 map_tibble <- as_tibble(map_data)
+leaflet_map <- readRDS("leaflet_map.rds")
 
 ui <- fluidPage(
   # import css
@@ -16,7 +17,7 @@ ui <- fluidPage(
     # main section: leaflet map
     column(
       width = 8,
-      div(class = "mapdiv", leafletOutput("mymap", width="100%", height = "100%"))
+      div(class = "mapdiv", leafletOutput("mymap", width = "100%", height = "100%"))
     ),
     column(
       width = 4,
@@ -54,33 +55,7 @@ server <- function(input, output){
   )
   
   # render leaflet map
-  # NOTE: possible to pre-render? Is this faster?
-  output$mymap <- renderLeaflet({
-    leaflet() |> 
-      fitBounds(112, -45, 154, -10) |>
-      addProviderTiles(providers$CartoDB.Positron) |> 
-      addPolygons(
-        data = map_data,
-        layerId = map_data$Elect_div,
-        fillColor = "white",
-        fillOpacity = .2, 
-        color = "#111111", 
-        weight = 1, 
-        stroke = TRUE,
-        highlightOptions = highlightOptions(
-          color = "#E06E53", 
-          fillColor = "#E06E53",
-          fillOpacity = 0.6,
-          weight = 3,
-          bringToFront = TRUE),
-        label = map_data$Elect_div,
-        labelOptions = labelOptions(
-          style = list("font-weight" = "normal", 
-          padding = "3px 5px"),
-          textsize = "12px",
-          direction = "auto")
-      )
-  })
+  output$mymap <- renderLeaflet(leaflet_map)
 
   # capture click events on map
   observeEvent(input$mymap_shape_click$id, { # previously `mouseover`
