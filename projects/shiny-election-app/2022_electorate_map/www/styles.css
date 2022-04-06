@@ -7,7 +7,7 @@
 
 .textdiv {
   border: 0px solid #ffffff;
-  height: 75vh;
+  height: 60vh;
   margin: 30px 10px 10px 10px;
 }
 
@@ -19,12 +19,18 @@
   margin: 10px;
 }
 
+.taxon-outline {
+  width: 75px;
+  filter: invert(100%);
+}
+
 .clear_circle {
   width: 100px;
   height: 100px;
   border-radius: 50px;
-  background-color: #cccccc;
+  background-color: #B7CD96;
   margin: 10px;
   line-height: 100px;
   text-align: center;
+  display: inline-block;
 }
