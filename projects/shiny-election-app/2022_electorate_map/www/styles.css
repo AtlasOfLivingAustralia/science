@@ -1,3 +1,9 @@
+/* Text colors */
+h1, h2, h3, p, a {
+  color: #474747;
+}
+
+/* Map container */
 .mapdiv {
   border: 2px solid #cccccc;
   border-radius: 0px;
@@ -5,10 +11,69 @@
   margin: 30px 10px 10px 10px;
 }
 
+/* div for right-hand sidebars */
 .textdiv {
+  height: 40vh;
   border: 0px solid #ffffff;
-  height: 60vh;
+  padding-top: 30px;
+  margin: 0px 10px 10px 10px;
+}
+
+/* Electorate section of sidebar */
+.electoratediv {
+  border: 0px solid #ffffff;
+  width: 88%;
+  height: 20vh;
+  background-color: #EEECEA;
+  border-radius: 20px;
+  text-align: center;
   margin: 30px 10px 10px 10px;
+}
+
+.paddeddiv1 {
+  padding-top: 7px;
+}
+
+.paddeddiv2 {
+  padding-top: 20px;
+}
+
+.electorate_name {
+  font-size: 200%;
+  line-height: 0.75em;
+}
+
+/* Main taxon image */
+.mainpic {
+  width: 50%;
+  border-radius: 20px;
+}
+
+/* For taxon groups */
+.clear_circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  background-color: #B7CD96;
+  padding: 10px;
+  margin-bottom: 20px;
+  line-height: 100px;
+  text-align: center;
+  display: inline-block;
+}
+
+.taxon-outline {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 20px;
+  padding: 10px 0px 10px 0px;
+  filter: invert(100%);
+}
+
+.taxon {
+  width: 80%;
+  border-radius: 20px;
+  padding: 10px;
 }
 
 .profile {
@@ -19,18 +84,40 @@
   margin: 10px;
 }
 
-.taxon-outline {
-  width: 75px;
-  filter: invert(100%);
+/* Align images in a grid */
+table {
+  width: 100%;
 }
 
-.clear_circle {
-  width: 100px;
-  height: 100px;
-  border-radius: 50px;
-  background-color: #B7CD96;
-  margin: 10px;
-  line-height: 100px;
-  text-align: center;
-  display: inline-block;
+.image_table {
+  margin-left: auto;
+  margin-right: auto;
+  height: 100%;
+  width: 100%;
 }
+
+/* Tooltip container */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black; /* If you want dots under the hoverable text */
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+ 
+  /* Position the tooltip text - see examples below! */
+  position: absolute;
+  z-index: 1;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+  visibility: visible;

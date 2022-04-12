@@ -14,8 +14,6 @@ library(leaflet)
 library(htmltools)
 library(tidyr)
 
-# search_fields("elect") # most recent electorates are from 2021, not 2018 as in ALA
-
 # read boundaries shapefile
 boundaries_raw <- read_sf("2021-Cwlth_electoral_boundaries_ESRI/2021_ELB_region.shp")
 # str(boundaries_raw)
@@ -49,8 +47,9 @@ for(i in seq_along(in_list)){ # for each row
   # download records within the bounding box
   records <- galah_call() |>
     galah_filter(
-      year >= 2019, 
-      kingdom == "Animalia" | kingdom == "Plantae",
+      year >= 2019,
+      phylum == "Chordata", 
+      # kingdom == "Animalia" | kingdom == "Plantae",
       # species != "", # doesn't work
       profile = "ALA") |>
     galah_select(
@@ -83,45 +82,51 @@ for(i in seq_along(in_list)){ # for each row
   result <- point_locs |>
     filter(within == TRUE) |>
     as_tibble() |>
-    group_by(kingdom, phylum, taxonConceptID) |>
-    summarize(count = n()) |>
-    mutate(electorate = a$Elect_div[1]) |>
-    filter(grepl("biodiversity.org.au", taxonConceptID)) # restrict to taxa recognised by AFD
+    group_by(species) |>
+    summarize(
+      electorate = a$Elect_div[1],
+      kingdom = kingdom[1],
+      phlum = phylum[1],
+      taxonConceptID  = taxonConceptID[1],
+      count = n()) |> 
+    filter(grepl("biodiversity.org.au", taxonConceptID)) 
 
   species_list[[i]] <- result
 }
 
 
 # # save/load
-# saveRDS(species_list, "species_list.rds")
+saveRDS(species_list, "species_list.rds")
 # species_list <- readRDS("species_list.rds")
 
 # join into a single df
 raw_df <- do.call(rbind, species_list)
-raw_df$group <- "invertebrates"
-raw_df$group[raw_df$phylum == "Chordata"] <- "vertebrates"
-raw_df$group[raw_df$kingdom == "Plantae"] <- "plants"
+# raw_df$group <- "vertebrates"
+## OLD
+# raw_df$group <- "invertebrates"
+# raw_df$group[raw_df$phylum == "Chordata"] <- "vertebrates"
+# raw_df$group[raw_df$kingdom == "Plantae"] <- "plants"
 
 
 ## CREATE SUMMARY DF TO STORE LATER RESULTS
 # calculate number of species per electorate and group
 electorate_df <- raw_df |> 
-  group_by(electorate, group) |> 
+  group_by(electorate) |> # group 
   summarize(
-    electorate_sum_taxon = sum(count),
-    electorate_spp_taxon = n_distinct(taxonConceptID))
+    electorate_records = sum(count),
+    electorate_spp = n_distinct(species))
 # electorate_df <- electorate_by_group |> 
 #   pivot_wider(names_from = group, 
 #     values_from = c(electorate_sum, electorate_spp))
     
-# add sums per electorate WITHOUT group
-electorate_df <- raw_df |> 
-  group_by(electorate) |> 
-  summarize(
-    electorate_sum_total = sum(count),
-    electorate_spp_total = n_distinct(taxonConceptID)
-  ) |>
-  left_join(electorate_df, by = "electorate")
+# # add sums per electorate WITHOUT group
+# electorate_df <- raw_df |> 
+#   group_by(electorate) |> 
+#   summarize(
+#     electorate_sum_total = sum(count),
+#     electorate_spp_total = n_distinct(taxonConceptID)
+#   ) |>
+#   left_join(electorate_df, by = "electorate")
 
 
 ## RESTRICT TAXONOMIC SCOPE
@@ -134,7 +139,13 @@ other_introduced <- c(
   woodlouse = "urn:lsid:biodiversity.org.au:afd.taxon:4f5be6a5-41c0-4b49-ba7f-e4d693bd01a5",
   cupboard_spider = "urn:lsid:biodiversity.org.au:afd.taxon:2b7b9500-61e1-43de-8064-3a609d0bf67f",
   three_lined_potato_beetle = "urn:lsid:biodiversity.org.au:afd.taxon:a9970e29-da21-4ac7-b9ac-dbc92b35cce0",
-  ostrich = "urn:lsid:biodiversity.org.au:afd.taxon:44fbaf1a-a7ef-4780-8693-d342ee3aa88e"
+  ostrich = "urn:lsid:biodiversity.org.au:afd.taxon:44fbaf1a-a7ef-4780-8693-d342ee3aa88e",
+  red_deer = "urn:lsid:biodiversity.org.au:afd.taxon:70943adf-8589-40e9-8338-7ba862074b86",
+  red_fox = "urn:lsid:biodiversity.org.au:afd.taxon:2869ce8a-8212-46c2-8327-dfb7fabb8296",
+  goldfinch = "urn:lsid:biodiversity.org.au:afd.taxon:402d4b2b-cfc4-47a8-8a1d-d0de3dc6191c",
+  mallard = "urn:lsid:biodiversity.org.au:afd.taxon:f75e95ed-a3ab-4c51-9727-4c6686c2fb12",
+  european_carp = "urn:lsid:biodiversity.org.au:afd.taxon:16171fac-8d6c-4327-9fab-f2db864d71bf",
+  cat = "urn:lsid:biodiversity.org.au:afd.taxon:7de6b16a-f854-4b4b-88cf-81868ce74ad8"
 )
 all_intro <- c(griis$guid[!is.na(griis$guid)], other_introduced)
 raw_df <- filter(raw_df, !(taxonConceptID %in% all_intro))
@@ -162,8 +173,12 @@ raw_df <- filter(raw_df,
 # get sum by electorate, calculate proportions
 raw_df <- raw_df |>
   left_join(
-    select(electorate_df, electorate, electorate_sum_total)) |>
-  mutate(prop_obs = count / electorate_sum_total) 
+    select(
+      electorate_df,
+      # filter(electorate_df, group == "vertebrates"), # prevent multiplying nrows by 3
+      electorate, electorate_records
+    )) |>
+  mutate(prop_obs = count / electorate_records) 
   
 # calculate z scores on proportion data
 raw_df <- raw_df  |>
@@ -200,41 +215,43 @@ raw_df <- raw_df  |>
 
 ## choose top-ranked species per electorate and group
 species_df_ordered <- raw_df |>
-  group_by(electorate, group) |>
-  arrange(desc(z_score), .by_group = TRUE) 
+  group_by(electorate) |>
+  arrange(desc(z_score), .by_group = TRUE) |>
+  filter(count > 10) # top-ranked species must have n > 10
   
 top_species <- species_df_ordered |> 
-  group_by(electorate, group) |>
+  group_by(electorate) |>
   slice_head(n = 1)
-  
  
-# REMOVE DUPLICATES
+# REMOVE DUPLICATES BY TAXON CONCEPT ID
 calculate_xtabs <- function(){
-  xt <- xtabs(~ taxonConceptID + group, data = top_species) |> 
+  xt <- xtabs(~ species, data = top_species) |> 
     as.data.frame() |> 
     as_tibble() |>
     filter(Freq > 1)
-  xt$taxonConceptID <- as.character(xt$taxonConceptID)
-  xt$group <- as.character(xt$group)
-  arrange(xt, desc(Freq))
+  xt$species <- as.character(xt$species)
+  # xt$group <- as.character(xt$group)
+  arrange(xt, desc(Freq)) 
+  # filter(group == "vertebrates")
 }
 
 # use while loop to iteratively reduce number of duplicates
 xt <- calculate_xtabs()
 run <- 1
 while(nrow(xt) > 0){
-  duplicated_rows <- which(top_species$taxonConceptID == xt$taxonConceptID[1])
+  duplicated_rows <- which(top_species$species == xt$species[1])
   x <- top_species[duplicated_rows, ]
   x_order <- order(x$z_score, decreasing = TRUE)
   duplicated_rows <- duplicated_rows[x_order]
-  x <- x[x_order, ]
-  x <- x[2, ]
+  x <- top_species[duplicated_rows, ][2, ] # this is the row to replace
+  # x <- x[2, ]
   next_rows <- which(
-    species_df_ordered$electorate == x$electorate &
-    species_df_ordered$group == x$group
+    species_df_ordered$electorate == x$electorate 
+    # species_df_ordered$group == x$group
   )
-  y <- species_df_ordered[next_rows, ]
-  next_rows <- next_rows[!(y$taxonConceptID %in% top_species$taxonConceptID)]
+  # y <- species_df_ordered[next_rows, ]
+  next_rows <- next_rows[
+    !(species_df_ordered$species[next_rows] %in% top_species$species)]
   y <- species_df_ordered[next_rows, ]
   top_species[duplicated_rows[2], ] <- species_df_ordered[next_rows[1], ]
   species_df_ordered <- species_df_ordered[-next_rows[1], ]
@@ -244,38 +261,55 @@ while(nrow(xt) > 0){
   run <- run + 1
 }
 
+
 ## checks
 # print(top_species, n = 100)
 # any(xtabs(~group + electorate, data = top_species) > 1) # FALSE
 
+# top_species <- filter(top_species, group == "vertebrates")
+# any(is.na(top_species$taxonConceptID))
+# print(top_species, n = 151)
 
 # JOIN SPECIES INFORMATION WITH ELECTORATE DATA
 top_species_ids <- search_identifiers(top_species$taxonConceptID) # up to here
 
 top_species <- bind_cols(top_species, 
   select(as_tibble(top_species_ids), 
-    -taxon_concept_id, -kingdom, -phylum))
+    -taxon_concept_id, -kingdom, - species))
 
+# check for duplicate species names
+# xt <- xtabs(~species, data = top_species )
+# xt[xt > 1]
+# none
+
+# filter(top_species, species == "Eolophus roseicapilla")
+
+# merge with electorates
 electorate_df <- left_join(
-  electorate_df, 
+  electorate_df,
+  # filter(electorate_df, group == "vertebrates"),
   top_species,
-  by = c("electorate", "group")
+  by = "electorate" # group
 )
+
+electorate_df <- left_join(electorate_df, electorate_by_state, 
+   by = "electorate")
 
 
 ## MAPPING
 
 # reimport common names
-# species_common <- read.csv("species_by_electorate_commonNames_31-03.csv")
-species_common <- filter(electorate_df, group == "vertebrates") # temporary solution until images available
-
-write.csv(species_common, "species_by_electorate.csv")
-  
+species_common <- read_csv("species_by_electorate_wCommonNames_final.csv") |>
+  select(-electorate_records.y)
+colnames(species_common)[2] <- "electorate_records"
+# write.csv(species_common, "species_by_electorate.csv", row.names = FALSE)
+ 
+ 
 # convert to spdf object
-elect <- boundaries_raw |>
-  left_join(
-    species_common[, c("electorate", "species", "vernacular_name")], 
-    by = c("Elect_div" = "electorate"))
+elect <- left_join(
+  boundaries_raw,
+  select(species_common, electorate, class, species, vernacular_name),
+  by = c("Elect_div" = "electorate"))
 
 elect$label <-  paste0(
   elect$Elect_div, ", ", elect$state, "<br>",
@@ -293,8 +327,11 @@ saveRDS(species_common, "2022_electorate_map/common_names.rds")
 spdf_elect_simple <- rmapshaper::ms_simplify(spdf_elect, keep = 0.01)
 saveRDS(spdf_elect_simple, "./2022_electorate_map/simple_spatial_data.rds")
   
+# calculate statistics
+# sum(species_common$electorate_sum_total.x)
+
 # run app
-shiny::runApp("2022_electorate_map")
+shiny::runApp("electoral-divisions-2022")
 
 # TODO:
   # add images and common names
@@ -303,148 +340,3 @@ shiny::runApp("2022_electorate_map")
   # add numbers of records per electorate and species
   # state data missing from species_common
   
-  
-
-## BELOW HERE IS OLD
-
-# function to get taxon names
-join_spp <- function(df){
-  df <- df[df$count > 10, ]
-  nrow_vec <- if(nrow(df) < 100){seq_len(nrow(df))}else{seq_len(100)}
-  x <- search_identifiers(df$taxonConceptID[nrow_vec]) |> as_tibble()
-  # if(!any(x$rank == "species" & x$phylum == "Chordata")){
-  #   x <- search_identifiers(df$taxonConceptID[1:100]) |> as_tibble()
-  # }
-  if(!any(colnames(x) == "vernacular_name")){
-    x$vernacular_name <- NA
-  }
-  x <- cbind(
-    df[seq_len(nrow(x)), ], 
-    x |> select(rank, phylum, class, order, family, species, vernacular_name)) |> filter(rank == "species" & phylum == "Chordata")
-  x
-}
-
-# get list of top species per electorate with added taxonomic information
-electorate_list <- lapply(
-  split(species_df, species_df$electorate),
-  function(a){
-    a <- a[order(a$z_sum, decreasing = TRUE), ] 
-    join_spp(a)
-  })
-
-# electorate_list[["Lingiari"]]
-
-# choose top-ranked species per electorate
-electorate_df <- do.call(rbind, lapply(electorate_list, function(a){a[1, ]})) 
-
-# # Note that there is a duplicate species here: (now obsolete)
-# any(electorate_df$species == "Gallirallus philippensis")
-# electorate_df$species[
-#   electorate_df$species == "Gallirallus philippensis"] <- "Hypotaenidia philippensis"
-
-# screen out duplicates
-# if there are any ties, assign species to the electorate with the highest count
-# then choose next on list for second-placed electorate
-xt <- xtabs(~electorate_df$species)
-duplicated_names <- names(xt[xt > 1])
-electorate_df <- electorate_df[order(electorate_df$z_sum, decreasing = TRUE), ]
-for(i in seq_along(duplicated_names)){
-   duplicated_rows <- which(
-     electorate_df$species == duplicated_names[i])
-   x <- electorate_df[duplicated_rows, ]
-   replace_row <- which.min(x$z_sum)
-   electorate_tr <- x$electorate[replace_row]
-   electorate_options <- electorate_list[[electorate_tr]]
-   available_rows <- which(
-     !(electorate_options$species[-1] %in% electorate_df$species)) # note: 
-      # a better option might be to replace present species if the 
-      # replacement in quesiton has a higher z_sum than that already in the dataset
-   chosen_row <- available_rows[1] + 1 
-   electorate_df[duplicated_rows[replace_row], ] <- electorate_options[chosen_row, ]
-}
-
-## check any duplicates remaining
-# any(xtabs(~electorate_df$species) > 1)
-# electorate_df[, -1]
-
-## look at groupings
-# str(electorate_df)
-# electorate_df[which(electorate_df$class == "Amphibia"), ]
-# sort(xtabs(~class, data = electorate_df))
-
-# add in states
-electorate_df <- left_join(electorate_df, electorate_by_state, by = "electorate")
-electorate_df <- electorate_df[order(electorate_df$electorate), ]
-write.csv(electorate_df, "species_by_electorate.csv", row.names = FALSE)
-saveRDS(electorate_df, "species.rds")
-
-
-## MAPPING
-
-# reimport common names
-# species_common <- read.csv("species_by_electorate_commonNames_31-03.csv")
-species_common <- electorate_df # temporary solution until images available
-
-# convert to spdf object
-elect <- boundaries_raw |>
-  left_join(
-    species_common[, c("electorate", "species", "vernacular_name")], 
-    by = c("Elect_div" = "electorate"))
-
-elect$label <-  paste0(
-  elect$Elect_div, ", ", elect$state, "<br>",
-  elect$vernacular_name
-)
-  
-spdf_elect <- elect |> 
-  st_zm() |> 
-  as_Spatial()
-
-saveRDS(spdf_elect, "./2022_electorate_map/spatial_data.rds")
-
-## test pre-loading map
-# leaflet_map <- leaflet() |> 
-#   fitBounds(112, -45, 154, -10) |>
-#   addProviderTiles(providers$CartoDB.Positron) |>  
-#   addPolygons(
-#     data = spdf_elect,
-#     layerId = spdf_elect$Elect_div,
-#     fillColor = "white",
-#     fillOpacity = .2, 
-#     color = "#111111", 
-#     weight = 1, 
-#     stroke = TRUE,
-#     highlightOptions = highlightOptions(
-#       color = "#C44D34", 
-#       fillColor = "#C44D34", 
-#       fillOpacity = 0.6,
-#       weight = 3,
-#       bringToFront = TRUE),
-#     label = lapply(elect$label, HTML),
-#     labelOptions = labelOptions(
-#       style = list("font-weight" = "normal", 
-#                    padding = "3px 5px"),
-#       textsize = "12px",
-#       direction = "auto")
-#   )
-# saveRDS(leaflet_map, "2022_electorate_map/leaflet_map.rds")
-
-saveRDS(as_tibble(species_common), "2022_electorate_map/common_names.rds")
-
-# # try simplifying
-# # doesn't seem to noticeably reduce loading time - simplify further?
-spdf_elect_simple <- rmapshaper::ms_simplify(spdf_elect, keep = 0.01)
-saveRDS(spdf_elect_simple, "./2022_electorate_map/simple_spatial_data.rds")
-  
-# run app
-shiny::runApp("2022_electorate_map")
-
-
-# phylopic images
-  # parrot http://phylopic.org/image/34d9872c-b7d0-416f-8ac6-1f9f952982c8/
-  # mammal http://phylopic.org/image/295cd9f7-eef2-441e-ba7e-40c772ca7611/
-  # reptile http://phylopic.org/image/0e2a08ed-13a1-4b9e-a047-ef4045e7d88f/
-  # frog http://phylopic.org/image/f3630498-3396-4ae2-8501-46209a766381/
-  # fish
-  # butterfly http://phylopic.org/image/4275ac3e-d74c-4ca3-9189-23f2d3a83def/
-  # 
