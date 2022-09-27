@@ -2,12 +2,13 @@
 This is a working repository for R code produced by the ALA Science & Decision Support Team. The team consists of:
 
 - Martin Westgate (Team Lead)
-- Jenna Wraith
 - Dax Kellie
 - Jess Fenker
 - Olivia Torresan
 - Shandiya Balasubramaniam
 - Amanda Buyan (c/o EcoCommons)
+- Margot Schneider
+- Fonti Kar
 
 ## Folder structure
 The repo stores two main types of outputs:
