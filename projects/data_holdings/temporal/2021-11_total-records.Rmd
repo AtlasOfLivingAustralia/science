@@ -7,10 +7,14 @@ editor_options:
   chunk_output_type: console
 ---
 
+*Note: Most recently updated 26/10/2022*
+
+This code creates a line plot comparing the cumulative growth of human observations and museums specimens to the total number of records in the ALA. 
+
+You can see the intended final plot in `projects/data_holdings/temporal/plots/line-plot_total-records.png`
 
 ```{r}
-# remotes::install_github("AtlasOfLivingAustralia/galah@ala_counts")
-library(galah)
+library(galah) # v1.5.0
 library(tidyverse)
 library(purrr)
 library(viridis)
@@ -19,16 +23,12 @@ library(pilot) # for colour palettes
 ```
 
 ```{r}
-# Get data
+# Get total number of records by year
 galah_config(email = "dax.kellie@csiro.au")
 
-search_fields("year") %>% View()
-
-# filters <- select_filters(year > 1999)
-fields <- select_fields(c("dataResourceName", "year"), expand = TRUE)
-
-providers <- ala_counts(group_by = fields, limit = 1e5)
-providers_total <- ala_counts(group_by = "year", limit = 1e5)
+providers_total <- galah_call() |>
+  galah_group_by(year) |>
+  atlas_counts(limit = 1e5)
 
 # wrangle
 providers_total <- providers_total %>% 
@@ -40,28 +40,26 @@ providers_total <- providers_total %>%
   arrange(-desc(year)) %>%
   mutate(cumulative_count = cumsum(total_count))
 
-# merge
-providers <- providers %>% 
-  mutate(year = as.integer(year)) %>% # match class of providers_total
-  left_join(providers_total, by = "year")
 ```
 
 
 ```{r}
 # Basis of record
-galah::find_field_values("basisOfRecord")
+search_all(fields, "basisOfRecord") |> show_values()
 
-# Counts of human observations
-human_obs <- ala_counts(filters = select_filters(basisOfRecord = "HUMAN_OBSERVATION"), 
-                        group_by = "year", 
-                        limit = 1e4)
+# Get counts of human observations
+human_obs <- galah_call() |>
+  galah_filter(basisOfRecord == "HUMAN_OBSERVATION") |>
+  galah_group_by(year) |>
+  atlas_counts(limit = 1e4)
 
-# Counts of specimen observations
-specimen_obs <- ala_counts(filters = select_filters(basisOfRecord = "PRESERVED_SPECIMEN"), 
-                        group_by = "year", 
-                        limit = 1e4)
+# Get counts of specimen observations
+specimen_obs <- galah_call() |>
+  galah_filter(basisOfRecord == "PRESERVED_SPECIMEN") |>
+  galah_group_by(year) |>
+  atlas_counts(limit = 1e4)
 
-# cumulative counts
+# Calculate cumulative counts for each
 human_obs <- human_obs %>%
   mutate(year = as.integer(year)) %>% # change class
   arrange(-desc(year)) %>%
@@ -71,12 +69,9 @@ specimen_obs <- specimen_obs %>%
   mutate(year = as.integer(year)) %>% # change class
   arrange(-desc(year)) %>%
   mutate(cumulative_count = cumsum(count))  
-
-# rename
-# human_obs <- human_obs %>% rename(human_count = count)
-# specimen_obs <- specimen_obs %>% rename(specimen_count = count)
-
 ```
+
+# Line Plot
 
 ```{r}
 labels <- c("Total", "Human \nObservations", "Museum Specimens")
@@ -86,7 +81,7 @@ pilot::set_pilot_family("Lato", title_family = "Lato") # Set font
 
 # Plot
 ggplot() + 
-  geom_line(data = providers, 
+  geom_line(data = providers_total, 
             mapping = aes(x = year, y = cumulative_count), 
             size = 2,
             colour = "#E06E53") +
@@ -109,11 +104,14 @@ ggplot() +
   labs(x = "Year",
        y = "Records in ALA") +
   annotate_pilot(x = 1995, y = 40e6, label = labels[1], color = "#E06E53", size = 6) +
-  annotate_pilot(x = 2014, y = 30e6, label = labels[2], color = "#667073", size = 4.5) +
-  annotate_pilot(x = 2003, y = 5e6, label = labels[3], color = "#9E9E9F", size = 4.5) +
-  theme_pilot()
+  annotate_pilot(x = 2015, y = 30e6, label = labels[2], color = "#667073", size = 5) +
+  annotate_pilot(x = 2003, y = 5e6, label = labels[3], color = "#9E9E9F", size = 5) +
+  theme_pilot() + 
+  theme(axis.text = element_text(size = 16),
+        axis.title = element_text(size = 18))
 
-here::here()
-ggsave(here::here("projects", "citizen-science", "line-plot_total-records.png"))
+
+# save
+ggsave(here::here("projects", "data_holdings", "temporal", "plots", "line-plot_total-records.png"))
 ```
 
