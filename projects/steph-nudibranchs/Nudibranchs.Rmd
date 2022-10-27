@@ -1,0 +1,199 @@
+---
+title: "Nudibranch SDM"
+author: "Stephanie Woolley"
+date: "27/11/2022"
+output: TBD
+---
+
+Instal packages and configure email 
+
+```{r}
+library(dplyr)
+library(galah)
+library(stars)
+library(ozmaps) 
+library(SSDM) 
+library(sdmpredictors)
+library(ggplot2)
+library(viridis)
+
+galah_config(email = "z5284998@ad.unsw.edu.au" ) 
+```
+
+
+Download observations 
+
+```{r}
+obs <- galah_call() |>                               
+  galah_identify("Nudibranchia") |>   
+  galah_filter(profile = "ALA") |>
+  galah_filter(country == "Australia") |>
+  atlas_occurrences() 
+```
+
+
+format to contain only latitude and longitude
+```{r}
+sightings <- obs|> 
+  filter(!is.na(decimalLatitude) & !is.na(decimalLongitude)) |>
+  mutate(SPECIES = "Nudibranchia") |>
+  select(LATITUDE = decimalLatitude, LONGITUDE = decimalLongitude) 
+
+#clean data to remove duplicate rows ( i dont know if i need this)
+duplicates <- duplicated(sightings[c("LATITUDE", "LONGITUDE")])
+occurrences <- sightings[!duplicates,]
+```
+
+Download and format environmental variable rasters
+```{r}
+datasets <- list_datasets(terrestrial = FALSE, marine = TRUE) 
+
+env <- load_layers( layercodes = c("MS_biogeo08_sss_mean_5m", "MS_biogeo13_sst_mean_5m", "MS_biogeo05_dist_shore_5m", "MS_bathy_5m") , equalarea=FALSE, rasterstack=TRUE)
+
+aus.ext <- raster::extent(110, 155, -45, -10) #create extent to limit by 
+
+australia <- raster::crop(env, aus.ext) #limit env by the extent to get just environmental variables for just Australia
+
+
+
+```
+
+
+
+run SDM model with observations and environment datasets
+```{r}
+SDM_GLM <- modelling("GLM",
+                     Occurrences = occurrences,
+                     Env = australia,
+                     Xcol = 'LONGITUDE', Ycol = 'LATITUDE', verbose = TRUE) 
+
+SDM_MARS <- modelling("MARS",
+                      Occurrences = occurrences %>% 
+                        sf::st_drop_geometry(),
+                      Env = australia,
+                      Xcol = 'LONGITUDE', Ycol = 'LATITUDE', verbose = FALSE)
+
+SDM_CTA <- modelling("CTA",
+                     Occurrences = occurrences %>% 
+                       sf::st_drop_geometry(),
+                     Env = australia,
+                     Xcol = 'LONGITUDE', Ycol = 'LATITUDE', verbose = FALSE)
+
+combined <- -2 * (log(SDM_MARS@projection) + log(SDM_GLM@projection) + log(SDM_CTA@projection))
+
+func <- function(x){
+  1 - pchisq(q = x, df = 6)
+}
+
+combined_pval <- raster::calc(combined, fun = func)
+
+species_distribution <- stars::st_as_stars(combined_pval)
+
+```
+
+plot SDM
+```{r}
+
+#download australia map 
+map <- ozmap_data(data = "states") |>
+  st_transform(crs = st_crs("WGS84")) 
+
+#plot everything together
+ggplot() +
+  geom_stars(data = species_distribution) +
+  geom_sf(data = map) + scale_fill_viridis_c() 
+```
+
+
+Current workings:
+
+trying to get yearly obs of species distribution (this would work but I think it would have to make it into a loop do over time periods)
+```{r}
+library(lubridate)
+
+
+year_obs <- galah_call() |>                               
+  galah_identify("Nudibranchia") |>   
+  galah_filter(profile = "ALA") |>
+  galah_filter(country == "Australia") |>
+  atlas_occurrences() 
+
+sightings_year <- year_obs|> 
+  filter(!is.na(decimalLatitude) & !is.na(decimalLongitude)) |>
+  mutate(eventDate = ymd_hms(eventDate), 
+         year = year(eventDate),
+  month = month(eventDate)) |>
+  mutate(species = "Nudibranchia") |>
+ select(species, year, month,  Latitude = decimalLatitude, Longitude = decimalLongitude, eventDate) 
+
+
+
+
+set_year_obs |> sightings_year |>
+  filter(between(as_date(year), as_date("2000"), as_date("2022")))
+
+set <- sightings_year |>
+  filter(eventDate >= as.Date("2000-01-01 00:00:00") %in%
+           (eventDate <= as_date("2022-12-31 00:00:00")))  #works but doesn't give the correct result
+
+
+set2 <- sightings_year |>
+  filter(year >= as.Date("2000") %in%
+           (year <= as_date("2022")))
+
+x <- sightings_year |> 
+  filter(month == 6)
+
+year = year(eventDate))
+
+library(dplyr)
+         library(lubridate)
+     s<-    sightings_year %>% 
+           mutate(set_2000 = case_when(between(year, year('2000'), ymd('2022'))
+                                     ~ 'Spring'))
+                             
+   x <-  sightings_year|>
+     mutate(set_2000 = year >= "2000" & year <= "2022") ### this could work not ideal but enough to start looking at 
+     
+
+set_year_obs <- sightings_year |> 
+  filter(year == 1)
+
+aqb <- x |>
+  filter(set_2000 ==  "FALSE") |>
+  select(Latitude, Longitude)
+
+aqb <- x |>
+  select(Latitude, Longitude)
+
+
+SDM_GLM <- modelling("GLM",
+                     Occurrences = aqb,
+                     Env = australia,
+                     Xcol = 'Longitude', Ycol = 'Latitude', verbose = TRUE) 
+
+SDM_MARS <- modelling("MARS",
+                      Occurrences = aqb %>% 
+                        sf::st_drop_geometry(),
+                      Env = australia,
+                      Xcol = 'Longitude', Ycol = 'Latitude', verbose = FALSE)
+
+SDM_CTA <- modelling("CTA",
+                     Occurrences = aqb %>% 
+                       sf::st_drop_geometry(),
+                     Env = australia,
+                     Xcol = 'Longitude', Ycol = 'Latitude', verbose = FALSE)
+
+
+env <- load_layers( layercodes = c("MS_sss01_5m", "MS_biogeo13_sst_mean_5m", "MS_biogeo05_dist_shore_5m", "MS_bathy_5m") , equalarea=FALSE, rasterstack=TRUE)
+
+
+ggplot() +
+  geom_stars(data = species_distribution) +
+  geom_sf(data = map) + scale_fill_viridis_c() + 
+  coord_sf(xlim = c(138, 155),                  
+           ylim = c(-29, -11))
+```
+    
+    
+           
