@@ -1,0 +1,105 @@
+---
+title: "Density Point Map"
+author: "Dax"
+date: "2022-10-26"
+output: html_document
+---
+
+This script creates a density point map of species observations
+
+```{r, message = FALSE, warning = FALSE}
+# packages
+library(tidyverse)
+library(galah) # remotes::install_github("AtlasOfLivingAustralia/galah")
+library(showtext) # install.packages("showtext")
+library(ozmaps)
+library(sf)
+library(ggpointdensity)
+library(pilot) #remotes::install_github("olihawkins/pilot")
+```
+
+
+
+# Download data
+
+Download species observations of camels overall, and since 2005
+
+```{r}
+galah_config(email = "dax.kellie@csiro.au")
+
+# Download occurrence records
+camels_records <- galah_call() |>
+  galah_identify("camelus") |>
+  atlas_occurrences()
+```
+
+# Clean data
+
+```{r}
+# Tidy
+camels_records <- camels_records |>
+  drop_na() |>                      # drop NAs
+  filter(decimalLongitude < 155,    # filter records to only mainland/tasmania
+         decimalLongitude > 110, 
+         decimalLatitude > -45,
+         decimalLatitude < -10)
+```
+
+
+# Make map
+
+Set custom font
+```{r}
+# Add font
+font_add_google("Roboto", "roboto")
+showtext_auto(enable = TRUE)
+```
+
+Plot
+
+```{r}
+camel_points_map <- ggplot() + 
+  geom_sf(data = ozmap_states, 
+          fill = "white") + 
+  geom_pointdensity(data = camels_records,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude)) +
+  viridis::scale_color_viridis(option = "F", 
+                               begin = 0.1) +
+  labs(title = "Spatial Distribution",
+       x = NULL, 
+       y = NULL) +
+  pilot::theme_pilot(axes = "",
+                     grid = "") + 
+  guides(colour = guide_colourbar(
+    title = "Number of \nOverlapping points"), 
+    alpha = "none") +
+  theme(legend.position="bottom",
+        legend.margin=margin(0,0,0,0),
+        legend.box.margin=margin(0,0,0,0),
+        legend.title.align=0.5,
+        text = element_text(family = "roboto"),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(size = 27, 
+                                  face = "bold", 
+                                  color = "#404040", 
+                                  hjust = 0.5, 
+                                  margin = margin(0,0,20,0)))
+
+camel_points_map
+```
+
+
+# Save map
+
+```{r}
+showtext_opts(dpi = 300) # Fixes text for saving in 300 dpi
+
+ggsave(here::here("plots", "camel-map.png"),
+       camel_points_map, height = 10, width = 12, units = "in", device='png', dpi = 300)
+```
+
+
+
+
