@@ -5,9 +5,10 @@ date: "27/11/2022"
 output: TBD
 ---
 
-Instal packages and configure email 
-
+OVERALL SPECIES DISTRIBUTION MODEL
+Install packages and configure email 
 ```{r}
+#install.packages("galah")
 library(dplyr)
 library(galah)
 library(stars)
@@ -20,9 +21,7 @@ library(viridis)
 galah_config(email = "z5284998@ad.unsw.edu.au" ) 
 ```
 
-
 Download observations 
-
 ```{r}
 obs <- galah_call() |>                               
   galah_identify("Nudibranchia") |>   
@@ -31,12 +30,10 @@ obs <- galah_call() |>
   atlas_occurrences() 
 ```
 
-
 format to contain only latitude and longitude
 ```{r}
 sightings <- obs|> 
   filter(!is.na(decimalLatitude) & !is.na(decimalLongitude)) |>
-  mutate(SPECIES = "Nudibranchia") |>
   select(LATITUDE = decimalLatitude, LONGITUDE = decimalLongitude) 
 
 #clean data to remove duplicate rows ( i dont know if i need this)
@@ -53,19 +50,14 @@ env <- load_layers( layercodes = c("MS_biogeo08_sss_mean_5m", "MS_biogeo13_sst_m
 aus.ext <- raster::extent(110, 155, -45, -10) #create extent to limit by 
 
 australia <- raster::crop(env, aus.ext) #limit env by the extent to get just environmental variables for just Australia
-
-
-
 ```
-
-
 
 run SDM model with observations and environment datasets
 ```{r}
 SDM_GLM <- modelling("GLM",
                      Occurrences = occurrences,
                      Env = australia,
-                     Xcol = 'LONGITUDE', Ycol = 'LATITUDE', verbose = TRUE) 
+                     Xcol = 'LONGITUDE', Ycol = 'LATITUDE', verbose = FALSE) 
 
 SDM_MARS <- modelling("MARS",
                       Occurrences = occurrences %>% 
@@ -94,106 +86,174 @@ species_distribution <- stars::st_as_stars(combined_pval)
 plot SDM
 ```{r}
 
-#download australia map 
+#download Australian map 
 map <- ozmap_data(data = "states") |>
   st_transform(crs = st_crs("WGS84")) 
 
 #plot everything together
 ggplot() +
   geom_stars(data = species_distribution) +
-  geom_sf(data = map) + scale_fill_viridis_c() 
+  geom_sf(data = map) + scale_fill_viridis_c()  
+```
+
+Starting to make the initial map pretty
+```{r}
+ggplot() +
+  geom_stars(data = species_distribution) +
+  geom_sf(data = map) + scale_fill_viridis_c()  + coord_sf(crs = "WGS84", clip = "off",
+           xlim = c(120, 155),
+           ylim = c(-45, -11)) +
+ theme_void() + labs(fill = "Probability")
+
 ```
 
 
-Current workings:
+MONTHLY SDM FOR ANIMATION 
+trying to get monthly obs of species distribution
 
-trying to get yearly obs of species distribution (this would work but I think it would have to make it into a loop do over time periods)
+Download occurrences
 ```{r}
 library(lubridate)
+library(purrr)
+library(dplyr)
+library(galah)
+library(stars)
+library(ozmaps) 
+library(SSDM) 
+library(sdmpredictors)
+library(ggplot2)
+library(viridis)
 
+galah_config(email = "z5284998@ad.unsw.edu.au" ) 
 
-year_obs <- galah_call() |>                               
+#get observations 
+obs <- galah_call() |>                               
   galah_identify("Nudibranchia") |>   
   galah_filter(profile = "ALA") |>
   galah_filter(country == "Australia") |>
   atlas_occurrences() 
 
-sightings_year <- year_obs|> 
+#clean, filter and convert time series to months 
+sightings <- obs|> 
   filter(!is.na(decimalLatitude) & !is.na(decimalLongitude)) |>
   mutate(eventDate = ymd_hms(eventDate), 
          year = year(eventDate),
   month = month(eventDate)) |>
-  mutate(species = "Nudibranchia") |>
- select(species, year, month,  Latitude = decimalLatitude, Longitude = decimalLongitude, eventDate) 
+ select(month,  Latitude = decimalLatitude, Longitude = decimalLongitude) 
 
+#remove duplicates (figure out if it's needed!)
+duplicates <- duplicated(sightings[c("Latitude", "Longitude")])
+occurrences <- sightings[!duplicates,]
 
+```
 
+function to filter data to each month 
 
-set_year_obs |> sightings_year |>
-  filter(between(as_date(year), as_date("2000"), as_date("2022")))
+```{r}
+make_months <- function(chosen_month) {
+  
+  # filter data
+  monthly_data <- occurrences %>% filter(month == {{chosen_month}}) %>%
+    select(Latitude, Longitude)
+}
 
-set <- sightings_year |>
-  filter(eventDate >= as.Date("2000-01-01 00:00:00") %in%
-           (eventDate <= as_date("2022-12-31 00:00:00")))  #works but doesn't give the correct result
+months_list <- c(1:12)
 
+month_list <- map(months_list, make_months)
 
-set2 <- sightings_year |>
-  filter(year >= as.Date("2000") %in%
-           (year <= as_date("2022")))
+month_list[[1]]#check to make sure it worked
+```
 
-x <- sightings_year |> 
-  filter(month == 6)
+load in environmental variables 
+```{r include=FALSE}
+env <- load_layers( layercodes = c("MS_biogeo08_sss_mean_5m", "MS_biogeo13_sst_mean_5m", "MS_biogeo05_dist_shore_5m", "MS_bathy_5m") , equalarea=FALSE, rasterstack=TRUE)
 
-year = year(eventDate))
+aus.ext <- raster::extent(110, 155, -45, -10) #create extent to limit by 
 
-library(dplyr)
-         library(lubridate)
-     s<-    sightings_year %>% 
-           mutate(set_2000 = case_when(between(year, year('2000'), ymd('2022'))
-                                     ~ 'Spring'))
-                             
-   x <-  sightings_year|>
-     mutate(set_2000 = year >= "2000" & year <= "2022") ### this could work not ideal but enough to start looking at 
-     
+australia <- raster::crop(env, aus.ext) #limit env variables to australia
+```
 
-set_year_obs <- sightings_year |> 
-  filter(year == 1)
+Build 2 functions for the model 
+```{r echo=TRUE}
+#function as part of the model
+func <- function(x){
+  1 - pchisq(q = x, df = 6)
+}
 
-aqb <- x |>
-  filter(set_2000 ==  "FALSE") |>
-  select(Latitude, Longitude)
-
-aqb <- x |>
-  select(Latitude, Longitude)
-
-
-SDM_GLM <- modelling("GLM",
-                     Occurrences = aqb,
+#function for the model itself
+make_model <- function(chosen_month) {
+ 
+    SDM_GLM <- modelling("GLM",
+                     Occurrences = (chosen_month),
                      Env = australia,
-                     Xcol = 'Longitude', Ycol = 'Latitude', verbose = TRUE) 
-
-SDM_MARS <- modelling("MARS",
-                      Occurrences = aqb %>% 
+                     Xcol = 'Longitude', Ycol = 'Latitude', verbose = FALSE) 
+  
+     SDM_MARS <- modelling("MARS",
+                      Occurrences = (chosen_month) %>% 
                         sf::st_drop_geometry(),
                       Env = australia,
                       Xcol = 'Longitude', Ycol = 'Latitude', verbose = FALSE)
 
-SDM_CTA <- modelling("CTA",
-                     Occurrences = aqb %>% 
+     SDM_CTA <- modelling("CTA",
+                     Occurrences = (chosen_month) %>% 
                        sf::st_drop_geometry(),
                      Env = australia,
                      Xcol = 'Longitude', Ycol = 'Latitude', verbose = FALSE)
 
+combined <- -2 * (log(SDM_MARS@projection) + log(SDM_GLM@projection) + log(SDM_CTA@projection))
+combined_pval <-raster::calc(combined, fun = func)
+species_dis <- stars::st_as_stars(combined_pval)
 
-env <- load_layers( layercodes = c("MS_sss01_5m", "MS_biogeo13_sst_mean_5m", "MS_biogeo05_dist_shore_5m", "MS_bathy_5m") , equalarea=FALSE, rasterstack=TRUE)
+#his ggplot works but I would rather it be two separate functions
+p <-  ggplot() +
+  geom_stars(data = species_dis)  + 
+  geom_sf(data = ozmaps::ozmap_country) + scale_fill_viridis_c()
+   
+  return(p)
+}
+ 
+#apply function to data list
+model_list <- map(month_list, make_model) 
 
+model_list[1:12]
 
-ggplot() +
-  geom_stars(data = species_distribution) +
-  geom_sf(data = map) + scale_fill_viridis_c() + 
-  coord_sf(xlim = c(138, 155),                  
-           ylim = c(-29, -11))
 ```
-    
-    
-           
+
+create function for plot (not working)
+```{r}
+plot_func <- function(chosen_month){
+  p <-  ggplot() +
+  geom_stars(data = chosen_month)  + #THIS PART DOESN"T WORK (but works in one function with the modelling)
+  geom_sf(data = ozmaps::ozmap_country)
+   
+  return(p)
+}
+
+#apply function to data list
+maps_list <- map(month_list, plot_func)
+
+maps_list[[1]]
+
+```
+
+starting to look at a  way to make an animation 
+```{r}
+#install.packages("animation")
+library(animation)
+
+animation::saveGIF( #This doesn't work 
+  expr = {
+    model_list[1]
+    model_list[2]
+    model_list[3]
+    model_list[4]
+  
+  },
+  movie.name = "SMD.gif"
+)
+
+```
+
+
+
+
