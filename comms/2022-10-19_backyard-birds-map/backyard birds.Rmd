@@ -1,0 +1,454 @@
+---
+title: "backyard birds"
+author: "Olivia"
+date: '2022-10-31'
+output: html_document
+---
+#Backyard Bird Count / Aussie Bird Count 
+This code produces a map of Canberra (ACT) suburbs as of 2/11/2022 and the number of bird observations in each suburb using exclusively BirdLife Australia data. It utilities ALA's {galah} package among others such as ggplot2 and ozmaps.
+
+
+# Load required packages 
++ Install these packages if they are not already on your system
+
+```{r}
+library(feathers) #install.packages("feathers")
+library(galah) #install.packages("galah")
+library(ggnewscale) #install.packages("ggnewscale")
+library(ggplot2) #install.packages("ggplot2")
+library(ggrepel) #install.packages("ggrepel")
+library(here) #install.packages("here")
+library(ozmaps) #install.packages("ozmaps")
+library(patchwork) #install.packages("patchwork")
+library(purrr) #install.packages("purrr") 
+library(rmapshaper) #install.packages("rmapshaper")
+library(sf) #install.packages("sf")
+library(showtext) #install.packages("show.text")
+library(tidyverse) #install.packages("tidyverse")
+```
+
+
+# Configure ALA  account with {galah}
+
+```{r}
+galah_config(email="oliviajane.t@hotmail.com") # enter your email associated with your Atlas of Living Australia account - this is required.
+```
+
+
+# Preparing a shapefile
+
+The ALA has a few fields inbuilt into its system (you can view them all using show_all_fields() in {galah}) . The smallest field that data can be arranged within is electorates. Here, we are interested in suburb data, which {galah} does not host. I have found a shapefile for ACT suburbs here (https://data.gov.au/dataset/ds-dga-0257a9da-b558-4d86-a987-535c775cf8d8/details) and have downloaded.
+
+
+If your file is zipped and it needs to be unzipped, you can do so here.
+
+## Unzip the file (if zipped) 
+```{r}
+zipF<-file.choose("act_localities(1).zip") # lets you choose a file straight from directory and save its file path in R 
+outDir<-"act_localitiesunzip" # Define/name the folder where the zip file should be unzipped to / saved
+unzip(zipF,exdir=outDir)  # unzip your file 
+```
+
+## Load shapefile
+
+```{r}
+actsuburbs <- st_read(here("act_localitiesunzip", 
+                          "act_localities.shp"), #read shapefile and save as data.frame
+                     quiet = TRUE) |> 
+  ms_simplify(keep = 0.1) #simplify the polygon lines in case of over-complexity/messy lines
+```
+
+## Clean the shapefile
+
+The actsuburbs shapefile countains both suburb boundaries and larger, enmcompassing "district" boundaries (see actsuburbs in environment). There are overlaps in these names, so to avoid confusion I will remove the districts as we are only interested in suburbs. 
+
+```{r}
+actsuburbsonly <- subset(actsuburbs, LOC_CLASS != "District") #remove districts, and save as actsuburbsonly
+```
+
+## Check multipolygons are valid 
+
+Seeing if they work before proceeding is good practice. 
+
+Here, set its spatial projection to be consistent with that of {galah} - WGS84 - so it lines up accurately with the rest of our data.
+
+```{r}
+actsuburbs <- actsuburbsonly |> 
+  st_transform(crs = st_crs("WGS84")) |> #set projection to be consistent
+  st_make_valid() #check if multipolygons are valid
+```
+
+# Extract {galah} data
+
+We are interested in the occurrence data (where each species is in the shapefile of our choosing - including its count). In order to allocate individual records to our own defined bounds (vs. just a count number), we use atlas_occurrences vs atlas_counts. 
+
+
+```{r}
+birdocc <- galah_call() |> 
+  galah_identify("Aves") |> #filter down to birds 
+  galah_filter(profile = "ALA", # use data quality filters to filter out suspicious records 
+               decimalLongitude > 148.0 & decimalLongitude < 150, #restrict data download to smaller area over ACT
+               decimalLatitude < -35.0 & decimalLongitude > -36,
+               dataProviderName == "BirdLife Australia") |> #filter by data provider
+  atlas_occurrences() #return values
+```
+
+# Prepare {galah} data 
+
+split data.frame by row, and extract the lon/lat coords
+Note: purrr::map() is a looping function. Think of it as taking whatever list it is given - in this case every row of result - and doing something to it - in this case, getting the lon/lat numbers and storing them as relative coordinate points on a map. map() is very powerful but kinda finicky to use.
+
+```{r}
+allbirdpoints <- birdocc %>% 
+  split(1:nrow(.)) %>% #split each row 
+  map(~ st_point(c(as.numeric(.x['decimalLongitude']), #extract longitude and latitude from each row and store
+                   as.numeric(.x['decimalLatitude']))))
+```
+
+## Convert points to spatial object 
+This ensures they are compatible with ggplot2. Also, as done earlier with our shapefile - set their projection to match the shapefile - WGS84 - so we know that they will line up accurately
+
+```{r}
+points_geomall <- allbirdpoints |> st_as_sfc() |> st_set_crs("WGS84") #set projection to match shapefile
+```
+
+# Intersect shapefile + bird data
+Configured bird occurrence data is now ready to be merged with the shapefile
+
+```{r}
+intersect <- st_intersects(points_geomall, actsuburbs) #intersect the bird occurrence points with shapefile 
+```
+
+## Count summary - suburb bird count
+Now the bird data and the shapefile are joined, we can figure out a summary bird count value for each suburb polygon.
+Each point is allocated with a suburb ID number (e.g. 121 = Yarralumla). There are 545 121 values, meaning 545 records in Yarralumla. 
+
+To do this, we need to unlist the list object we just named "intersect" (as in this state it cannot be worked with). A list object can be understood as 3D vs 2D - it comprises many data frames within itself (which can be helpful sometimes). We want this to all be in one data frame, though, hence, we "flatten" it into one. "int" means we are converting the values int integer form.
+
+
+```{r}
+points_in_polygons <- intersect |>
+  flatten_int() |> #unlist list object so it can be processed + ensure values are output as integers "int" 
+  as_tibble() |> #show our data as a tibble (an easy viewing {tidyverse} table that drops-down from this chunk as well as in the environment)
+  group_by(value) |> #group our bird count by "value" - think of this as row number/id in the table 
+  summarise(count = n()) #give the bird occurrence count value of each row/value as above
+```
+
+## Join count data to each suburb polygon
++ replace any not available (na) numbers with 0. Doing this means our map will actually produce a representative color in the NA regions. Save as a spatial object (sf) ready to be mapped with ggplot2
+
+```{r}
+actsuburbs <- actsuburbs |>
+  mutate(region_id = row_number()) #create a reference column to join
+
+counts_map <- points_in_polygons |>
+  full_join(actsuburbs, by = c("value" = "region_id")) |> #join points in polygons to region_id
+  tidyr::replace_na(list(count = 0)) |> #replace NA numbers with 0
+  rename(id = value) |> #value is a bit of a misleading name, we treat this number as the suburbs numerical ID
+  st_as_sf() #save as an sf object - a "spatial" object that will be recognized by ggplot
+```
+
+# Create a colour palette and custom font
+
+This is optional, and you can use the standard ggplot2 themes. Here we use {feathers}, a package providing palettes inspired by the plumage of female birds. Find all the palettes listed here and how to call them (https://github.com/shandiya/feathers).
+The palette combination below is colorblind friendly.
+
+```{r}
+# choose end and middle colours of the gradient
+seq_col <- get_pal("galah")[c(1,3,6)] 
+
+# create a gradient of 6 shades in between the selected colours 
+galah <-colorRampPalette(seq_col)(6) #this is dependent on your data and may need to change depending on how many levels your scale will have. We find that we have 5 scale levels, and want to remove this grey color.
+print_pal(galah) #display palette colors visually 
+```
+This palette is good, but aside from 6 colors being too many scale "levels" for our data - the grey is a little misleading to use at the top of our scale, as people often associate it with a blank or 0 value. 
+
+## Remove the grey from the palette 
+
+```{r}
+galah #run to see what hex codes the palette is made up of
+```
+
+
+```{r}
+galah <- colorRampPalette(c("#FFD2CF", "#EC9FAC", "#D96D89", "#B55474", "#80556D"))(5) #use these hex codes to remove the last grey color (#4C5766)
+print_pal(galah) #this will display the new palette colors visually 
+```
+
+# Add custom font using {showtext}
+```{r}
+# Add font
+font_add_google("Roboto", "roboto") #I chose a font from Google fonts @ https://fonts.google.com/
+showtext_auto(enable = TRUE)
+```
+
+# Map data
+
+## Boundary map 
+(we only have suburb boundaries currently, no boundary map of the ACT). We will use {ozmaps}
+```{r}
+act_wgs84 <- ozmaps::ozmap_data(data = "states") |> #filter ozmaps package for states maps
+  filter(NAME == "Australian Capital Territory") |> #choose ACT map
+  st_transform(crs = st_crs("WGS84")) #transform it to the WGS84 projection so it matches the others + lines up
+```
+
+View the ACT boundary map on/using ggplot
+```{r}
+map <- ggplot() + 
+  geom_sf(data = act_wgs84)
+map
+```
+## (Test) data map
+Check to see if everything lines up spatially, and the data makes sense
+```{r}
+map <- ggplot() + 
+  geom_sf(data = act_wgs84) +
+  geom_sf(data = counts_map,
+          mapping = aes(fill = log(count)), #log transform to reduce skew + make color changes more apparent between the relative number of observations
+          colour = "NA") + scale_fill_continuous(name = "Count [log]") + labs(title = "Bird Records by Suburb",
+              subtitle = "Canberra (ACT)",
+              caption = "ALA BirdLife Australia data")
+map
+```
+
+# Zoomed out suburb map
+We are going to join two maps side by side - a "zoomed out" and a "zoomed in" map. Let's create the zoomed out map first 
+
+```{r}
+map <- ggplot() +
+  geom_sf(data = act_wgs84) +
+  geom_point(mapping=aes(x=149.1, y=-35.33), colour="#313131", size = 48, alpha=I(0.2)) + #add a circle overlapping the ACT but beneath the suburbs
+  geom_sf(
+    data = counts_map,
+    fill = "grey30", #color the suburbs grey without any datafor zoomed out map
+    colour = "grey50") +
+  labs(
+    title = "Bird Records by Suburb",
+    subtitle = "Canberra (ACT)",
+    caption = "ALA BirdLife Australia data",
+    y = "y", x = "x"
+  ) + 
+  theme(axis.text.x = element_text(size = 7), 
+        axis.text.y = element_text(size = 7)) # these are eventually removed, but useful to be able to read the coordinates better for later 
+
+map
+```
+
+## Tidy + feature labels
+
+```{r}
+#map aesthetics - 1. remove grey grid backing, longitude and latitude ticks and axis text, the legend for combination purposes (it will be on zoomed map) include annotation for NNP
+zoomedoutmap <- map + 
+  theme(panel.grid.major = element_blank(), #remove elements of the grid / labels
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        legend.position = "NULL", 
+        axis.line = element_line(colour = "NA"), 
+        axis.text.x = element_blank(), 
+        axis.text.y = element_blank(), 
+        axis.ticks.x = element_blank(), 
+        axis.ticks.y = element_blank(), 
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        text = element_text(family = "roboto")) + 
+  geom_sf() + #2. add feature labels
+  annotate("text", 
+           x = 148.94,
+           y = -35.62, 
+           label = "Namadgi National Park", 
+           size = 3.0,
+           angle = 300, 
+           fontface = "italic", 
+           colour = "black") + 
+  labs(title = NULL, 
+       subtitle = NULL, 
+       caption = NULL) + 
+  annotate ("text", x = 149.3, y = -35.1, 
+            label = "ACT Suburbs", size = 2.95)
+zoomedoutmap
+```
+
+
+# Zoomed in map
+
+## Log10 transform  data 
+This will make the colors on the map  easier to interpret against one another. The range of the log10 data (0-1, 1-2, 2-3, 3-4, 4-5, 5>) are then allocated to sections that represent its true values (0-9, 10-99, 100-999, 1,000- 9,000, 10,000>). Any values that are NA are replaced with 0 so that the map can actually produce a representative color in the NA regions, as noted earlier.
+
+```{r}
+counts_map <- counts_map |>
+  rowwise() |> #compute data a row-at-a-time
+  mutate(log_counts = log10(count)) |> #create a column that converts count to log10, improving colour visibility
+  mutate(counts_discrete = cut(log_counts, 
+                               breaks = c(0, 1, 2, 3, 4, 5), #define the breaks in the log10 data
+                               labels = c(0, 10, 100, 1000, 10000), #label them to represent true value range
+                               include.lowest = TRUE)) |> #
+  replace_na(list(counts_discrete = "0")) # replace NAs with 0
+```
+
+
+(You can use this code to check the range of your data to decide on the best breaks and labels to use)
+```{r}
+#checking the range of the data to see where our breaks and labels are best set at etc
+#highest and lowest 
+range(counts_map$log_counts)
+
+#middle val
+median(counts_map$log_counts)
+```
+
+##Unlabelled map
+
+This produces a map of the ACT suburbs, zoomed in, without suburb labels. Grey grid backing and axis ticks are maintained  
+
+```{r}
+mapsuburbsonly <- ggplot() +
+  geom_sf(
+    data = counts_map,
+    mapping = aes(fill = counts_discrete), #fill the map with our log10 transformed data
+    colour = "NA" #no suburb line colour
+  ) +
+  geom_sf() +
+  scale_fill_manual(
+    name = "Number of
+observations*", #scale / legend title 
+    drop = FALSE,
+    labels = c("10", "100", "1,000", "10,000"), 
+    values = galah, #fill colour
+    guide = guide_colorsteps( #position of the scale / legend 
+      direction = "vertical", 
+      label.position = "right",
+      title.position = "top"
+    )
+  ) +
+  labs( #labels, titles 
+    title = "Bird Records by Suburb",
+    subtitle = "Canberra (ACT)",
+    caption = "ALA BirdLife Australia data",
+    y = "y", x ="x"
+  ) 
+mapsuburbsonly
+```
+
+
+## Make labels for our zoomed in map
+
+The first step to create suburb labels is to create points for the labels to draw out of. We ideally want this to be the middle of each suburb. The code below generates the center of the polygons and creates new columns of longitude and latitude for each suburb. Because they aren't circular, you will receive a warning st_centroid assumes attributes are constant over geometries of x, which can be ignored for these purposes.
+
+```{r}
+counts_mapcen <- cbind(counts_map, st_coordinates(st_centroid(counts_map))) #generate centre long/lat points
+```
+
+We are only going to display the top and bottom 3 suburbs on this map as there are a lot of suburbs, and labeling them all would be messy
+
+--> Top 3 (highest count) suburbs
+
+```{r}
+TOP3 <- counts_map |>
+  arrange(desc(count)) #arrange count data descending highest to lowest
+
+head(TOP3, 3) #retrieve the top three from the head of the table (the top)
+```
+--> Bottom 3 (lowest count) suburbs 
+```{r}
+BOTTOM3 <- counts_map |>
+  arrange(desc(count)) #arrange count data so that it is descending highest to lowest
+```
+
+An extra step is needed to remove the 0 values (which may just be suburbs with no data)
+```{r}
+BOTTOM3 <- filter(BOTTOM3, count >0) #remove anything marked as 0 
+tail(BOTTOM3, 3) #retrieve the bottom 3 from the tail (or bottom) of the table
+```
+```{r}
+#name our suburbs that are the top 3 and bottom 3 from the above code. On the 2/11/2022 when this cleaned version was written - they are as follows
+suburbnamest <- c("Fyshwick", "Bruce", "Macgregor")
+suburbnamesb <- c("Ngunnawal", "Holder", "Wright")
+
+#now link these labels with our data frame containing center of the polygons (for labels to draw out from)
+toplabels <- counts_mapcen %>%
+filter(LOC_NAME %in% suburbnamest)
+
+bottomlabels <- counts_mapcen %>%
+filter(LOC_NAME %in% suburbnamesb)
+```
+
+## Add labels
+
+The map produced may have a slightly smaller bounding circle, but when combined in {patchwork}, it should be the appropriate size. You may need to experiment with sizing on your own computer to see what works. 
+
+```{r}
+#with  labels
+mapsuburbsonly <- ggplot() +
+  geom_point(mapping=aes(x=149.09, y=-35.32), colour="#313131", size = 98.5, alpha=I(0.1)) + #add transparent bounding circle
+  geom_sf(
+    data = counts_map,
+    mapping = aes(fill = counts_discrete),
+    colour = "NA"
+  ) +
+  scale_fill_manual(
+    name = "Number of 
+Observations*",
+    drop = FALSE,
+   labels = c("10", "100", "1,000", "10,000"), #scale levels
+    values = galah,
+    guide = guide_colorsteps(
+      direction = "vertical", #choose direction and position of scale 
+      label.position = "right",
+      title.position = "top"
+    )) + 
+  geom_text_repel(data = toplabels, 
+                  #nudge the labels so they fit within the circle that has been drawn
+                  aes(x = X, y = Y, label = LOC_NAME), #choose what is plotted on axes/labels (our centered long and lat values are named X and Y in the data frame)
+                  fontface = "bold", color = "#73455A", size = 2.75, 
+                  nudge_x = c(-0.15, 0.13, -0.06), #nudge labels on x axis
+                  nudge_y = c(-0.032, -0.00, 0.022)) + #nudge labels on y axis
+  geom_text_repel(data = bottomlabels, 
+                  aes(x = X, y = Y, label = LOC_NAME), 
+                  fontface = "bold", color = "#FFA099", size = 2.75,  
+                  nudge_x = c(-0.09, 0.16, -0.10), 
+                  nudge_y = c(-0.02, -0.08, 0.0)) + 
+  coord_sf(xlim = c(149.40 , 148.80), ylim = c(-35.1, -35.55), expand = FALSE) + #set limits of grey grid background area - can assist with level of zoom on your map
+  labs(title = "Bird Records by Suburb", 
+      subtitle = "Canberra, Australian Capital Territory (ACT)", 
+      caption = "*Atlas of Living Australia (ALA) BirdLife Australia data",
+    y = "y", x ="x") + theme(plot.caption = element_text(size = 2)) #write title, subtitle and caption and choose a theme and size 
+
+mapsuburbsonly
+```
+
+##Tidy map
+
+Remove gridlines, title, axis labels etc. 
+
+```{r}
+zoomedinmap <- mapsuburbsonly + labs(title = NULL, subtitle = NULL, caption = NULL) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "NA"), axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks.x = element_blank(), axis.ticks.y = element_blank(), axis.title.x = element_blank(), axis.title.y = element_blank())
+
+zoomedinmap #for some reason this zooms our suburbs in and makes the circle smaller, but when combining the two maps with {patchwork} it retains the size in the previous chunk with gridlines. you may need to experiment with sizing. 
+
+```
+
+##Combine maps
+Use {patchwork} to combine two gglot2 maps 
+```{r}
+combined <- zoomedoutmap + zoomedinmap #combine maps
+combined_title <- combined + #annotate the combined map
+  plot_annotation(title = "Bird Records by Suburb", 
+                  subtitle = "Canberra, Australian Capital Territory (ACT)", 
+                  caption = "*Atlas of Living Australia (ALA) BirdLife Australia data") & 
+  theme(text = element_text(family = "roboto"), #choose font
+        title = element_text(size = 15), #title size
+        plot.subtitle = element_text(size = 10),#subtitle size
+        plot.caption = element_text (size = 10)) #caption size
+combined_title 
+```
+
+## Save the map
+
+You may need to experiment with height and width and sizing within individual maps as it may vary depending on screen resolution (this was created on a Macbook Pro 2020 13-inch).
+
+```{r, eval = FALSE}
+showtext_opts(dpi = 300) # Fixes text for saving in x dpi - may cause text changes if this isn't done
+
+ggsave(here::here("Documents/data viz", "backyard_birdsmap.png"), #choose where to save file
+       combined_title, height = 4.5, width = 7.5, device ='png', dpi = 300) # choose height width + dots/ pixels p inch
+```
