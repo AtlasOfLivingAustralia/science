@@ -139,7 +139,7 @@ sightings <- obs|>
   mutate(eventDate = ymd_hms(eventDate), 
          year = year(eventDate),
   month = month(eventDate)) |>
- select(month,  Latitude = decimalLatitude, Longitude = decimalLongitude) 
+  dplyr::select(month,  Latitude = decimalLatitude, Longitude = decimalLongitude) 
 
 #remove duplicates (figure out if it's needed!)
 duplicates <- duplicated(sightings[c("Latitude", "Longitude")])
@@ -154,12 +154,12 @@ make_months <- function(chosen_month) {
   
   # filter data
   monthly_data <- occurrences %>% filter(month == {{chosen_month}}) %>%
-    select(Latitude, Longitude)
+    dplyr::select(Latitude, Longitude)
 }
 
 months_list <- c(1:12)
 
-month_list <- map(months_list, make_months)
+month_list <- purrr::map(months_list, make_months)
 
 month_list[[1]]#check to make sure it worked
 ```
@@ -172,6 +172,10 @@ aus.ext <- raster::extent(110, 155, -45, -10) #create extent to limit by
 
 australia <- raster::crop(env, aus.ext) #limit env variables to australia
 ```
+
+
+## Functions
+*Hey Steph, I took out the bottom of your `make_model()` function and put it in a separate function. I also made a saving function, then completed the full "model-map-save" workflow in a final chunk. Let me know if you have any questions or if this breaks something*
 
 Build 2 functions for the model 
 ```{r echo=TRUE}
@@ -205,22 +209,53 @@ combined_pval <-raster::calc(combined, fun = func)
 species_dis <- stars::st_as_stars(combined_pval)
 
 #his ggplot works but I would rather it be two separate functions
-p <-  ggplot() +
-  geom_stars(data = species_dis)  + 
-  geom_sf(data = ozmaps::ozmap_country) + scale_fill_viridis_c()
-   
+
+}
+```
+
+
+```{r echo=TRUE}
+# Map-making function
+plot_the_map <- function(map) {
+  p <- ggplot() +
+    geom_stars(data = species_dis) +
+    geom_sf(data = ozmaps::ozmap_country) +
+    scale_fill_viridis_c()
+
   return(p)
 }
- 
+
+# Map-saving function
+library(glue)
+save_the_map <- function(map, number) {
+  map_number <- {{number}}
+  ggsave(glue::glue("map_{map_number}.png", collapse = ""))
+  # Note: glue is a friendlier version of `paste()`
+}
+```
+
+
+```{r echo=TRUE}
+# Model-map-save workflow
+
+number_of_maps <- 1:12 # set number equal to total number
+
 #apply function to data list
 model_list <- map(month_list, make_model) 
+
+# Make many maps and save each map
+month_list %>%
+  map(~plot_the_map) %>%
+  map2(.x = .,
+       .y = number_of_maps,
+       .f = save_the_map)
 
 model_list[1:12]
 
 ```
 
 create function for plot (not working)
-```{r}
+```{r, eval = FALSE}
 plot_func <- function(chosen_month){
   p <-  ggplot() +
   geom_stars(data = chosen_month)  + #THIS PART DOESN"T WORK (but works in one function with the modelling)
