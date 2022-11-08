@@ -34,7 +34,7 @@ format to contain only latitude and longitude
 ```{r}
 sightings <- obs|> 
   filter(!is.na(decimalLatitude) & !is.na(decimalLongitude)) |>
-  select(LATITUDE = decimalLatitude, LONGITUDE = decimalLongitude) 
+  dplyr::select(LATITUDE = decimalLatitude, LONGITUDE = decimalLongitude) 
 
 #clean data to remove duplicate rows ( i dont know if i need this)
 duplicates <- duplicated(sightings[c("LATITUDE", "LONGITUDE")])
@@ -208,7 +208,7 @@ combined <- -2 * (log(SDM_MARS@projection) + log(SDM_GLM@projection) + log(SDM_C
 combined_pval <-raster::calc(combined, fun = func)
 species_dis <- stars::st_as_stars(combined_pval)
 
-#his ggplot works but I would rather it be two separate functions
+return(species_dis)
 
 }
 ```
@@ -216,20 +216,21 @@ species_dis <- stars::st_as_stars(combined_pval)
 
 ```{r echo=TRUE}
 # Map-making function
-plot_the_map <- function(map) {
-  p <- ggplot() +
-    geom_stars(data = species_dis) +
+plot_the_map <- function(model_data) {
+  
+  ggplot() +
+    geom_stars(data = model_data) +
     geom_sf(data = ozmaps::ozmap_country) +
     scale_fill_viridis_c()
 
-  return(p)
+  # return(p)
 }
 
 # Map-saving function
 library(glue)
-save_the_map <- function(map, number) {
+save_the_map <- function(chosen_map, number) {
   map_number <- {{number}}
-  ggsave(glue::glue("map_{map_number}.png", collapse = ""))
+  ggsave(map, glue::glue("map_{map_number}.png"), device = "png")
   # Note: glue is a friendlier version of `paste()`
 }
 ```
@@ -244,8 +245,9 @@ number_of_maps <- 1:12 # set number equal to total number
 model_list <- map(month_list, make_model) 
 
 # Make many maps and save each map
-month_list %>%
-  map(~plot_the_map) %>%
+model_list %>%
+  map(.x = ., 
+      .f = plot_the_map) %>%
   map2(.x = .,
        .y = number_of_maps,
        .f = save_the_map)
