@@ -122,6 +122,7 @@ Anatidae_bymonth.scaled.long <- Anatidae_bymonth.scaled |>
   pivot_longer(cols=c(2:6), names_to = "year", values_to = "count")
 
 # PLOT
+Anatidae_bymonth.scaled.long$month<-as.numeric(Anatidae_bymonth.scaled.long$month)
 Anatidae_bymonth.scaled.long$month<-as.factor(Anatidae_bymonth.scaled.long$month)
 Anatidae_bymonth.scaled.long$year<-as.factor(Anatidae_bymonth.scaled.long$year)
 
