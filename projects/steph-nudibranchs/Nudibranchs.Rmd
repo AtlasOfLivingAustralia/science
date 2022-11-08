@@ -230,7 +230,9 @@ plot_the_map <- function(model_data) {
 library(glue)
 save_the_map <- function(chosen_map, number) {
   map_number <- {{number}}
-  ggsave(map, glue::glue("map_{map_number}.png"), device = "png")
+  ggsave(chosen_map, 
+         file = glue::glue("map_{map_number}.png"), 
+         device = "png")
   # Note: glue is a friendlier version of `paste()`
 }
 ```
