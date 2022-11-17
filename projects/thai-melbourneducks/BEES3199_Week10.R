@@ -76,7 +76,7 @@ Ducks_occlong.d <- na.omit(Ducks_occlong.d)
 
 #----------Plot
 #2020
-Ducks_occ.plot20.d <- Ducks_occ.long.d[!(Ducks_occ.long.d$year == "2021"),]
+Ducks_occ.plot20.d <- Ducks_occlong.d[!(Ducks_occlong.d$year == "2021"),]
 
 Ducks_occ.chart20.d <- ggplot(Ducks_occ.plot20.d, aes(x=daymonth, y=count, group=year)) +
   geom_rect(aes(NULL,NULL,xmin=as.Date("2022-03-31", "%Y-%m-%d"),xmax=as.Date("2022-05-12", "%Y-%m-%d"),fill="Lockdown"),
@@ -103,6 +103,7 @@ Ducks_occ.week <- Ducks_occ.week %>%
   mutate(year = year(eventDate)) %>%
   mutate(week = week(eventDate))
 colnames(Ducks_occ.week) = c("date","count", "year", "week")
+View(Ducks_occ.week)
 
 #----------Scale for total counts
 Ducks_occ.scaled.w <- Ducks_occ.week |>
@@ -120,39 +121,45 @@ Ducks_occlong.w <- na.omit(Ducks_occlong.w)
 
 #----------Plot
 #2020
-Ducks_occ.plot20.w <- Ducks_occlong.w[!(Ducks_occlong.w$year == "2021"),]
+Ducks_occ.plot20.w <- Ducks_occlong.w[!(Ducks_occlong.w$year == "2021"),-c(1)]
+Ducks_occ.plot20.w <- data.frame(Ducks_occ.plot20.w %>%
+  group_by(week,year) %>%
+  summarise(across(c(count), sum)))
+
+View(Ducks_occ.plot20.w)
 
 Ducks_occ.chart20.w <- ggplot(Ducks_occ.plot20.w, aes(x=week, y=count, group=year)) +
-  geom_rect(aes(NULL,NULL,xmin=13,xmax=19,fill="Lockdown"),
+  geom_rect(aes(NULL,NULL,xmin=13.2020,xmax=19.2020,fill="Lockdown"),
             ymin=0,ymax=Inf, colour="yellow", linewidth=0.5, alpha=0.2) +
-  geom_rect(aes(NULL,NULL,xmin=28,xmax=43,fill="Lockdown"),
+  geom_rect(aes(NULL,NULL,xmin=28.2020,xmax=43.2020,fill="Lockdown"),
             ymin=0,ymax=Inf, colour="yellow", linewidth=0.5, alpha=0.2) +
   scale_fill_manual(values=c("Lockdown" = "yellow")) +
   geom_line(aes(color = year), linewidth = 1) +
-  labs(title="Records of ducks in Greater Melbourne (with 2020 lockdowns highlighted)",x="Month", y = "No. of records") + 
+  labs(title="Records of ducks in Greater Melbourne (with 2020 lockdowns highlighted)",x="Week", y = "No. of records") + 
   theme(plot.title=element_text(size=10)) +
   scale_color_manual(values=c("red","orange","green", "blue", "purple"))
-
-
-
 
 #2021
-Ducks_occ.plot21 <- Ducks_occ.long[!(Ducks_occ.long$year == "2020"),]
+Ducks_occ.plot21.w <- Ducks_occlong.w[!(Ducks_occlong.w$year == "2020"),-c(1)]
+Ducks_occ.plot21.w <- data.frame(Ducks_occ.plot21.w %>%
+                                   group_by(week,year) %>%
+                                   summarise(across(c(count), sum)))
 
-Waterbirds_melb2021.plot <- ggplot(Anatidae_bymonth.scaled21, aes(x=month, y=count, group=year)) +
-  geom_rect(aes(NULL,NULL,xmin=2.464,xmax=2.607,fill="Lockdown"),
-            ymin=0,ymax=Inf, colour="yellow", size=0.5, alpha=0.2) +
-  geom_rect(aes(NULL,NULL,xmin=5.903,xmax=6.333,fill="Lockdown"),
-            ymin=0,ymax=Inf, colour="yellow", size=0.5, alpha=0.2) +
-  geom_rect(aes(NULL,NULL,xmin=7.516,xmax=7.871,fill="Lockdown"),
-            ymin=0,ymax=Inf, colour="yellow", size=0.5, alpha=0.2) +
-  geom_rect(aes(NULL,NULL,xmin=8.167,xmax=10.677,fill="Lockdown"),
-            ymin=0,ymax=Inf, colour="yellow", size=0.5, alpha=0.2) +
+Ducks_occ.chart21.w <- ggplot(Ducks_occ.plot21.w, aes(x=week, y=count, group=year)) +
+  geom_rect(aes(NULL,NULL,xmin=7.2021,xmax=7.2021,fill="Lockdown"),
+            ymin=0,ymax=Inf, colour="yellow", linewidth=0.5, alpha=0.2) +
+  geom_rect(aes(NULL,NULL,xmin=22.2021,xmax=23.2021,fill="Lockdown"),
+            ymin=0,ymax=Inf, colour="yellow", linewidth=0.5, alpha=0.2) +
+  geom_rect(aes(NULL,NULL,xmin=29.2021,xmax=30.2021,fill="Lockdown"),
+            ymin=0,ymax=Inf, colour="yellow", linewidth=0.5, alpha=0.2) +
+  geom_rect(aes(NULL,NULL,xmin=31.2021,xmax=42.2021,fill="Lockdown"),
+            ymin=0,ymax=Inf, colour="yellow", linewidth=0.5, alpha=0.2) +
   scale_fill_manual(values=c("Lockdown" = "yellow")) +
-  geom_line(aes(color = year), size = 1) +
-  labs(title="Records of waterbirds in Greater Melbourne (with 2021 lockdowns highlighted)",x="Month", y = "No. of records") + 
+  geom_line(aes(color = year), linewidth = 1) +
+  labs(title="Records of ducks in Greater Melbourne (with 2121 lockdowns highlighted)",x="Week", y = "No. of records") + 
   theme(plot.title=element_text(size=10)) +
   scale_color_manual(values=c("red","orange","green", "blue", "purple"))
 
-
+Ducks_occ.chart20.d
+Ducks_occ.chart20.w 
 
