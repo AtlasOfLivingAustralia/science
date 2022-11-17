@@ -15,8 +15,8 @@ library(stars)
 library(ozmaps) 
 library(SSDM) 
 library(sdmpredictors)
+library(grDevices)
 library(ggplot2)
-library(viridis)
 
 galah_config(email = "z5284998@ad.unsw.edu.au" ) 
 ```
@@ -28,88 +28,163 @@ obs <- galah_call() |>
   galah_filter(profile = "ALA") |>
   galah_filter(country == "Australia") |>
   atlas_occurrences() 
-```
+ 
 
-format to contain only latitude and longitude
-```{r}
-sightings <- obs|> 
+#format to contain only latitude and longitude
+occurrences <- obs|> 
   filter(!is.na(decimalLatitude) & !is.na(decimalLongitude)) |>
   dplyr::select(LATITUDE = decimalLatitude, LONGITUDE = decimalLongitude) 
-
-#clean data to remove duplicate rows ( i dont know if i need this)
-duplicates <- duplicated(sightings[c("LATITUDE", "LONGITUDE")])
-occurrences <- sightings[!duplicates,]
 ```
 
 Download and format environmental variable rasters
 ```{r}
-datasets <- list_datasets(terrestrial = FALSE, marine = TRUE) 
-
-env <- load_layers( layercodes = c("MS_biogeo08_sss_mean_5m", "MS_biogeo13_sst_mean_5m", "MS_biogeo05_dist_shore_5m", "MS_bathy_5m") , equalarea=FALSE, rasterstack=TRUE)
+env <- load_layers( layercodes = c("MS_biogeo08_sss_mean_5m", "MS_biogeo13_sst_mean_5m", "MS_biogeo05_dist_shore_5m", "MS_bathy_5m") , equalarea=FALSE, rasterstack=TRUE) #environmental data comes from MARSPEC downloaded using the sdmpredictors package 
 
 aus.ext <- raster::extent(110, 155, -45, -10) #create extent to limit by 
 
-australia <- raster::crop(env, aus.ext) #limit env by the extent to get just environmental variables for just Australia
+aus_env <- raster::crop(env, aus.ext) #limit env by the extent to get just environmental variables for just Australia
 ```
 
 run SDM model with observations and environment datasets
 ```{r}
 SDM_GLM <- modelling("GLM",
                      Occurrences = occurrences,
-                     Env = australia,
+                     Env = aus_env,
                      Xcol = 'LONGITUDE', Ycol = 'LATITUDE', verbose = FALSE) 
 
 SDM_MARS <- modelling("MARS",
                       Occurrences = occurrences %>% 
                         sf::st_drop_geometry(),
-                      Env = australia,
+                      Env = aus_env,
                       Xcol = 'LONGITUDE', Ycol = 'LATITUDE', verbose = FALSE)
 
 SDM_CTA <- modelling("CTA",
                      Occurrences = occurrences %>% 
                        sf::st_drop_geometry(),
-                     Env = australia,
+                     Env = aus_env,
                      Xcol = 'LONGITUDE', Ycol = 'LATITUDE', verbose = FALSE)
 
 combined <- -2 * (log(SDM_MARS@projection) + log(SDM_GLM@projection) + log(SDM_CTA@projection))
 
-func <- function(x){
+Chi_sq <- function(x){
   1 - pchisq(q = x, df = 6)
 }
 
-combined_pval <- raster::calc(combined, fun = func)
+combined_pval <- raster::calc(combined, fun = Chi_sq)
 
 species_distribution <- stars::st_as_stars(combined_pval)
 
 ```
 
-plot SDM
+
+final plot options 
 ```{r}
+blue_yellow <- c( "#184E77", "#1E6091",  "#168AAD",  "#34A0A4",  "#52B69A", "#76C893", "#99D98C", "#B5E48C",  "#D9ED92")
 
-#download Australian map 
-map <- ozmap_data(data = "states") |>
-  st_transform(crs = st_crs("WGS84")) 
+blue_orange <- c( "#BBDEF0", "#F9C784", "#FC7A1E", "#F24C00" )
 
-#plot everything together
+original_BO <- c("#BBDEF0", "#19647E", "#108D94", "#FFC857", "#D34E24", "#F16704")
+
+colour_palette <- colorRampPalette(blue_yellow)(50)
+colour_palette <- colorRampPalette(blue_orange)(50)
+colour_palette <- colorRampPalette(original_BO)(50)
+
+#Australia 
 ggplot() +
   geom_stars(data = species_distribution) +
-  geom_sf(data = map) + scale_fill_viridis_c()  
-```
+  geom_sf(data = ozmaps::ozmap_country, colour = "grey", fill = "#C8C6AF")  +
+  coord_sf(crs = "WGS84", xlim= c(113,154), ylim = c(-43, -11)) +
+  theme_void() +
+  theme(legend.position = c(0.15,0.06), 
+       legend.direction="horizontal", 
+       legend.key.size = unit(12, 'mm')) + 
+  theme(plot.background = element_rect(fill = "#F7F7F3", color = "#F16704")) +
+  theme(panel.border = element_rect(color = "#FFFFFF",
+                                    fill = NA,
+                                    size = 2)) +
+  labs(fill = "Probability") +
+  scale_fill_gradientn(colours = c(colour_palette),
+                       limits = c(0, 1),
+                       guide = guide_colourbar(title = "Occurrence probability", 
+                                               title.theme = element_text(family = "Times New Roman"),
+                                               ticks = FALSE,
+                                               title.position = "top"),
+                       breaks = c(0, 0.5, 1),
+                       labels = c("0%", "50%", "100%")) 
 
-Starting to make the initial map pretty
-```{r}
+
+#East coast
 ggplot() +
   geom_stars(data = species_distribution) +
-  geom_sf(data = map) + scale_fill_viridis_c()  + coord_sf(crs = "WGS84", clip = "off",
-           xlim = c(120, 155),
-           ylim = c(-45, -11)) +
- theme_void() + labs(fill = "Probability")
+geom_sf(data = ozmaps::ozmap_country, colour = "grey", fill = "#C8C6AF")  +
+coord_sf(crs = "WGS84", xlim= c(143,154), ylim = c(-37, -11)) +
+theme_void() +
+  theme(legend.position = "right", 
+        legend.direction="horizontal") + 
+  theme(panel.border = element_rect(color = "#FFFFFF",
+                                   fill = NA,
+                                    size = 2)) +
+labs(fill = "Probability") +
+ scale_fill_gradientn(colours = c(colour_palette),
+                       limits = c(0, 1),
+                       guide = guide_colourbar(title = "Occurrence probability", 
+                                               title.theme = element_text(family = "Times New Roman"),
+                                               size = 20,
+                                               ticks = FALSE,
+                                               title.position = "top"),
+                       breaks = c(0, 0.5, 1),
+                       labels = c("0%", "50%", "100%"))
+
+
+#West coast
+ggplot() +
+  geom_stars(data = species_distribution) +
+geom_sf(data = ozmaps::ozmap_country, colour = "grey", fill = "#C8C6AF")  +
+coord_sf(crs = "WGS84", xlim= c(112,120), ylim = c(-36, -19)) +
+theme_void() +
+  theme(legend.position = "right", 
+        legend.direction="horizontal") + 
+  theme(panel.border = element_rect(color = "#FFFFFF",
+                                    fill = NA,
+                                    size = 2)) +
+labs(fill = "Probability") +
+ scale_fill_gradientn(colours = c(colour_palette),
+                       limits = c(0, 1),
+                       guide = guide_colourbar(title = "Occurrence probability", 
+                                               title.theme = element_text(family = "Times New Roman"),
+                                               size = 20,
+                                               ticks = FALSE,
+                                               title.position = "top"),
+                       breaks = c(0, 0.5, 1),
+                       labels = c("0%", "50%", "100%"))
+
+
+#South coast
+ggplot() +
+  geom_stars(data = species_distribution) +
+geom_sf(data = ozmaps::ozmap_country, colour = "grey", fill = "#C8C6AF")  +
+coord_sf(crs = "WGS84", xlim= c(114,153), ylim = c(-44, -31)) +
+theme_void() +
+  theme(legend.position = "right", 
+        legend.direction="horizontal") + 
+  theme(panel.border = element_rect(color = "#FFFFFF",
+                                    fill = NA,
+                                    size = 2)) +
+labs(fill = "Probability") +
+ scale_fill_gradientn(colours = c(colour_palette),
+                       limits = c(0, 1),
+                       guide = guide_colourbar(title = "Probability/Speices Occurrence", 
+                                               title.theme = element_text(family = "Times New Roman"),
+                                               size = 20,
+                                               ticks = FALSE,
+                                               title.position = "top"),
+                       breaks = c(0, 0.5, 1),
+                       labels = c("0%", "50%", "100%"))
 
 ```
 
 
 MONTHLY SDM FOR ANIMATION 
-trying to get monthly obs of species distribution
 
 Download occurrences
 ```{r}
@@ -122,7 +197,9 @@ library(ozmaps)
 library(SSDM) 
 library(sdmpredictors)
 library(ggplot2)
-library(viridis)
+library(tmaptools)
+library(glue)
+library(gifski)
 
 galah_config(email = "z5284998@ad.unsw.edu.au" ) 
 
@@ -134,16 +211,12 @@ obs <- galah_call() |>
   atlas_occurrences() 
 
 #clean, filter and convert time series to months 
-sightings <- obs|> 
+occurrences <- obs|> 
   filter(!is.na(decimalLatitude) & !is.na(decimalLongitude)) |>
   mutate(eventDate = ymd_hms(eventDate), 
          year = year(eventDate),
   month = month(eventDate)) |>
   dplyr::select(month,  Latitude = decimalLatitude, Longitude = decimalLongitude) 
-
-#remove duplicates (figure out if it's needed!)
-duplicates <- duplicated(sightings[c("Latitude", "Longitude")])
-occurrences <- sightings[!duplicates,]
 
 ```
 
@@ -170,7 +243,7 @@ env <- load_layers( layercodes = c("MS_biogeo08_sss_mean_5m", "MS_biogeo13_sst_m
 
 aus.ext <- raster::extent(110, 155, -45, -10) #create extent to limit by 
 
-australia <- raster::crop(env, aus.ext) #limit env variables to australia
+australia <- raster::crop(env, aus.ext) #limit env variables to Australia
 ```
 
 
@@ -180,7 +253,7 @@ australia <- raster::crop(env, aus.ext) #limit env variables to australia
 Build 2 functions for the model 
 ```{r echo=TRUE}
 #function as part of the model
-func <- function(x){
+Chi_sq <- function(x){
   1 - pchisq(q = x, df = 6)
 }
 
@@ -205,7 +278,7 @@ make_model <- function(chosen_month) {
                      Xcol = 'Longitude', Ycol = 'Latitude', verbose = FALSE)
 
 combined <- -2 * (log(SDM_MARS@projection) + log(SDM_GLM@projection) + log(SDM_CTA@projection))
-combined_pval <-raster::calc(combined, fun = func)
+combined_pval <-raster::calc(combined, fun = Chi_sq)
 species_dis <- stars::st_as_stars(combined_pval)
 
 return(species_dis)
@@ -218,10 +291,27 @@ return(species_dis)
 # Map-making function
 plot_the_map <- function(model_data) {
   
-  ggplot() +
-    geom_stars(data = model_data) +
-    geom_sf(data = ozmaps::ozmap_country) +
-    scale_fill_viridis_c()
+ggplot() + 
+  geom_stars(data = model_data) +
+geom_sf(data = ozmaps::ozmap_country, colour = "grey", fill = "#C8C6AF")  +
+coord_sf(crs = "WGS84", xlim= c(140,154), ylim = c(-28.5, -11)) +
+theme_void() +
+  theme(legend.position = c(0.32, 0.1), 
+        legend.direction="horizontal") + 
+  theme(panel.border = element_rect(color = "#FFFFFF",
+                                   fill = NA,
+                                    size = 2)) +
+labs(fill = "Probability") +
+ scale_fill_gradientn(colours = c("#BBDEF0", "#19647E", "#108D94", "#FFC857", "#D34E24", "#F16704"),
+                       limits = c(0, 1),
+                       guide = guide_colourbar(title = "Occurrence probability", 
+                                               title.theme = element_text(family = "Times New Roman"),
+                                               size = 10,
+                                               ticks = FALSE,
+                                               title.position = "top"),
+                       breaks = c(0, 0.5, 1),
+                       labels = c("0%", "50%", "100%"))
+  
 
   # return(p)
 }
@@ -235,10 +325,11 @@ save_the_map <- function(chosen_map, number) {
          device = "png")
   # Note: glue is a friendlier version of `paste()`
 }
+
 ```
 
 
-```{r echo=TRUE}
+```{r include=FALSE}
 # Model-map-save workflow
 
 number_of_maps <- 1:12 # set number equal to total number
@@ -258,40 +349,23 @@ model_list[1:12]
 
 ```
 
-create function for plot (not working)
-```{r, eval = FALSE}
-plot_func <- function(chosen_month){
-  p <-  ggplot() +
-  geom_stars(data = chosen_month)  + #THIS PART DOESN"T WORK (but works in one function with the modelling)
-  geom_sf(data = ozmaps::ozmap_country)
-   
-  return(p)
-}
 
-#apply function to data list
-maps_list <- map(month_list, plot_func)
 
-maps_list[[1]]
-
-```
-
-starting to look at a  way to make an animation 
+create gif animation 
 ```{r}
-#install.packages("animation")
-library(animation)
+library(gifski)
 
-animation::saveGIF( #This doesn't work 
-  expr = {
-    model_list[1]
-    model_list[2]
-    model_list[3]
-    model_list[4]
-  
-  },
-  movie.name = "SMD.gif"
-)
+#import PNG files
+png_files <- list.files(pattern = ".*png$")
 
+#create animation
+gifski(png_files, gif_file = "SDM.gif", delay = 0.5)
 ```
+
+
+
+
+
 
 
 
