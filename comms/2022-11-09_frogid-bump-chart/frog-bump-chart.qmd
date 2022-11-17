@@ -1,0 +1,246 @@
+---
+title: "Frog ID bump chart"
+author: "Dax Kellie"
+date: "16 November, 2022"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+Inspired by this [classic bumpchart](https://github.com/davidsjoberg/ggbump/wiki/My-year-on-Spotify)
+
+```{r}
+# packages
+library(galah)
+library(ggbump)
+library(here)
+library(purrr)
+library(glue)
+library(cropcircles)
+library(tidyverse)
+library(showtext)
+library(pilot) # remotes::install_github("olihawkins/pilot")
+library(ggimage)
+```
+
+```{r search}
+#| eval=FALSE
+search_taxa("amphibia")
+search_all(fields, "dataResourceName") |> search_values("frog")
+```
+
+# Download top frog counts
+
+```{r download}
+# set years
+years <- as.numeric(2016:2022)
+
+# Download top counts for each year
+get_counts <- function(year_number) {
+  galah_call() |>
+  galah_identify(search_taxa("frogs")) |>
+  galah_filter(year == {{year_number}}) |>
+  galah_group_by(species) |>
+  atlas_counts(limit = 5)
+}
+
+top_frogs <- map(years, get_counts)
+
+# Add year & rank column
+top_frogs <- 
+  top_frogs %>%
+  map2(.x = .,
+       .y = years, 
+       ~.x %>% 
+         mutate(year = .y,
+                rank = row_number())) %>%
+  bind_rows()
+
+top_frogs
+```
+
+
+# Wrangle
+
+```{r}
+# Get a list of all frog species x years
+all_frogs <- top_frogs %>% distinct(species)
+all_years <- top_frogs %>% distinct(year)
+
+all_frogs_years <- crossing(all_frogs, all_years)
+
+# calculate rank change column
+frog_ranks <- all_frogs_years %>%
+  left_join(top_frogs) %>%
+  replace_na(list(rank = 6)) %>%
+  group_by(species) %>%
+  mutate(change = rank - lag(rank, default = NA)) %>%
+  ungroup()
+```
+
+
+```{r}
+# Find which frogs were first in top 5
+# Find which frogs were last in top 5
+# Find which year frogs first broke into the top 5 rankings
+frog_ranks <- frog_ranks %>%
+  group_by(species) %>%
+  mutate(first_top5 = min(.$year[rank <= 5]),
+         last_top5 = max(.$year[rank <= 5]),
+         d_first_top5 = if_else(year == first_top5,
+                                1,
+                                0))
+```
+
+
+```{r images}
+# Add images of frogs
+frog_images <- tibble("species" = frog_ranks %>% distinct(species) %>% pull(species),
+       images = c(here("comms", "2022-11-09_frogid-bump-chart", "images", "frog_1.jfif"),
+                  here("comms", "2022-11-09_frogid-bump-chart", "images", "frog_2.jfif"),
+                  here("comms", "2022-11-09_frogid-bump-chart", "images", "frog_3.jfif"),
+                  here("comms", "2022-11-09_frogid-bump-chart", "images", "frog_4.jfif"),
+                  here("comms", "2022-11-09_frogid-bump-chart", "images", "frog_5.jfif"),
+                  here("comms", "2022-11-09_frogid-bump-chart", "images", "frog_6.jfif"),
+                  here("comms", "2022-11-09_frogid-bump-chart", "images", "frog_7.jfif"),
+                  here("comms", "2022-11-09_frogid-bump-chart", "images", "frog_8.jfif"),
+                  here("comms", "2022-11-09_frogid-bump-chart", "images", "frog_9.jfif")
+                  ))
+
+# crop them with the {cropcircles} package
+frog_images <- frog_images %>%
+  mutate(images_circle = circle_crop(images))
+
+# join to frog_ranks
+frog_ranks <- frog_ranks %>%
+  left_join(frog_images)
+```
+
+
+
+# Plot
+
+```{r}
+# add custom font
+font_add_google("Roboto", "roboto")
+showtext_auto(enable = TRUE)
+
+pilot::set_pilot_family("roboto") # set font
+
+# Add image credits
+image_credits <- 
+  glue("
+       Image credits:
+       C. signifera - Jacob Crisp CC-BY-NC 4.0 (Int) | L. dumerilii - Peter Crowcroft CC-BY-NC 4.0 (Int) | L. tasmaniensis - bigfootbotanical CC-BY-NC 4.0 (Int)
+       L. aurea - Tim Bawden CC-BY-NC 3.0 (Au) | L. ewingii - Steve Dew CC-BY-NC 4.0 (Int) | L. fallax - juliegraham173 CC-BY-NC 4.0 (Int)
+       L. peronii - debtaylor142	CC-BY-NC 4.0 (Int) | R. marina - Steve Dew CC-BY-NC 4.0 (Int)
+       ")
+
+# Build initial see-through lines
+p <- ggplot() +
+  geom_bump(data = frog_ranks,
+            aes(year, rank, col = species),
+            size = 1.5, alpha = .35, smooth = 15) +
+  # geom_point(shape = 21, size = 5, stroke = 1.25, fill = "white") + 
+  scale_color_manual(values = c("#536e4e",
+                       "#b36a0a",
+                       "#d5ae6b",
+                       "#9e8f8a",
+                       "#6fab3f",
+                       "#c7b43a",
+                       "#9cb511",
+                       "#e4e4c0",
+                       "#ad5517")) +
+  scale_y_reverse()
+
+# Add full-colour lines, beautify, and add frog images
+p2 <- p + 
+  geom_bump(data = frog_ranks %>% filter(rank <= 5), 
+            aes(x = year, y = rank, color = species), 
+            smooth = 15, size = 2, inherit.aes = F) +
+  geom_segment(data = frog_ranks %>% filter(rank <=5),
+               aes(x = year - .2, 
+                   xend = year + .2, 
+                   y = rank, 
+                   yend = rank, 
+                   color = species),
+               size = 2,
+               lineend = "round") +
+  scale_x_continuous(breaks = years,
+                     labels = years, 
+                     expand = expansion(mult = .1)) +
+  geom_text(data = frog_ranks %>% filter(d_first_top5 == 1),
+            aes(y = rank - .01, 
+                label = stringr::str_wrap(species, 5), 
+                x = year - .2),
+            color = "white",
+            nudge_y = .43,
+            nudge_x = -.05,
+            size = 3.5,
+            fontface = 2,
+            hjust = 0) +
+  geom_text(data = frog_ranks %>% filter(years == max(years)) %>% filter(rank < 6),
+            aes(x = year, 
+                y = rank, 
+                label = stringr::str_wrap(species, 10)),
+            color = "gray70",
+            nudge_x = .5,
+            hjust = 0,
+            size = 3,
+            fontface = 2) +
+  cowplot::theme_minimal_hgrid(font_size = 14, font_family = "roboto") +
+  theme(legend.position = "none",
+        panel.grid = element_blank(),
+        plot.title = element_text(hjust = .5, color = "#C5EBC3", size = 22),
+        plot.caption = element_text(hjust = 1, color = "white", size = 8),
+        plot.subtitle = element_text(hjust = .5, color = "#C5EBC3", size = 18),
+        axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(face = 2, color = "white", size = 16),
+        panel.background = element_rect(fill = "#121811"),
+        plot.background = element_rect(fill = "#121811")) +
+  labs(x = NULL,
+       title ="Top 5 Most Recorded Frogs in FrogID",
+       subtitle ="Species with the highest number of observations (2016-2022)",
+       caption = image_credits) +
+  geom_point(data = tibble(x = 2015.2, y = 1:5), 
+             mapping = aes(x = x, 
+                           y = y), 
+            inherit.aes = F,
+            color = "white",
+            size = 10,
+            pch = 21) +
+  geom_text(data = tibble(x = 2015.2, y = 1:5), 
+            mapping = aes(x = x, y = y, label = y), 
+            inherit.aes = F,
+            color = "white") +
+  geom_image(data = frog_ranks %>% filter(d_first_top5 == 1),
+             aes(x = year, 
+                 y = rank, 
+                 image = images_circle, 
+                 color = species), 
+             size = 0.1) +
+  geom_image(data = frog_ranks %>% filter(d_first_top5 == 1),
+             aes(x = year, 
+                 y = rank, 
+                 image = images_circle), 
+             size = 0.095)
+  
+
+p2
+```
+
+# Save
+
+```{r}
+showtext_opts(dpi = 300)
+
+ggsave(file = here("comms", "2022-11-09_frogid-bump-chart", "plots", "top-frogs_logo.png"),
+       device = "png",
+       height = 12,
+       width = 11,
+       dpi = 300)
+```
+
