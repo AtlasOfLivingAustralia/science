@@ -6,6 +6,7 @@ install.packages("RColorBrewer")
 install.packages("gridExtra")
 install.packages("lubridate")
 install.packages("tibble")
+install.packages("scales")
 #call packages
 library(galah)
 library(tidyverse)
@@ -14,6 +15,7 @@ library(RColorBrewer)
 library(gridExtra)
 library(lubridate)
 library(tibble)
+library(scales)
 
 galah_config(email = "thai.rushbrook@gmail.com")
 
@@ -189,3 +191,26 @@ Ducks_week.viz <- ggplot() +
   scale_fill_manual(values=c("Lockdown" = "yellow")) +
   labs(title="Records of ducks in Greater Melbourne (with Covid-19 lockdowns highlighted)",x="Week", y = "No. of records (scaled)") + 
   theme(plot.title=element_text(size=10))
+
+#Ducks records by year
+
+Allducks_Melb.data <- data.frame(
+  galah_call() |>                               
+    galah_identify("Anatidae")|>                 
+    galah_filter(cl10929 == "GREATER MELBOURNE", year >= 2017, year <= 2021) |> 
+    galah_group_by(year) |>
+    atlas_counts())
+Allducks_Melb.data$year = as.numeric(Allducks_Melb.data$year)
+Allducks_Melb.data <- Allducks_Melb.data[order(-Allducks_Melb.data$year), , drop = TRUE]
+rownames(Allducks_Melb.data) <- c(1:5) 
+
+#Scale
+Allducks_Melb.scaled <- Allducks_Melb.data
+
+Allducks_Melb.scaled[5,2] = (Allducks_Melb.scaled[5,2]/Allrecords_melb[5,2])*100
+Allducks_Melb.scaled[4,2] = (Allducks_Melb.scaled[4,2]/Allrecords_melb[4,2])*100
+Allducks_Melb.scaled[3,2] = (Allducks_Melb.scaled[3,2]/Allrecords_melb[3,2])*100
+Allducks_Melb.scaled[2,2] = (Allducks_Melb.scaled[2,2]/Allrecords_melb[2,2])*100
+Allducks_Melb.scaled[1,2] = (Allducks_Melb.scaled[1,2]/Allrecords_melb[1,2])*100
+
+  
