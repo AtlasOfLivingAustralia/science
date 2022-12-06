@@ -5,8 +5,8 @@ date: "27/11/2022"
 output: TBD
 ---
 
-OVERALL SPECIES DISTRIBUTION MODEL
-Install packages and configure email 
+OVERALL SPECIES DISTRIBUTION MODEL Install packages and configure email
+
 ```{r}
 #install.packages("galah")
 library(dplyr)
@@ -21,7 +21,8 @@ library(ggplot2)
 galah_config(email = "z5284998@ad.unsw.edu.au" ) 
 ```
 
-Download observations 
+Download observations
+
 ```{r}
 obs <- galah_call() |>                               
   galah_identify("Nudibranchia") |>   
@@ -37,15 +38,17 @@ occurrences <- obs|>
 ```
 
 Download and format environmental variable rasters
+
 ```{r}
 env <- load_layers( layercodes = c("MS_biogeo08_sss_mean_5m", "MS_biogeo13_sst_mean_5m", "MS_biogeo05_dist_shore_5m", "MS_bathy_5m") , equalarea=FALSE, rasterstack=TRUE) #environmental data comes from MARSPEC downloaded using the sdmpredictors package 
 
-aus.ext <- raster::extent(110, 155, -45, -10) #create extent to limit by 
+aus.ext <- raster::extent(110, 160, -45, -10) #create extent to limit by 
 
 aus_env <- raster::crop(env, aus.ext) #limit env by the extent to get just environmental variables for just Australia
 ```
 
 run SDM model with observations and environment datasets
+
 ```{r}
 SDM_GLM <- modelling("GLM",
                      Occurrences = occurrences,
@@ -76,8 +79,22 @@ species_distribution <- stars::st_as_stars(combined_pval)
 
 ```
 
+create dataframe with cities point data 
+```{r}
+library(maps)
+df <- world.cities[world.cities$country.etc == "Australia",]
 
-final plot options 
+cities <- df %>% 
+  filter(name == "Sydney" | name == "Melbourne" | name == "Perth" | name == "Brisbane" | name == "Cairns" | name == "Adelaide")
+
+```
+
+
+
+
+
+final plot options
+
 ```{r}
 blue_yellow <- c( "#184E77", "#1E6091",  "#168AAD",  "#34A0A4",  "#52B69A", "#76C893", "#99D98C", "#B5E48C",  "#D9ED92")
 
@@ -106,34 +123,41 @@ ggplot() +
   scale_fill_gradientn(colours = c(colour_palette),
                        limits = c(0, 1),
                        guide = guide_colourbar(title = "Occurrence probability", 
-                                               title.theme = element_text(family = "Times New Roman"),
+                                               title.theme = element_text(family = "Times New Roman", colour = "#B3B6B6", face = "bold"),
+                                               label.theme = element_text(colour = "#B3B6B6"),
                                                ticks = FALSE,
+                                               frame.colour = "#B3B6B6",
                                                title.position = "top"),
-                       breaks = c(0, 0.5, 1),
-                       labels = c("0%", "50%", "100%")) 
 
+                                              breaks = c(0, 0.5, 1),
+                       labels = c("0%", "50%", "100%")) 
 
 #East coast
 ggplot() +
   geom_stars(data = species_distribution) +
-geom_sf(data = ozmaps::ozmap_country, colour = "grey", fill = "#C8C6AF")  +
-coord_sf(crs = "WGS84", xlim= c(143,154), ylim = c(-37, -11)) +
+geom_sf(data = ozmaps::ozmap_states, colour = "#A9A793", fill = "#C8C6AF")  +
+coord_sf(crs = "WGS84", xlim= c(143,159), ylim = c(-38.5, -11.5)) +
 theme_void() +
-  theme(legend.position = "right", 
-        legend.direction="horizontal") + 
+  theme(legend.position = c(0.9, 0.12), 
+        legend.direction="vertical") + 
   theme(panel.border = element_rect(color = "#FFFFFF",
                                    fill = NA,
                                     size = 2)) +
 labs(fill = "Probability") +
  scale_fill_gradientn(colours = c(colour_palette),
                        limits = c(0, 1),
-                       guide = guide_colourbar(title = "Occurrence probability", 
-                                               title.theme = element_text(family = "Times New Roman"),
-                                               size = 20,
+                       guide = guide_colourbar(title = "Occurrence\nprobability",
+                                               title.theme = element_text(family = "Times New Roman", colour = "#B3B6B6", size = 12, face = "bold"),
+                                               label.theme = element_text(colour = "#B3B6B6", size = 10),
                                                ticks = FALSE,
-                                               title.position = "top"),
+                                               frame.colour = "#B3B6B6",
+                                               title.position = "top", 
+                                               title.vjust = 2,
+                                               label.position = "left"),
                        breaks = c(0, 0.5, 1),
-                       labels = c("0%", "50%", "100%"))
+                       labels = c("0%", "50%", "100%")) +
+geom_point(data = cities, aes(x = long, y = lat), colour = "#3D4040") +
+geom_text(data = cities, aes(x = long, y = lat, label = name), colour = "#3D4040", nudge_x = -1.1, nudge_y = 0.4, family = "Times New Roman")
 
 
 #West coast
@@ -156,7 +180,10 @@ labs(fill = "Probability") +
                                                ticks = FALSE,
                                                title.position = "top"),
                        breaks = c(0, 0.5, 1),
-                       labels = c("0%", "50%", "100%"))
+                       labels = c("0%", "50%", "100%")) +
+geom_point(data = cities, aes(x = long, y = lat), colour = "#3D4040") +
+geom_text(data = cities, aes(x = long, y = lat, label = name), colour = "#3D4040", nudge_x = -1.1, nudge_y = 0.4, family = "Times New Roman")
+
 
 
 #South coast
@@ -173,20 +200,22 @@ theme_void() +
 labs(fill = "Probability") +
  scale_fill_gradientn(colours = c(colour_palette),
                        limits = c(0, 1),
-                       guide = guide_colourbar(title = "Probability/Speices Occurrence", 
+                       guide = guide_colourbar(title = "Occurence probability", 
                                                title.theme = element_text(family = "Times New Roman"),
                                                size = 20,
                                                ticks = FALSE,
                                                title.position = "top"),
                        breaks = c(0, 0.5, 1),
-                       labels = c("0%", "50%", "100%"))
+                       labels = c("0%", "50%", "100%"))+
+geom_point(data = cities, aes(x = long, y = lat), colour = "#3D4040") +
+geom_text(data = cities, aes(x = long, y = lat, label = name), colour = "#3D4040", nudge_x = -1.1, nudge_y = 0.4, family = "Times New Roman")
 
 ```
 
-
-MONTHLY SDM FOR ANIMATION 
+MONTHLY SDM FOR ANIMATION
 
 Download occurrences
+
 ```{r}
 library(lubridate)
 library(purrr)
@@ -220,7 +249,7 @@ occurrences <- obs|>
 
 ```
 
-function to filter data to each month 
+function to filter data to each month
 
 ```{r}
 make_months <- function(chosen_month) {
@@ -237,7 +266,8 @@ month_list <- purrr::map(months_list, make_months)
 month_list[[1]]#check to make sure it worked
 ```
 
-load in environmental variables 
+load in environmental variables
+
 ```{r include=FALSE}
 env <- load_layers( layercodes = c("MS_biogeo08_sss_mean_5m", "MS_biogeo13_sst_mean_5m", "MS_biogeo05_dist_shore_5m", "MS_bathy_5m") , equalarea=FALSE, rasterstack=TRUE)
 
@@ -246,11 +276,12 @@ aus.ext <- raster::extent(110, 155, -45, -10) #create extent to limit by
 australia <- raster::crop(env, aus.ext) #limit env variables to Australia
 ```
 
-
 ## Functions
+
 *Hey Steph, I took out the bottom of your `make_model()` function and put it in a separate function. I also made a saving function, then completed the full "model-map-save" workflow in a final chunk. Let me know if you have any questions or if this breaks something*
 
-Build 2 functions for the model 
+Build 2 functions for the model
+
 ```{r echo=TRUE}
 #function as part of the model
 Chi_sq <- function(x){
@@ -286,6 +317,11 @@ return(species_dis)
 }
 ```
 
+get ratio for saving plot
+```{r}
+plot_ratio <- get_asp_ratio(ozmaps::ozmap_country)
+```
+
 
 ```{r echo=TRUE}
 # Map-making function
@@ -294,15 +330,16 @@ plot_the_map <- function(model_data) {
 ggplot() + 
   geom_stars(data = model_data) +
 geom_sf(data = ozmaps::ozmap_country, colour = "grey", fill = "#C8C6AF")  +
-coord_sf(crs = "WGS84", xlim= c(140,154), ylim = c(-28.5, -11)) +
+coord_sf(crs = "WGS84", xlim= c(113,154), ylim = c(-43, -11)) +
 theme_void() +
   theme(legend.position = c(0.32, 0.1), 
         legend.direction="horizontal") + 
   theme(panel.border = element_rect(color = "#FFFFFF",
                                    fill = NA,
                                     size = 2)) +
-labs(fill = "Probability") +
- scale_fill_gradientn(colours = c("#BBDEF0", "#19647E", "#108D94", "#FFC857", "#D34E24", "#F16704"),
+labs(title = glue("{number_of_maps}"), 
+     fill = "Probability") +
+ scale_fill_gradientn(colours = c(colour_palette),
                        limits = c(0, 1),
                        guide = guide_colourbar(title = "Occurrence probability", 
                                                title.theme = element_text(family = "Times New Roman"),
@@ -320,14 +357,14 @@ labs(fill = "Probability") +
 library(glue)
 save_the_map <- function(chosen_map, number) {
   map_number <- {{number}}
-  ggsave(chosen_map, 
+  ggsave(chosen_map,
+         width = plot_ratio*5, height = 5,
          file = glue::glue("map_{map_number}.png"), 
          device = "png")
   # Note: glue is a friendlier version of `paste()`
 }
 
 ```
-
 
 ```{r include=FALSE}
 # Model-map-save workflow
@@ -349,9 +386,8 @@ model_list[1:12]
 
 ```
 
+create gif animation
 
-
-create gif animation 
 ```{r}
 library(gifski)
 
@@ -360,13 +396,6 @@ png_files <- list.files(pattern = ".*png$")
 
 #create animation
 gifski(png_files, gif_file = "SDM.gif", delay = 0.5)
+
+knitr::include_graphics("SDM.gif")
 ```
-
-
-
-
-
-
-
-
-
