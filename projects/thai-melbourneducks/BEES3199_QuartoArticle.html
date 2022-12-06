@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.269">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Thai Rushbrook">
+<meta name="dcterms.date" content="2022-11-10">
+
+<title>Visualising ALA Data using galah and ggplot2</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="BEES3199_QuartoArticle_files/libs/clipboard/clipboard.min.js"></script>
+<script src="BEES3199_QuartoArticle_files/libs/quarto-html/quarto.js"></script>
+<script src="BEES3199_QuartoArticle_files/libs/quarto-html/popper.min.js"></script>
+<script src="BEES3199_QuartoArticle_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="BEES3199_QuartoArticle_files/libs/quarto-html/anchor.min.js"></script>
+<link href="BEES3199_QuartoArticle_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="BEES3199_QuartoArticle_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="BEES3199_QuartoArticle_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="BEES3199_QuartoArticle_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="BEES3199_QuartoArticle_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content page-columns page-full" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Visualising ALA Data using <em>galah</em> and <em>ggplot2</em></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Thai Rushbrook </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">November 10, 2022</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<hr>
+<p><strong>12 weeks ago I entered into an internship with the Atlas of Living Australia. I already had some knowledge of the database and basic R-Studio skills, but only what I could obtain from university classes for my ecology bachelor’s degree. The task seemed straightforward: to ‘make something cool’ and share the results. The following is one example of what’s achievable with ALA data for a first-time user of the galah package.</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Install packages needed</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"galah"</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"tidyverse"</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"lubridate"</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"ggplot2"</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"remotes"</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  remotes<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">"olihawkins/pilot"</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"showtext"</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"cowplot"</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"magick"</span>)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"cropcircles"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(galah) <span class="co">#Load galah package</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">galah_config</span>(<span class="at">email =</span> <span class="st">"thai.rushbrook@gmail.com"</span>, <span class="co">#Add ALA registered email address</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>             <span class="at">verbose =</span> <span class="cn">FALSE</span>) <span class="co">#Remove all messages in galah</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>In combination, the <em>galah</em> package and <em>ggplot2</em> are powerful tools to produce visual representations of Atlas of Living Australia (ALA) data. To show this, we’ll be using the following research question as an example; <strong>Was the number of ducks recorded in Melbourne significantly different in the Covid-19 lockdown periods of 2020-21 compared to 2017-19?</strong></p>
+<p>We will be analysing the number of weekly occurrence records as this provides a fine level of detail without the extra noise of daily variation in the final product.</p>
+<section id="step-1-gathering-data" class="level2">
+<h2 class="anchored" data-anchor-id="step-1-gathering-data">Step 1: Gathering data</h2>
+<p>During the height of the pandemic, Melbourne had 6 distinct lockdowns. It’s easiest to start by forming a table with the start and end date of each lockdown period so we can refer back to this periodically. We also add columns for the start and end date as a week of the year, which becomes helpful when plotting our data later.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>Lockdown <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>) <span class="co">#Set lockdown numbers 1-6</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Start <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"2020-03-31"</span>, <span class="st">"2020-07-09"</span>, <span class="st">"2021-02-13"</span>, <span class="st">"2021-05-28"</span>, <span class="st">"2021-07-16"</span>, <span class="st">"2021-08-05"</span>)  <span class="co">#Start dates of each lockdown period (in order)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>End <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"2020-05-12"</span>, <span class="st">"2020-10-27"</span>, <span class="st">"2021-02-17"</span>, <span class="st">"2021-06-10"</span>, <span class="st">"2021-07-27"</span>, <span class="st">"2021-10-21"</span>)  <span class="co">#End dates of each lockdown period (in order)</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>Melb_dates <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(Lockdown, Start, End) <span class="co">#Combine into a data frame</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>Melb_dates<span class="sc">$</span>Num_Days <span class="ot">&lt;-</span> <span class="fu">as.Date</span>(<span class="fu">as.character</span>(Melb_dates<span class="sc">$</span>End), <span class="at">format=</span><span class="st">"%Y-%m-%d"</span>)<span class="sc">-</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.Date</span>(<span class="fu">as.character</span>(Melb_dates<span class="sc">$</span>Start), <span class="at">format=</span><span class="st">"%Y-%m-%d"</span>) <span class="co">#Convert dates to date/time format</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>Melb_dates <span class="ot">&lt;-</span> Melb_dates <span class="sc">|&gt;</span> </span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">weekstart =</span> <span class="fu">week</span>(Start)) <span class="sc">|&gt;</span>  <span class="co">#Add a column converting start date into week of the year</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">weekend =</span> <span class="fu">week</span>(End)) <span class="co">#Add a column converting end date into week of the year</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>Melb_dates <span class="co">#View results</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  Lockdown      Start        End Num_Days weekstart weekend
+1        1 2020-03-31 2020-05-12  42 days        13      19
+2        2 2020-07-09 2020-10-27 110 days        28      43
+3        3 2021-02-13 2021-02-17   4 days         7       7
+4        4 2021-05-28 2021-06-10  13 days        22      23
+5        5 2021-07-16 2021-07-27  11 days        29      30
+6        6 2021-08-05 2021-10-21  77 days        31      42</code></pre>
+</div>
+</div>
+<p>We will need to filter to specify results from Melbourne only, from 2017-2021. Searching with <strong>search_fields</strong> for a relevant term (e.g.‘city’) returns any matching fields, then from there we can search for the correct value using the field ID we just returned.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">search_fields</span>(<span class="st">"city"</span>)   <span class="co">#Search for fields containing 'city'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 4
+  id      description                                                type  link 
+  &lt;chr&gt;   &lt;chr&gt;                                                      &lt;chr&gt; &lt;chr&gt;
+1 cl10929 PSMA ABS Greater Capital City Statistical Areas (2016) AB… laye… http…</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">search_fields</span>(<span class="st">"cl10929"</span>) <span class="sc">|&gt;</span> <span class="co">#Search for values of that field using the ID </span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">show_values</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>• Showing values for 'cl10929'.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 16 × 2
+   field   category                    
+   &lt;chr&gt;   &lt;chr&gt;                       
+ 1 cl10929 REST OF NSW                 
+ 2 cl10929 REST OF VIC.                
+ 3 cl10929 REST OF QLD                 
+ 4 cl10929 GREATER MELBOURNE           
+ 5 cl10929 REST OF SA                  
+ 6 cl10929 GREATER SYDNEY              
+ 7 cl10929 GREATER BRISBANE            
+ 8 cl10929 REST OF WA                  
+ 9 cl10929 AUSTRALIAN CAPITAL TERRITORY
+10 cl10929 REST OF NT                  
+11 cl10929 REST OF TAS.                
+12 cl10929 GREATER ADELAIDE            
+13 cl10929 GREATER PERTH               
+14 cl10929 GREATER DARWIN              
+15 cl10929 GREATER HOBART              
+16 cl10929 OTHER TERRITORIES           </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">search_fields</span>(<span class="st">"date"</span>)   <span class="co">#Search for fields containing 'date'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 21 × 4
+   id              description                                       type  link 
+   &lt;chr&gt;           &lt;chr&gt;                                             &lt;chr&gt; &lt;chr&gt;
+ 1 month           "Month of observation, specimen collection date.… fiel… &lt;NA&gt; 
+ 2 eventDate       "The ISO formatted date of observation, specimen… fiel… &lt;NA&gt; 
+ 3 cl10903         "Tenure of Australia's forests (2013) v2.0 Tenur… laye… http…
+ 4 cl10955         "National Indicative Aggregated Fire Extent Data… laye… http…
+ 5 lastLoadDate     &lt;NA&gt;                                             fiel… &lt;NA&gt; 
+ 6 datePrecision   "The precision of the date information for the r… fiel… &lt;NA&gt; 
+ 7 eventDateEnd     &lt;NA&gt;                                             fiel… &lt;NA&gt; 
+ 8 dateIdentified  "http://rs.tdwg.org/dwc/terms/dateIdentified"     fiel… &lt;NA&gt; 
+ 9 raw_eventDate    &lt;NA&gt;                                             fiel… &lt;NA&gt; 
+10 firstLoadedDate  &lt;NA&gt;                                             fiel… &lt;NA&gt; 
+# … with 11 more rows</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">search_fields</span>(<span class="st">"eventDate"</span>) <span class="sc">|&gt;</span> <span class="co">#Search for values of that field using the ID </span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">show_values</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>! Search returned 4 matched fields.
+• Showing values for 'eventDate'.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10,000 × 2
+   field     category            
+   &lt;chr&gt;     &lt;chr&gt;               
+ 1 eventDate 1969-12-31T14:00:00Z
+ 2 eventDate 1979-12-31T13:00:00Z
+ 3 eventDate 1980-09-30T14:00:00Z
+ 4 eventDate 1998-12-31T13:00:00Z
+ 5 eventDate 1989-12-31T13:00:00Z
+ 6 eventDate 2000-12-31T13:00:00Z
+ 7 eventDate 1976-12-31T13:00:00Z
+ 8 eventDate 1992-02-29T13:00:00Z
+ 9 eventDate 1996-01-18T13:00:00Z
+10 eventDate 2004-06-30T14:00:00Z
+# … with 9,990 more rows</code></pre>
+</div>
+</div>
+<p>From here on we know we can filter for Melbourne results using ‘GREATER MELBOURNE’. We apply this when using <em>atlas_occurrences</em> to call ALA duck records matching our enquiry. The <em>galah_select</em> function can be used to only return the date of each record, as the other information stored in the ALA database is not relevant.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_call</span>() <span class="sc">|&gt;</span>      <span class="co">#Call ALA data                          </span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">galah_identify</span>(<span class="st">"Anatidae"</span>)<span class="sc">|&gt;</span>       <span class="co">#Identify ducks          </span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">galah_filter</span>(cl10929 <span class="sc">==</span> <span class="st">"GREATER MELBOURNE"</span>, eventDate <span class="sc">&gt;=</span> <span class="st">"2017-01-01T00:00:00Z"</span>, eventDate <span class="sc">&lt;=</span> <span class="st">"2021-12-31T23:59:00Z"</span>) <span class="sc">|&gt;</span>  <span class="co">#Filter for 2017-2021 records in Melbourne</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">galah_select</span>(eventDate) <span class="sc">|&gt;</span> <span class="co">#Retrieve only event date of each entry</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">atlas_occurrences</span>())</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_data <span class="sc">|&gt;</span> <span class="fu">head</span>(6L)  <span class="co">#View first 6 results</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>             eventDate
+1 2017-01-01T13:00:00Z
+2 2017-01-01T13:00:00Z
+3 2017-01-01T13:00:00Z
+4 2017-01-01T13:00:00Z
+5 2017-01-01T13:00:00Z
+6 2017-01-01T13:00:00Z</code></pre>
+</div>
+</div>
+<p>This produces a data frame with a list of all occurrences. We need to combine these to produce a tally of occurrence records for each date.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_table <span class="ot">&lt;-</span> Ducksbyweek_data <span class="co">#Create new data frame from previous</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_table<span class="sc">$</span>eventDate <span class="ot">&lt;-</span> <span class="co">#Add a new column for event date</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.Date</span>(<span class="fu">as.character</span>(Ducksbyweek_table<span class="sc">$</span>eventDate),<span class="at">format=</span><span class="st">"%Y-%m-%d"</span>) <span class="co">#Change event date to date format (year-month-day)</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_table <span class="ot">&lt;-</span> Ducksbyweek_table <span class="sc">|&gt;</span> </span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(eventDate) <span class="co">#Add column counting the number of occurrences of each date</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_table <span class="ot">&lt;-</span> Ducksbyweek_table <span class="sc">|&gt;</span> </span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">year =</span> <span class="fu">year</span>(eventDate)) <span class="sc">|&gt;</span> <span class="co">#Add a column with only the year of record</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">week =</span> <span class="fu">week</span>(eventDate)) <span class="co">#Add a column with the week (of the year) of record</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(Ducksbyweek_table) <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"date"</span>,<span class="st">"count"</span>, <span class="st">"year"</span>, <span class="st">"week"</span>) <span class="co">#Set column names</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_table <span class="sc">|&gt;</span> <span class="fu">head</span>(6L)  <span class="co">#View first 6 results</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        date count year week
+1 2017-01-01   156 2017    1
+2 2017-01-02    94 2017    1
+3 2017-01-03    99 2017    1
+4 2017-01-04   113 2017    1
+5 2017-01-05    74 2017    1
+6 2017-01-06    82 2017    1</code></pre>
+</div>
+</div>
+<p>To get a fair representation of the differences for comparison, we need to scale the results for the total number of Atlas records each year. We are interested in <strong>how occurrences changed between years</strong>, without the influence of generally increasing popularity of the database over time. We can do this by looking at the number of duck occurrences as a proportion of overall records. For this, we need to create a data frame with the overall number of records in Melbourne each year for use in the next step.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>Allmelbrecords_data <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_call</span>() <span class="sc">|&gt;</span>                              </span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">galah_filter</span>(cl10929 <span class="sc">==</span> <span class="st">"GREATER MELBOURNE"</span>, year <span class="sc">&gt;=</span> <span class="dv">2017</span>, year <span class="sc">&lt;=</span> <span class="dv">2021</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">galah_group_by</span>(year) <span class="sc">|&gt;</span>  <span class="co">#Summarise the number of occurrence records for each year</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">atlas_counts</span>())</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>Allmelbrecords_data <span class="ot">&lt;-</span> Allmelbrecords_data <span class="sc">|&gt;</span> <span class="fu">arrange</span>(<span class="fu">desc</span>(year)) <span class="co">#Sort by year in descending order (2020-21)</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>Allmelbrecords_data <span class="co">#View results</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  year  count
+1 2021 916964
+2 2020 749289
+3 2019 548033
+4 2018 580995
+5 2017 495291</code></pre>
+</div>
+</div>
+</section>
+<section id="step-2-organising-data" class="level2">
+<h2 class="anchored" data-anchor-id="step-2-organising-data">Step 2: Organising data</h2>
+<p>It’s far easier to scale each value with everything organised into columns according to year. We can achieve this by using <em>pivot_wider</em>, and then scaling each column according to the corresponding value in the table of total records we just created.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_scaled <span class="ot">&lt;-</span> Ducksbyweek_table <span class="sc">|&gt;</span>  <span class="fu">pivot_wider</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">names_from =</span> year,   <span class="co">#Take column names from 'year' data column</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">values_from =</span> count, <span class="co">#Take values from 'count' data column</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">names_sort =</span> <span class="cn">TRUE</span>)   <span class="co">#Order columns names (i.e. years)</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_scaled<span class="sc">$</span><span class="st">"2017"</span> <span class="ot">=</span> (Ducksbyweek_scaled<span class="sc">$</span><span class="st">"2017"</span><span class="sc">/</span>Allmelbrecords_data[<span class="dv">5</span>,<span class="dv">2</span>])<span class="sc">*</span><span class="dv">100</span> <span class="co">#Counts in 2017 column, divided by the overall number of records in 2017 (multiplied by 100) returns counts as a proportion of overall records</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_scaled<span class="sc">$</span><span class="st">"2018"</span> <span class="ot">=</span> (Ducksbyweek_scaled<span class="sc">$</span><span class="st">"2018"</span><span class="sc">/</span>Allmelbrecords_data[<span class="dv">4</span>,<span class="dv">2</span>])<span class="sc">*</span><span class="dv">100</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_scaled<span class="sc">$</span><span class="st">"2019"</span> <span class="ot">=</span> (Ducksbyweek_scaled<span class="sc">$</span><span class="st">"2019"</span><span class="sc">/</span>Allmelbrecords_data[<span class="dv">3</span>,<span class="dv">2</span>])<span class="sc">*</span><span class="dv">100</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_scaled<span class="sc">$</span><span class="st">"2020"</span> <span class="ot">=</span> (Ducksbyweek_scaled<span class="sc">$</span><span class="st">"2020"</span><span class="sc">/</span>Allmelbrecords_data[<span class="dv">2</span>,<span class="dv">2</span>])<span class="sc">*</span><span class="dv">100</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_scaled<span class="sc">$</span><span class="st">"2021"</span> <span class="ot">=</span> (Ducksbyweek_scaled<span class="sc">$</span><span class="st">"2021"</span><span class="sc">/</span>Allmelbrecords_data[<span class="dv">1</span>,<span class="dv">2</span>])<span class="sc">*</span><span class="dv">100</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_scaled <span class="co">#View results</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1,826 × 7
+   date        week `2017` `2018` `2019` `2020` `2021`
+   &lt;date&gt;     &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+ 1 2017-01-01     1 0.0315     NA     NA     NA     NA
+ 2 2017-01-02     1 0.0190     NA     NA     NA     NA
+ 3 2017-01-03     1 0.0200     NA     NA     NA     NA
+ 4 2017-01-04     1 0.0228     NA     NA     NA     NA
+ 5 2017-01-05     1 0.0149     NA     NA     NA     NA
+ 6 2017-01-06     1 0.0166     NA     NA     NA     NA
+ 7 2017-01-07     1 0.0210     NA     NA     NA     NA
+ 8 2017-01-08     2 0.0204     NA     NA     NA     NA
+ 9 2017-01-09     2 0.0166     NA     NA     NA     NA
+10 2017-01-10     2 0.0273     NA     NA     NA     NA
+# … with 1,816 more rows</code></pre>
+</div>
+</div>
+<p>Our data is now organised and appropriately scaled, however contains a number of ‘NA’ values which would make it extremely difficult to calculate the mean of 2017-19 counts later on. To remove these, we need to put the data frame back in it’s original format using <em>pivot_longer</em>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_long <span class="ot">&lt;-</span> Ducksbyweek_scaled <span class="sc">|&gt;</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols=</span><span class="fu">c</span>(<span class="st">"2017"</span>, <span class="st">"2018"</span>, <span class="st">"2019"</span>, <span class="st">"2020"</span>, <span class="st">"2021"</span>), <span class="co">#Select columns to pivot</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">names_to =</span> <span class="st">"year"</span>, <span class="co">#Columns names to go to new column titled 'year'</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">values_to =</span> <span class="st">"count"</span>) <span class="co">#Values to go to new column titled 'count'</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_long <span class="ot">&lt;-</span> <span class="fu">na.omit</span>(Ducksbyweek_long) <span class="co">#Remove entries with 'NA'</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_long <span class="sc">|&gt;</span> <span class="fu">head</span>(6L)  <span class="co">#View first 6 results</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 4
+  date        week year   count
+  &lt;date&gt;     &lt;dbl&gt; &lt;chr&gt;  &lt;dbl&gt;
+1 2017-01-01     1 2017  0.0315
+2 2017-01-02     1 2017  0.0190
+3 2017-01-03     1 2017  0.0200
+4 2017-01-04     1 2017  0.0228
+5 2017-01-05     1 2017  0.0149
+6 2017-01-06     1 2017  0.0166</code></pre>
+</div>
+</div>
+<p>As mentioned previously, we are interested in narrowing this down to the number of occurrences by week rather than daily.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_grouped <span class="ot">&lt;-</span> Ducksbyweek_long</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_grouped <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(Ducksbyweek_grouped <span class="sc">|&gt;</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>   <span class="fu">group_by</span>(week,year) <span class="sc">|&gt;</span> <span class="co">#Group by week and year</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>   <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="fu">c</span>(count), sum))) <span class="co">#Sum 'count' numbers in each group</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_grouped <span class="sc">|&gt;</span> <span class="fu">head</span>(6L)  <span class="co">#View first 6 results</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  week year     count
+1    1 2017 0.1457729
+2    1 2018 0.1765936
+3    1 2019 0.3519861
+4    1 2020 0.1851088
+5    1 2021 0.1366466
+6    2 2017 0.1530413</code></pre>
+</div>
+</div>
+<p>Now we can calculate the average (mean) weekly counts from 2017-19 without producing an error. We do this by using <em>pivot_wider</em> again, so that it’s possible to calculate the mean across rows using <em>rowMeans</em>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_mean <span class="ot">&lt;-</span> Ducksbyweek_grouped <span class="sc">|&gt;</span> <span class="co">#Pivot wider again</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> year, </span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">values_from =</span> count, </span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>              <span class="at">names_sort =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_mean<span class="sc">$</span><span class="st">"2017_19_mean"</span> <span class="ot">=</span> <span class="fu">rowMeans</span>(Ducksbyweek_mean[,<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>]) <span class="co">#Add row with 2017-19 average</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_mean <span class="co">#View results</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 53 × 7
+    week `2017` `2018` `2019` `2020` `2021` `2017_19_mean`
+   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;          &lt;dbl&gt;
+ 1     1  0.146  0.177  0.352 0.185  0.137           0.225
+ 2     2  0.153  0.195  0.323 0.125  0.117           0.224
+ 3     3  0.154  0.161  0.279 0.165  0.127           0.198
+ 4     4  0.182  0.160  0.241 0.159  0.110           0.194
+ 5     5  0.173  0.172  0.199 0.105  0.127           0.181
+ 6     6  0.134  0.141  0.196 0.115  0.129           0.157
+ 7     7  0.150  0.182  0.196 0.0968 0.0984          0.176
+ 8     8  0.161  0.147  0.222 0.103  0.119           0.177
+ 9     9  0.129  0.150  0.139 0.0853 0.116           0.139
+10    10  0.135  0.128  0.229 0.0774 0.105           0.164
+# … with 43 more rows</code></pre>
+</div>
+</div>
+<p>Now we have our dataset, it just needed a bit of reorganising to make it suitable for plotting. Counts are grouped by week of the year, meaning we have 2 sets of weeks 1-52 (one for 2020, one for 2021). To plot these in order along an axis we need to convert this to 1-53 for 2020, then 54-106 for 2021.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_select <span class="ot">&lt;-</span> Ducksbyweek_mean[,<span class="sc">-</span><span class="fu">c</span>(<span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>)] <span class="co">#Create a new data frame with relevant columns from previous (i.e. week, 2017-19 mean, 2020 and 2021 counts)</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_2020 <span class="ot">&lt;-</span> Ducksbyweek_select[,<span class="sc">-</span><span class="dv">3</span>]</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_2021 <span class="ot">&lt;-</span> Ducksbyweek_select[,<span class="sc">-</span><span class="dv">2</span>] <span class="co">#Separate 2020 and 2021 data</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_2021 <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(Ducksbyweek_2021) <span class="co">#Convert to data frame</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_2021<span class="sc">$</span>week <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">54</span><span class="sc">:</span><span class="dv">106</span>) <span class="co">#Change 'week' to 54-106</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(Ducksbyweek_2021) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">54</span><span class="sc">:</span><span class="dv">106</span>) <span class="co">#Change row names so when we combine data frames later, they appear after rows 1-53 (2020 data)</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(Ducksbyweek_2020)[<span class="dv">2</span>] <span class="ot">=</span> <span class="st">"count"</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(Ducksbyweek_2021)[<span class="dv">2</span>] <span class="ot">=</span> <span class="st">"count"</span> <span class="co">#Change column names to 'count' so they match</span></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_plottingdata <span class="ot">&lt;-</span> <span class="fu">rbind</span>(Ducksbyweek_2020,Ducksbyweek_2021) <span class="co">#Combine into one data frame, suitable for plotting</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_plottingdata <span class="sc">|&gt;</span> <span class="fu">head</span>(10L)  <span class="co">#View first 10 results</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 3
+    week  count `2017_19_mean`
+   &lt;dbl&gt;  &lt;dbl&gt;          &lt;dbl&gt;
+ 1     1 0.185           0.225
+ 2     2 0.125           0.224
+ 3     3 0.165           0.198
+ 4     4 0.159           0.194
+ 5     5 0.105           0.181
+ 6     6 0.115           0.157
+ 7     7 0.0968          0.176
+ 8     8 0.103           0.177
+ 9     9 0.0853          0.139
+10    10 0.0774          0.164</code></pre>
+</div>
+</div>
+</section>
+<section id="step-3-plot" class="level2 page-columns page-full">
+<h2 class="anchored" data-anchor-id="step-3-plot">Step 3: Plot!</h2>
+<p>We’ll be creating the foundation for our visual representation using <em>ggplot2</em>, then using the package <em>pilot</em> for a clean, minimalist style.</p>
+<p>Using <em>ggplot2</em>, we set the legend for our graph using <em>scale_fill_manual</em> and <em>scale_color_manual</em> to specify the colour of each variable, as well as set or remove legend titles.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pilot)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_pilot1 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">values=</span><span class="fu">c</span>(<span class="st">"Lockdown"</span> <span class="ot">=</span> <span class="fu">pilot_color</span>(<span class="st">"yellow"</span>)), <span class="co">#Lockdowns will be highlighted in yellow</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="cn">NULL</span>) <span class="sc">+</span> <span class="co">#Remove legend title for 'lockdown'</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(<span class="fu">pilot_color</span>(<span class="st">"orange"</span>),<span class="fu">pilot_color</span>(<span class="st">"blue"</span>)), <span class="co">#Set line colours as orange and blue</span></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels=</span><span class="fu">c</span>(<span class="st">"2017-19 average"</span>, <span class="st">"2020-21 occurrences"</span>, <span class="co">#label lines appropriately</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"Year"</span>)) <span class="co">#Legend title = 'year'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>After this, we add rectangles to our plotting area according to lockdown dates. When we use <em>alpha</em> to adjust the transparceny, these will appear to be highlighting the relevant points along the x axis. This is where we can use the table of lockdown dates we created initially. The starting point of the first rectangle (<em>xmin</em>) should be taken from the ‘weekstart’ column, and the end point (<em>xmax</em>) taken from the ‘weekend’ column. We set <em>ymax</em> as infinite (Inf) so the highlighted sections reach to the top of the graph. Repeat this for each of the 6 lockdowns.</p>
+<p>Note that for the first rectangle, we set <em>color</em> as “NA” to remove rectangle borders, and from there we can use <em>fill</em> to set the colour to yellow. <em>pilot_color</em> takes colours from the <em>pilot</em> package, keeping everything cohesive.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_pilot2 <span class="ot">&lt;-</span> Ducksbyweek_pilot1 <span class="sc">+</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_rect</span>(<span class="fu">aes</span>(<span class="cn">NULL</span>,<span class="cn">NULL</span>, <span class="co">#No mapping or data frame required</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">xmin=</span><span class="dv">13</span>,<span class="at">xmax=</span><span class="dv">19</span>, <span class="co">#Take x values from start and end date in table of lockdown dates</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>            <span class="at">fill=</span><span class="st">"Lockdown"</span>),</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>            <span class="at">ymin=</span><span class="dv">0</span>,<span class="at">ymax=</span><span class="cn">Inf</span>, </span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>            <span class="at">color=</span> <span class="cn">NA</span>, <span class="co">#To remove the border</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">alpha=</span><span class="fl">0.2</span>) <span class="sc">+</span> <span class="co">#Adjust transparency</span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_rect</span>(<span class="fu">aes</span>(<span class="cn">NULL</span>,<span class="cn">NULL</span>,</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>            <span class="at">xmin=</span><span class="dv">28</span>,<span class="at">xmax=</span><span class="dv">43</span>,</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>            <span class="at">fill=</span><span class="st">"Lockdown"</span>),</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>            <span class="at">ymin=</span><span class="dv">0</span>,<span class="at">ymax=</span><span class="cn">Inf</span>, </span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>            <span class="at">fill=</span><span class="fu">pilot_color</span>(<span class="st">"yellow"</span>),</span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>            <span class="at">alpha=</span><span class="fl">0.2</span>) <span class="sc">+</span></span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a><span class="co">#Repeat for each lockdown!</span></span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_rect</span>(<span class="fu">aes</span>(<span class="cn">NULL</span>,<span class="cn">NULL</span>,<span class="at">xmin=</span><span class="dv">60</span>,<span class="at">xmax=</span><span class="dv">60</span>,<span class="at">fill=</span><span class="st">"Lockdown"</span>),</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>            <span class="at">ymin=</span><span class="dv">0</span>,<span class="at">ymax=</span><span class="cn">Inf</span>, <span class="at">fill=</span><span class="fu">pilot_color</span>(<span class="st">"yellow"</span>), <span class="at">alpha=</span><span class="fl">0.2</span>)  <span class="sc">+</span></span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_rect</span>(<span class="fu">aes</span>(<span class="cn">NULL</span>,<span class="cn">NULL</span>,<span class="at">xmin=</span><span class="dv">77</span>,<span class="at">xmax=</span><span class="dv">78</span>,<span class="at">fill=</span><span class="st">"Lockdown"</span>),</span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>            <span class="at">ymin=</span><span class="dv">0</span>,<span class="at">ymax=</span><span class="cn">Inf</span>, <span class="at">fill=</span><span class="fu">pilot_color</span>(<span class="st">"yellow"</span>), <span class="at">alpha=</span><span class="fl">0.2</span>) <span class="sc">+</span></span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_rect</span>(<span class="fu">aes</span>(<span class="cn">NULL</span>,<span class="cn">NULL</span>,<span class="at">xmin=</span><span class="dv">82</span>,<span class="at">xmax=</span><span class="dv">83</span>,<span class="at">fill=</span><span class="st">"Lockdown"</span>),</span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>            <span class="at">ymin=</span><span class="dv">0</span>,<span class="at">ymax=</span><span class="cn">Inf</span>, <span class="at">fill=</span><span class="fu">pilot_color</span>(<span class="st">"yellow"</span>), <span class="at">alpha=</span><span class="fl">0.2</span>) <span class="sc">+</span></span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_rect</span>(<span class="fu">aes</span>(<span class="cn">NULL</span>,<span class="cn">NULL</span>,<span class="at">xmin=</span><span class="dv">84</span>,<span class="at">xmax=</span><span class="dv">95</span>,<span class="at">fill=</span><span class="st">"Lockdown"</span>),</span>
+<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a>            <span class="at">ymin=</span><span class="dv">0</span>,<span class="at">ymax=</span><span class="cn">Inf</span>, <span class="at">fill=</span><span class="fu">pilot_color</span>(<span class="st">"yellow"</span>), <span class="at">alpha=</span><span class="fl">0.2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="column-body-outset">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_pilot2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="BEES3199_QuartoArticle_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</div>
+<p>Now we can add our lines over the highlight rectangles we created. We have already set colours for this previously, but we still need to specify the x and y variables from our dataset, and apply the colours we set earlier. We can fill the area under the 2020-21 occurence line using <em>geom_area</em>, with reduced transparency for clarity.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_pilot3 <span class="ot">&lt;-</span> Ducksbyweek_pilot2 <span class="sc">+</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">data =</span> Ducksbyweek_plottingdata, </span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>            <span class="fu">aes</span>(<span class="at">x =</span> week, <span class="at">y =</span> count, <span class="co">#Plot 2020-21 line using 'count' column</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>            <span class="at">color =</span> <span class="st">"2020-21 Records"</span>), <span class="co">#Apply colours we set earlier </span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>            <span class="at">linewidth=</span><span class="fl">0.7</span>) <span class="sc">+</span> <span class="co">#Set thickness of line</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">data =</span> Ducksbyweek_plottingdata, </span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>            <span class="fu">aes</span>(<span class="at">x =</span> week, <span class="at">y =</span>  Ducksbyweek_plottingdata<span class="sc">$</span><span class="st">"2017_19_mean"</span>, <span class="co">#Plot 2017-19 line using 'mean' column</span></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>            <span class="at">color =</span> <span class="st">"2017-19 Average"</span>),</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>            <span class="at">linetype =</span> <span class="st">"twodash"</span>, <span class="co">#Set line style</span></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>            <span class="at">linewidth=</span><span class="fl">0.5</span>) <span class="sc">+</span></span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_area</span>(<span class="at">data =</span> Ducksbyweek_plottingdata, <span class="co">#Fill area under the 2020-21 line</span></span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>            <span class="fu">aes</span>(<span class="at">x =</span> week, <span class="at">y =</span> count),</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>            <span class="at">fill=</span><span class="fu">pilot_color</span>(<span class="st">"blue"</span>), </span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>            <span class="at">alpha=</span><span class="fl">0.3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="column-body-outset">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_pilot3</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="BEES3199_QuartoArticle_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</div>
+<p>It is possible to set all labels and titles using <em>ggplot2</em>, however setting the title and subtitle now will clash with the <em>pilot</em> package when we try and and apply this later. For now, we’ll just set the axis labels and caption. We then set our axis limits. For the x axis, this is from 0 to 106 (number of rows of data). For the y axis, we want to start at 0 but we do not need an upper limit.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_pilot4 <span class="ot">&lt;-</span> Ducksbyweek_pilot3 <span class="sc">+</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">color=</span> <span class="st">"Year"</span>,  <span class="co">#Set axis labels and caption</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Week Number"</span>,</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Ducks recorded"</span>,</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">caption =</span> <span class="st">"Produced using the Galah package by Atlas of Living Australia"</span>)<span class="sc">+</span></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">expand =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>), <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">106</span>)) <span class="sc">+</span> </span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">expand =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>), <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="cn">NA</span>)) <span class="co">#Set axis limits</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="column-body-outset">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_pilot4</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="BEES3199_QuartoArticle_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</div>
+<p>To access more fonts, we can download from the Google Fonts library using the <em>showtext</em> package.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(showtext)</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="fu">font_add_google</span>(<span class="st">"Montserrat"</span>, <span class="co">#Download font from Google fonts</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">family =</span> <span class="st">"mont"</span>)  <span class="co">#Name font for later use</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="fu">font_add_google</span>(<span class="st">"Hind"</span>, </span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>                <span class="at">family =</span> <span class="st">"hind"</span>)  </span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a><span class="fu">showtext_auto</span>(<span class="at">enable =</span> <span class="cn">TRUE</span>)  <span class="co">#Make 'font family' functions select from showtext package</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>This is where we add our title and subtitle using <em>add_pilot_titles</em>, as well as specify the downloaded font. In <em>theme_pilot</em>, we can specify design features such as grid lines, axes position, legend position, caption position and text size. <em>ggplot2</em> feature <em>theme</em> can be used to remove the y axis.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_pilottitles <span class="ot">&lt;-</span> <span class="fu">add_pilot_titles</span>(  <span class="co">#Add titles in pilot theme</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  Ducksbyweek_pilot4,</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">"Ducks Recorded in Greater Melbourne 2020-21 Compared to Previous Years"</span>,</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">subtitle =</span> <span class="st">"By week, with lockdowns highlighted in yellow - Scaled for total Atlas records"</span>) <span class="sc">+</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_pilot</span>(</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_pilot_family</span>(<span class="st">"hind"</span>, <span class="at">title_family =</span> <span class="st">"mont"</span>), <span class="co">#Set font family for title and body separately</span></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">grid =</span> <span class="st">""</span>, <span class="co">#No grid lines</span></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">axes =</span> <span class="st">"bottom"</span>, <span class="co">#Keep bottom axis</span></span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend_position =</span> <span class="st">"right"</span>,</span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption_position =</span> <span class="st">"right"</span>,</span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">title_size =</span> <span class="dv">17</span>, <span class="co">#Set label font sizes</span></span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle_size =</span> <span class="dv">15</span>,</span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis_title_size =</span> <span class="dv">14</span>,</span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis_text_size =</span> <span class="dv">14</span>,</span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend_title_size =</span> <span class="dv">15</span>,</span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend_text_size =</span> <span class="dv">13</span>,</span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">facet_title_size =</span> <span class="dv">13</span>,</span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption_size =</span> <span class="dv">10</span>)<span class="sc">+</span></span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.y=</span><span class="fu">element_blank</span>(), <span class="co">#Remove y axis</span></span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks.y=</span><span class="fu">element_blank</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="column-body-outset">
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>Ducksbyweek_pilottitles</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="BEES3199_QuartoArticle_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</div>
+<p>To add another point of interest, let’s add an image. This image is retrieved from the gallery on the ALA website. The <em>magick</em> package lets us import the image from a URL, while <em>cropcircles</em> let us make the image circular with <em>circle_crop</em>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cropcircles)</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(magick)</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>imgDuck <span class="ot">&lt;-</span> <span class="fu">circle_crop</span>(<span class="st">"https://ala-images.s3.ap-southeast-2.amazonaws.com/store/7/3/e/9/ceeac92a-2772-477f-8bc2-ebe7480b9e37/original"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="C:/Users/thair/Downloads/DuckCircular.png" class="img-fluid figure-img"></p>
+<p></p><figcaption class="figure-caption">Circular Duck Image</figcaption><p></p>
+</figure>
+</div>
+<p>Finally, to insert the image we can use the <em>cowplot</em> package, setting the size and location of the image in the process.</p>
+<div class="cell">
+
+</div>
+<div class="cell">
+
+</div>
+<div class="column-body-outset">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="C:/Users/thair/Downloads/Ducksbyweek_plot.jpg" class="img-fluid figure-img"></p>
+<p></p><figcaption class="figure-caption">Final Plot</figcaption><p></p>
+</figure>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
