@@ -327,6 +327,8 @@ plot_ratio <- get_asp_ratio(ozmaps::ozmap_country)
 # Map-making function
 plot_the_map <- function(model_data) {
   
+month_number <- 1:12
+  
 ggplot() + 
   geom_stars(data = model_data) +
 geom_sf(data = ozmaps::ozmap_country, colour = "grey", fill = "#C8C6AF")  +
@@ -337,7 +339,7 @@ theme_void() +
   theme(panel.border = element_rect(color = "#FFFFFF",
                                    fill = NA,
                                     size = 2)) +
-labs(title = glue("{number_of_maps}"), 
+labs(title = glue("{month_number}"), 
      fill = "Probability") +
  scale_fill_gradientn(colours = c(colour_palette),
                        limits = c(0, 1),
@@ -352,6 +354,7 @@ labs(title = glue("{number_of_maps}"),
 
   # return(p)
 }
+
 
 # Map-saving function
 library(glue)
