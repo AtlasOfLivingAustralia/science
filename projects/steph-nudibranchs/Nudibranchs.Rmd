@@ -324,10 +324,13 @@ plot_ratio <- get_asp_ratio(ozmaps::ozmap_country)
 
 
 ```{r echo=TRUE}
+# Number of months (and the number of expected maps)
+month_number <- 1:12 # set number equal to total number
+
 # Map-making function
-plot_the_map <- function(model_data) {
+plot_the_map <- function(model_data, month_number) {
   
-month_number <- 1:12
+month <- {{month_number}}
   
 ggplot() + 
   geom_stars(data = model_data) +
@@ -339,7 +342,7 @@ theme_void() +
   theme(panel.border = element_rect(color = "#FFFFFF",
                                    fill = NA,
                                     size = 2)) +
-labs(title = glue("{month_number}"), 
+labs(title = glue("{month}"), 
      fill = "Probability") +
  scale_fill_gradientn(colours = c(colour_palette),
                        limits = c(0, 1),
@@ -372,17 +375,16 @@ save_the_map <- function(chosen_map, number) {
 ```{r include=FALSE}
 # Model-map-save workflow
 
-number_of_maps <- 1:12 # set number equal to total number
-
 #apply function to data list
 model_list <- map(month_list, make_model) 
 
 # Make many maps and save each map
 model_list %>%
-  map(.x = ., 
+  map2(.x = ., 
+       .y = month_number,
       .f = plot_the_map) %>%
   map2(.x = .,
-       .y = number_of_maps,
+       .y = month_number,
        .f = save_the_map)
 
 model_list[1:12]
