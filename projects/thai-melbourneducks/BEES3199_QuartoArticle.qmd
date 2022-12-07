@@ -11,25 +11,24 @@ format:
 ------------------------------------------------------------------------
 **12 weeks ago I entered into an internship with the Atlas of Living Australia. I already had some knowledge of the database and basic R-Studio skills, but only what I could obtain from university classes for my ecology bachelor’s degree. The task seemed straightforward: to ‘make something cool’ and share the results. The following is one example of what’s achievable with ALA data for a first-time user of the galah package.**
 ```{r}
-#| eval: false
 #| message: false
-#Install packages needed
-install.packages("galah")
-install.packages("tidyverse")
-install.packages("lubridate")
-install.packages("ggplot2")
-install.packages("remotes")
-  remotes::install_github("olihawkins/pilot")
-install.packages("showtext")
-install.packages("cowplot")
-install.packages("magick")
-install.packages("cropcircles")
+#| warning: false
+#| error: false
+# Load packages
+library(galah)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(pilot) # remotes::install_github("olihawkins/pilot")
+library(showtext)
+library(cowplot)
+library(magick)
+library(cropcircles)
 ```
 
 ```{r}
 #| message: false
 #| warning: false
-library(galah) #Load galah package
 galah_config(email = "thai.rushbrook@gmail.com", #Add ALA registered email address
              verbose = FALSE) #Remove all messages in galah
 ```
@@ -52,9 +51,6 @@ End <- c("2020-05-12", "2020-10-27", "2021-02-17", "2021-06-10", "2021-07-27", "
 Melb_dates <- data.frame(Lockdown, Start, End) #Combine into a data frame
 Melb_dates$Num_Days <- as.Date(as.character(Melb_dates$End), format="%Y-%m-%d")-
   as.Date(as.character(Melb_dates$Start), format="%Y-%m-%d") #Convert dates to date/time format
-
-library(tidyverse)
-library(lubridate)
 
 Melb_dates <- Melb_dates |> 
   mutate(weekstart = week(Start)) |>  #Add a column converting start date into week of the year
@@ -207,9 +203,6 @@ We'll be creating the foundation for our visual representation using *ggplot2*, 
 Using *ggplot2*, we set the legend for our graph using *scale_fill_manual* and *scale_color_manual* to specify the colour of each variable, as well as set or remove legend titles.
 
 ```{r}
-library(ggplot2)
-library(pilot)
-
 Ducksbyweek_pilot1 <- ggplot() +
   scale_fill_manual(
     values=c("Lockdown" = pilot_color("yellow")), #Lockdowns will be highlighted in yellow
@@ -309,7 +302,6 @@ To access more fonts, we can download from the Google Fonts library using the *s
 
 ```{r}
 #| warning: false
-library(showtext)
 font_add_google("Montserrat", #Download font from Google fonts
                 family = "mont")  #Name font for later use
 font_add_google("Hind", 
@@ -338,9 +330,12 @@ Ducksbyweek_pilottitles <- add_pilot_titles(  #Add titles in pilot theme
     legend_title_size = 15,
     legend_text_size = 13,
     facet_title_size = 13,
-    caption_size = 10)+
+    caption_size = 10) + 
   theme(axis.text.y=element_blank(), #Remove y axis
-        axis.ticks.y=element_blank())
+        axis.ticks.y=element_blank(),
+        text = element_text(family = "hind"),
+        plot.title = element_text(family = "mont"),
+        plot.subtitle = element_text(family = "mont"))
 ```
 :::{.column-body-outset}
 ```{r}
@@ -354,13 +349,10 @@ To add another point of interest, let's add an image. This image is retrieved fr
 ```{r}
 #| message: false
 #| warning: false
-library(cropcircles)
-library(magick)
-
-imgDuck <- circle_crop("https://ala-images.s3.ap-southeast-2.amazonaws.com/store/7/3/e/9/ceeac92a-2772-477f-8bc2-ebe7480b9e37/original")
+imgDuck <- circle_crop("DuckCircular.png")
 ```
 
-![Circular Duck Image](C:/Users/thair/Downloads/DuckCircular.png)
+![](DuckCircular.png){.center height="200"}
 
 Finally, to insert the image we can use the *cowplot* package, setting the size and location of the image in the process.
 
@@ -377,6 +369,7 @@ Ducksbyweek_pilot_final <- ggdraw() +
              y = 0.2, 
              width = 0.17, 
              height = 0.17)  #Select image size
+
 ```
 
 ```{r}
@@ -384,12 +377,12 @@ Ducksbyweek_pilot_final <- ggdraw() +
 #| echo: false
 #| eval: false
 #Save
-png(file="C:/Users/thair/Downloads/Ducksbyweek_plot.jpg",
+png(file="Ducksbyweek_plot.jpg",
     width=950, height=550)
 Ducksbyweek_pilot_final
 dev.off()
 ```
 
 :::{.column-body-outset}
-![Final Plot](C:/Users/thair/Downloads/Ducksbyweek_plot.jpg)
+![](Ducksbyweek_plot.jpg)
 :::
