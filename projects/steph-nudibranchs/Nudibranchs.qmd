@@ -1,0 +1,611 @@
+---
+title: "Mapping Nudibranchs using Species Distribution Models"
+author: "Stephanie Woolley"
+date: 2022-11-10
+format: 
+  html:
+    css: style.css
+    highlight-style: tango
+---
+
+------------------------------------------------------------------------
+
+
+Mapping the potential range of species is an interesting way to learn about the species itself and what influences where it is found. It can also be vital for conserving the species both now and in the future. 
+Here we use a specie distribution model to predict the range and probability of Nudibranch occurrence across Australia. 
+
+------------------------------------------------------------------------
+
+**Species distribution models** (SDM) can be used to predict the range of different organisms and can model how changing environmental conditions impact their occurrence probability. These are particularly useful for management, conservation and predicting the impacts of climate change. Here we will use an SDM to predict the occurrence probability of Nudibranchs around Australia and map this monthly to look at seasonal changes. This post is inspired by Liam Bailey's Bigfoot SDM map and code which can be found [here](https://github.com/LiamDBailey/TidyTuesday/blob/93cbe1143757c97ddaf36c564ac03a2b8088cb56/R/2022/Week37_2022.qmd)
+
+
+Before we begin, it is important to first understand the basics behind SDMs. SDM are built using different types of statistical models depending on the type and suitability of your data. However in every SDM there are always 2 main inputs: 
+
+* Occurrence data 
+* Environmental variables
+
+From this the model predicts the probability of a species being found across a broader area. It takes the locations the species has been found, then finds the associated environmental variables and uses this to assess the suitability of the remaining area. 
+
+So now we understand the basics lets begin building our SDM of Nudibranchs across Australia.
+
+# Download and prepare data 
+
+First install all the packages needed for this post. 
+
+```{r}
+#| message: false
+#| warning: false
+library(dplyr) # Data wrangling 
+library(galah) # Download observations
+library(stars) # Convert raster to easier format 
+library(ozmaps) # Australian map
+library(SSDM) # Linear modelling
+library(sdmpredictors) # Environmental variables 
+library(grDevices) # Colours and fonts
+library(ggplot2) # Map plotting 
+library(maps) # Cities for map
+```
+
+## Observation data 
+  
+Now that those have been installed we will use the galah package and the following code to download the observations of Nudibranchia across Australia:
+
+N.B. first we need to register our email with the ALA 
+
+```{r}
+#| message: false
+#| warning: false
+# Add registered email (register at ala.org.au) #"your-email@email.com"
+galah_config(email = "z5284998@ad.unsw.edu.au")
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| results: false
+# Download observations
+nudibranchia_observations <- galah_call() |>                               
+  galah_identify("Nudibranchia") |>   
+  galah_filter(profile = "ALA") |>
+  galah_filter(country == "Australia") |>
+  atlas_occurrences() 
+```
+
+
+Now we need to prepare the observations for the model, for this we must remove everything apart from the latitude and longitude of each observation and clean the data so there are no duplicates. 
+
+```{r}
+#| message: false
+#| warning: false
+# Remove NA and select only coordinates
+nudibranchia_occurrences <- nudibranchia_observations|> 
+  filter(!is.na(decimalLatitude) & !is.na(decimalLongitude)) |> 
+  select(Latitude = decimalLatitude, Longitude = decimalLongitude) 
+
+# Clean data to remove duplicate rows 
+duplicates <- duplicated(nudibranchia_occurrences[c("Latitude", "Longitude")])
+nudibranch_occurrences <- nudibranchia_occurrences[!duplicates,]
+
+# Check data
+head(nudibranchia_occurrences)
+```
+
+
+## Environmental Variables 
+
+Now that the we have the occurrences formatted correctly it is time to do the same to the environmental variables. For this we need to download a set of variables and then limit the geographical boundaries to just the coast of Australia. 
+
+For the purpose of this post we are going to use 4 common marine environmental variables: 
+
+* Sea surface temperature 
+* Sea surface salinity 
+* Distance to shore 
+* Bathemetry 
+
+```{r}
+#| message: false
+#| warning: false
+# Download variables
+env <- load_layers( layercodes = c("MS_biogeo08_sss_mean_5m", 
+                                   "MS_biogeo13_sst_mean_5m", 
+                                   "MS_biogeo05_dist_shore_5m", 
+                                   "MS_bathy_5m") , 
+                    equalarea=FALSE, rasterstack=TRUE) 
+
+# Create extent
+aus.ext <- raster::extent(100, 160, -45, -10)
+
+# Limit environmental variables
+aus_env <- raster::crop(env, aus.ext) 
+
+# Check variables 
+plot(aus_env)
+
+```
+
+Now that we have all the inputs ready we can move on to the modelling and mapping Nudibranchs.
+
+
+# Species Distribution Model
+
+For this post we are going to run 3 different types of statistical models. Each of these utilize the input variables based on a different set of assumptions to produce a probability value. The 1st model is a generalized linear model (GLM) which runs based off of the assumption that the relationship between the occurrences and the variables is linear. The 2nd model is a Multivariate adaptive regression spline (MARS) which assume a more nonlinear relationship and the final model is a Classification tree analysis (CTA) which ...
+
+Using different models is an important step and part of an SDM, as environmental and species data is inherently flawed and hard to fit perfectly to one model. So creating a final value that incorporates multiple different model outputs accounts for much of the variation within data and improves the accuracy of the SDM and the overall distribution map.
+
+Once these three models are run the resulting outputs are combined to one value and a chi-square test is run to obtain the significance this is occurrence probability value and what will be mapped.
+
+First run the SDM:
+
+```{r}
+#| message: false
+#| warning: false
+# Run the 3 models on our data
+SDM_GLM <- modelling("GLM",
+                     Occurrences = nudibranchia_occurrences,
+                     Env = aus_env,
+                     Xcol = 'Longitude', Ycol = 'Latitude', verbose = FALSE) 
+
+SDM_MARS <- modelling("MARS",
+                      Occurrences = nudibranchia_occurrences %>% 
+                        sf::st_drop_geometry(),
+                      Env = aus_env,
+                      Xcol = 'Longitude', Ycol = 'Latitude', verbose = FALSE)
+
+SDM_CTA <- modelling("CTA",
+                     Occurrences = nudibranchia_occurrences %>% 
+                       sf::st_drop_geometry(),
+                     Env = aus_env,
+                     Xcol = 'Longitude', Ycol = 'Latitude', verbose = FALSE)
+
+# Combine these to one value
+combined <- -2 * (log(SDM_MARS@projection) + log(SDM_GLM@projection) + log(SDM_CTA@projection))
+
+# Create a function that calculates the chi squared value 
+Chi_sq <- function(x){     
+  1 - pchisq(q = x, df = 6)
+} 
+
+# Apply the function to our data
+combined_pval <- raster::calc(combined, fun = Chi_sq) 
+
+# Convert to stars as it is easier to use with ggplot
+species_distribution <- stars::st_as_stars(combined_pval) 
+```
+
+
+Now that we have run our model we can plot it on a map and view the probable distribution of Nudibranchs. 
+
+First create the colour palette for our map:
+
+```{r}
+#| message: false
+#| warning: false
+blue_yellow <- c( "#184E77", "#1E6091",  "#168AAD",  "#34A0A4",  "#52B69A", 
+                  "#76C893", "#99D98C", "#B5E48C",  "#D9ED92")
+
+colour_palette <- colorRampPalette(blue_yellow)(50)
+```
+
+
+Build the map:
+```{r}
+#| message: false
+#| warning: false
+ggplot() +
+  geom_stars(data = species_distribution) +  # Plot SDM
+  geom_sf(data = ozmaps::ozmap_country, colour = "grey", fill = "#C8C6AF")  + # Add Australian map
+  coord_sf(crs = "WGS84", xlim= c(112,154), ylim = c(-43, -11)) + # Set the geographical boundaries
+  theme_void() + 
+  theme(legend.position = c(0.2,0.1),  # Set the position, size, and style of the legend
+       legend.direction="horizontal", 
+       legend.key.size = unit(5, 'mm')) + 
+  theme(plot.background = element_rect(fill = "#F7F7F3", color = "#F16704")) + 
+  theme(panel.border = element_rect(color = "#FFFFFF",
+                                    fill = NA,
+                                    size = 2)) +
+  labs(fill = "Probability") + 
+  scale_fill_gradientn(colours = c(colour_palette), # Use the colour palette we created
+                       limits = c(0, 1),
+                       guide = guide_colourbar(title = "Occurrence probability",  # title of legend
+                                               title.theme = element_text(family = "Times New Roman",  # theme and style of the legend title
+                                                                          colour = "#B3B6B6", 
+                                                                          face = "bold", 
+                                                                          size = 12),
+                                               label.theme = element_text(colour = "#B3B6B6", # theme and style of legend text
+                                                                          size = 10),
+                                               ticks = FALSE,
+                                               frame.colour = "#B3B6B6",
+                                               title.position = "top"),
+                                               breaks = c(0, 0.5, 1),
+                       labels = c("0%", "50%", "100%")) 
+```
+
+Now we have produced a species distribution map of nudibranchs across Australia! 
+From this, we can see there is a high probability of seeing them around the coast, and this decreases further away from the coastline towards deeper water. This map provides an excellent overview of nudibranchs across Australia; however, we can zoom into specific regions where we will see a more detailed view of their potential distribution. 
+
+For this we need to limit the map to a specific region within ggplot. First lets download point data of the main cities in Australia so we can visualize the map locations better. 
+
+```{r}
+#| message: false
+#| warning: false
+
+# Download all cities in Australia
+world_cities <- world.cities[world.cities$country.etc == "Australia",]
+
+# Filter to the specific cities for the east and west coast
+east_west_cities <- world_cities %>% 
+  filter(name == "Sydney" | name == "Melbourne" | name == "Perth" 
+         | name == "Brisbane" | name == "Cairns" | name == "Canberra")
+
+# Filter to the specific cities for the south coast 
+south_coast_cities <- world_cities %>% 
+  filter(name == "Adelaide" | name == "Melbourne")
+
+```
+
+Now plot and limit the map to each coast 
+
+```{r}
+#| message: false
+#| warning: false
+#| code-fold: true
+#| code-summary: "East Coast code"
+
+east_coast_map <-  ggplot() +
+  geom_stars(data = species_distribution) +
+  geom_sf(data = ozmaps::ozmap_states, colour = "#A9A793", fill = "#C8C6AF")  +
+  coord_sf(crs = "WGS84", xlim= c(141,159), ylim = c(-38.5, -11.5)) + # Limit to east coast
+  theme_void() +
+  theme(legend.position = c(1.2, 0.2), 
+        legend.direction="vertical") + 
+  theme(panel.border = element_rect(color = "#FFFFFF",
+                                   fill = NA,
+                                    size = 2)) +
+  labs(fill = "Probability") +
+  scale_fill_gradientn(colours = c(colour_palette),
+                       limits = c(0, 1),
+                       guide = guide_colourbar(title = "Occurrence\nprobability",
+                                               title.theme = element_text(family = "Times New Roman", 
+                                                                          colour = "#3D4040", 
+                                                                          size = 12, 
+                                                                          face = "bold"),
+                                               label.theme = element_text(colour = "#3D4040", 
+                                                                          size = 10),
+                                               ticks = FALSE,
+                                               frame.colour = "#B3B6B6",
+                                               title.position = "top", 
+                                               title.vjust = 2,
+                                               label.position = "left"),
+                       breaks = c(0, 0.5, 1),
+                       labels = c("0%", "50%", "100%")) +
+  geom_point(data = east_west_cities, aes(x = long, y = lat), colour = "#3D4040") +  # Add points of city locations
+  geom_text(data = east_west_cities, aes(x = long, y = lat, label = name), colour = "#3D4040",  # Add names of the cities
+            nudge_x = -1.8, nudge_y = 0.6, family = "Times New Roman") # Move the writing so it doesn't overlap the points
+
+east_coast_map
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| code-fold: true
+#| code-summary: "West Coast code"
+west_coast_map <- ggplot() +
+  geom_stars(data = species_distribution) +
+geom_sf(data = ozmaps::ozmap_country, colour = "#A9A793", fill = "#C8C6AF")  +
+coord_sf(crs = "WGS84", xlim= c(107,120), ylim = c(-36, -19)) +
+theme_void() +
+  theme(legend.position = c(0.2, 0.23), 
+        legend.direction="vertical") + 
+  theme(panel.border = element_rect(color = "#FFFFFF",
+                                    fill = NA,
+                                    size = 2)) +
+labs(fill = "Probability") +
+ scale_fill_gradientn(colours = c(colour_palette),
+                       limits = c(0, 1),
+                       guide = guide_colourbar(title = "Occurrence\nprobability", 
+                                               title.theme = element_text(family = "Times New Roman",
+                                                                          colour = "#B3B6B6",
+                                                                          size = 12, 
+                                                                          face = "bold"),
+                                               label.theme = element_text(colour = "#B3B6B6", 
+                                                                          size = 10),
+                                               ticks = FALSE,
+                                               frame.colour = "#B3B6B6", 
+                                               title.position = "top",
+                                               title.vjust = 2,
+                                               label.position = "right"),
+                       breaks = c(0, 0.5, 1),
+                       labels = c("0%", "50%", "100%")) +
+geom_point(data = east_west_cities, aes(x = long, y = lat), colour = "#3D4040") +
+geom_text(data = east_west_cities, aes(x = long, y = lat, label = name), colour = "#3D4040", nudge_x = 1.1, nudge_y = 0.4, family = "Times New Roman")
+
+west_coast_map
+```
+
+
+```{r}
+#| message: false
+#| warning: false
+#| code-fold: true
+#| code-summary: "South Coast code"
+south_coast_map <- ggplot() +
+  geom_stars(data = species_distribution) +
+  geom_sf(data = ozmaps::ozmap_country, colour = "grey", fill = "#C8C6AF")  +
+  coord_sf(crs = "WGS84", xlim= c(118,148), ylim = c(-44, -31)) +
+  theme_void() +
+  theme(legend.position = c(0.14, 0.12), 
+        legend.direction="horizontal") + 
+  theme(panel.border = element_rect(color = "#FFFFFF",
+                                    fill = NA,
+                                    size = 2)) +
+  labs(fill = "Probability") +
+  scale_fill_gradientn(colours = c(colour_palette),
+                       limits = c(0, 1),
+                       guide = guide_colourbar(title = "Occurence probability", 
+                                               title.theme = element_text(family = "Times New Roman",
+                                                                          colour = "#B3B6B6",
+                                                                          size = 12,
+                                                                          face = "bold"),
+                                               label.theme = element_text(colour = "#B3B6B6",
+                                                                          size = 10),
+                                               ticks = FALSE,
+                                               frame.colour = "#B3B6B6",
+                                               title.position = "top",
+                                               title.vjust = 2),
+                       breaks = c(0, 0.5, 1),
+                       labels = c("0%", "50%", "100%")) +
+  geom_point(data = south_coast_cities, aes(x = long, y = lat), colour = "#3D4040") +
+  geom_text(data = south_coast_cities, aes(x = long, y = lat, label = name), colour = "#3D4040", 
+            nudge_x = 1.5, nudge_y = 0.5, family = "Times New Roman")
+
+south_coast_map
+```
+
+
+Each of the closeup maps of the coasts provides improved detail of the occurrence probability and the SDM's mapping of each region. 
+
+These species distribution models and maps are insightful and can be essential as it helps to visualize the areas that species might be found in. While Nudibranchs have an extensive distribution and are most likely found across all of Australia's coastline, using this kind of model on other species can provide vital information that would benefit both its conservation and management. 
+
+
+
+# Creating the animation
+
+Now that we have seen the occurrence probability of nudibranchs lets have a go at mapping this on a monthly basis to see if there are any distinct changes from month to month.
+
+First download the packages needed: 
+```{r}
+#| message: false
+#| warning: false
+library(lubridate) # Create months
+library(purrr) # Functions and loops
+library(tmaptools) # Create plot ratio
+library(glue) # Functions and loops
+library(gifski) # Create GIF
+library(knitr) # View GIF
+```
+
+
+In order to create monthly SDM we first need to wrangle our data to contain the latitude, longitude and the month of observation: 
+
+```{r}
+#| message: false
+#| warning: false
+# Clean, filter and convert time series to months 
+nudibranchia_occurrences <- nudibranchia_observations |> 
+  filter(!is.na(decimalLatitude) & !is.na(decimalLongitude)) |>
+  mutate(eventDate = ymd_hms(eventDate), 
+         year = year(eventDate),
+  month = month(eventDate)) |>
+  dplyr::select(month,  Latitude = decimalLatitude, Longitude = decimalLongitude) 
+
+# Remove duplicate rows 
+duplicates <- duplicated(nudibranchia_occurrences[c("Latitude", "Longitude")])
+nudibranch_occurrences <- nudibranchia_occurrences[!duplicates,]
+
+
+```
+
+
+From here we need a function that will create individual data frames for each month containing only the latitude and longitude: 
+
+```{r}
+#| message: false
+#| warning: false
+# Build function (for each month select the lat and long)
+make_months <- function(chosen_month) {
+  
+  
+  monthly_data <- nudibranchia_occurrences %>% filter(month == {{chosen_month}}) %>%
+    dplyr::select(Latitude, Longitude)
+}
+
+# Define the number of months 
+months_list <- c(1:12)
+
+# Run function on data 
+month_list <- purrr::map(months_list, make_months)
+
+# Check to make sure it worked
+month_list[[1]]
+```
+
+Now that we have created list of 12 dataframes with each one containing the latitude and longitude for each month we need to build another function that runs the SDM for each of the months. For this we create a function that runs the exact same SDM as before but use the chosen month for occurrences rather than overall observations. 
+
+N.B. The SDM uses the chi squared function we created for the initial SDM and map near the start of this post. 
+
+```{r}
+#| message: false
+#| warning: false
+# Function for the species distribution model (for each month run the SDM)
+make_model <- function(chosen_month) {
+ 
+    SDM_GLM <- modelling("GLM",
+                     Occurrences = (chosen_month),
+                     Env = aus_env,
+                     Xcol = 'Longitude', Ycol = 'Latitude', verbose = FALSE) 
+  
+     SDM_MARS <- modelling("MARS",
+                      Occurrences = (chosen_month) %>% 
+                        sf::st_drop_geometry(),
+                      Env = aus_env,
+                      Xcol = 'Longitude', Ycol = 'Latitude', verbose = FALSE)
+
+     SDM_CTA <- modelling("CTA",
+                     Occurrences = (chosen_month) %>% 
+                       sf::st_drop_geometry(),
+                     Env = aus_env,
+                     Xcol = 'Longitude', Ycol = 'Latitude', verbose = FALSE)
+
+combined <- -2 * (log(SDM_MARS@projection) + log(SDM_GLM@projection) + log(SDM_CTA@projection))
+combined_pval <-raster::calc(combined, fun = Chi_sq) # this function was created
+species_dis <- stars::st_as_stars(combined_pval)
+
+return(species_dis)
+
+}
+```
+
+Then run this function on our monthly dataframes
+```{r}
+#| message: false
+#| warning: false
+# Apply function to create monthly SDM list
+model_list <- purrr::map(month_list, make_model) 
+```
+
+
+The last step before building the animation is to create a plot of each month, for this we are going to use the East Coast of Australia, however you can manipulate it to any area just by changing the latitude and longitude the map is limited by. 
+
+To build a map for each month we need to conduct 2 main steps: 
+
+* the first is to build a function that will create the map, this is through using the ggplot code from above within a function. 
+* the second is to build a function that will save the map as a png within your designated workspace.
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| results: false
+# Define number equal to total number of maps to build
+month_number <- 1:12
+
+
+# Map making function (for monthly SDM build this map)
+plot_the_map <- function(model_data, month_number) {
+
+  month <- {{month_number}}
+
+ggplot() +
+  geom_stars(data = model_data) +
+  geom_sf(data = ozmaps::ozmap_states, colour = "#A9A793", fill = "#C8C6AF")  +
+  coord_sf(crs = "WGS84", xlim= c(141,159), ylim = c(-38.5, -11.5)) +
+  theme_void() +
+  theme(legend.position = c(1.2, 0.2), 
+        legend.direction="vertical") + 
+  theme(panel.border = element_rect(color = "#FFFFFF",
+                                   fill = NA,
+                                    size = 2)) +
+  labs(title = glue("month:{month}"), 
+       fill = "Probability") +
+  scale_fill_gradientn(colours = c(colour_palette),
+                       limits = c(0, 1),
+                       guide = guide_colourbar(title = "Occurrence\nprobability",
+                                               title.theme = element_text(family = "Times New Roman", 
+                                                                          colour = "#B3B6B6", 
+                                                                          size = 12, 
+                                                                          face = "bold"),
+                                               label.theme = element_text(colour = "#B3B6B6", 
+                                                                          size = 10),
+                                               ticks = FALSE,
+                                               frame.colour = "#B3B6B6",
+                                               title.position = "top", 
+                                               title.vjust = 2,
+                                               label.position = "left"),
+                       breaks = c(0, 0.5, 1),
+                       labels = c("0%", "50%", "100%")) +
+  geom_point(data = east_west_cities, aes(x = long, y = lat), colour = "#3D4040") +
+ geom_text(data = east_west_cities, aes(x = long, y = lat, label = name), colour = "#3D4040", 
+          nudge_x = -1.8, nudge_y = 0.6, family = "Times New Roman")
+  
+
+  
+}
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| results: false
+# Define letter to save map as (this lets its import in correct order for gif)
+map_save_letter <- list("a","b", "c", "d", "e", "f", "g", "h", "i", "J", "K", "l") 
+
+# Map-saving function
+
+save_the_map <- function(chosen_map, number) {
+  map_number <- {{number}}
+  ggsave(chosen_map,
+         width = plot_ratio*5, height = 5,
+         file = glue::glue("map_{map_number}.png"), 
+         device = "png")
+}
+```
+
+Once we have build both of these functions we run them on our monthly SDM with the following code: 
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| results: false
+# Define the number of maps
+number_of_maps <- 1:12
+
+# Build a ratio based off of our ggplot
+plot_ratio <- get_asp_ratio(species_distribution)
+
+# Make SDM maps and save each map
+model_list %>%
+  purrr::map2(.x = ., 
+       .y = month_number,
+      .f = plot_the_map) %>%
+  purrr::map2(.x = .,
+       .y = map_save_letter,
+       .f = save_the_map)
+
+```
+
+
+Now that we have successfully created 12 SDM maps we need to build them into an animation or GIF, for this we are using the package gifski which combines a series of images into an animation. 
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| results: false
+# Import PNG files
+png_files <- list.files(pattern = "map_.*png$")
+
+# Create animation
+gifski(png_files, gif_file = "SDM.gif", delay = 0.5)
+
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+knitr::include_graphics("SDM.gif")
+
+```
+
+
+
+Now we have an animation of the probable species distribution of nudibranchs across the year. We can see that there are some changes to the distribution from month to month however these changes aren't seasonal and are just smaller variations based on our input data. While there's isn't a clear difference across the year, splitting the observations to a monthly basis does a good job of conveying the abilities of the SDM and the predictive capacity it holds. 
+
+------------------------------------------------------------------------
+
+This post has shown just one of the interesting ways you can use the ALA data and using this code we have mapped the species distribution of nudibranchs. Theoretically, you could switch Nudibranchs out and discover the potential distribution of almost any species, although it will not necessarily be accurate as the variables and input data are different for every species. There are always limitations and errors within the model and therefore, the maps and SDM presented in this post should be considered with these limitations in mind. 
+
+------------------------------------------------------------------------
