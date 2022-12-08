@@ -11,15 +11,18 @@ format:
 ------------------------------------------------------------------------
 
 
-Mapping the potential range of species is an interesting way to learn about the species itself and what influences where it is found. It can also be vital for conserving the species both now and in the future. 
-Here we use a specie distribution model to predict the range and probability of Nudibranch occurrence across Australia. 
+Mapping the distribution of a species is useful way to understand a species' range and what environmental factors most strongly influence this range over time. Understanding species distributions is vital for conserving species now and in the future. 
+Here we will model distribution of *Nudibranchia* across Australia. 
 
 ------------------------------------------------------------------------
 
-**Species distribution models** (SDM) can be used to predict the range of different organisms and can model how changing environmental conditions impact their occurrence probability. These are particularly useful for management, conservation and predicting the impacts of climate change. Here we will use an SDM to predict the occurrence probability of Nudibranchs around Australia and map this monthly to look at seasonal changes. This post is inspired by Liam Bailey's Bigfoot SDM map and code which can be found [here](https://github.com/LiamDBailey/TidyTuesday/blob/93cbe1143757c97ddaf36c564ac03a2b8088cb56/R/2022/Week37_2022.qmd)
+**Species distribution models** (SDM) are used to predict the habitat range of different organisms. They are useful because they can model how changing environmental conditions impact the probability that a species occurs in a specific location. These predications are particularly useful for management, conservation and predicting the impacts of climate change. 
 
+Here we will use an SDM to predict the occurrence probability of Nudibranchs around Australia and map this monthly to look at seasonal changes. This post is inspired by Liam Bailey's Bigfoot SDM map and code which can be found [here](https://github.com/LiamDBailey/TidyTuesday/blob/93cbe1143757c97ddaf36c564ac03a2b8088cb56/R/2022/Week37_2022.qmd)
 
-Before we begin, it is important to first understand the basics behind SDMs. SDM are built using different types of statistical models depending on the type and suitability of your data. However in every SDM there are always 2 main inputs: 
+# SDM basics
+
+Before we begin, it is important to first understand the basics behind SDMs. SDMs are built using different types of statistical models depending on the type and suitability of your data. However in every SDM there are always 2 main inputs: 
 
 * Occurrence data 
 * Environmental variables
@@ -30,7 +33,7 @@ So now we understand the basics lets begin building our SDM of Nudibranchs acros
 
 # Download and prepare data 
 
-First install all the packages needed for this post. 
+First load the necessary packages.
 
 ```{r}
 #| message: false
@@ -48,7 +51,7 @@ library(maps) # Cities for map
 
 ## Observation data 
   
-Now that those have been installed we will use the galah package and the following code to download the observations of Nudibranchia across Australia:
+Now we will use the galah package to download the observations of *Nudibranchia* across Australia:
 
 N.B. first we need to register our email with the ALA 
 
@@ -83,7 +86,7 @@ nudibranchia_occurrences <- nudibranchia_observations|>
   filter(!is.na(decimalLatitude) & !is.na(decimalLongitude)) |> 
   select(Latitude = decimalLatitude, Longitude = decimalLongitude) 
 
-# Clean data to remove duplicate rows 
+# Remove duplicate rows 
 duplicates <- duplicated(nudibranchia_occurrences[c("Latitude", "Longitude")])
 nudibranch_occurrences <- nudibranchia_occurrences[!duplicates,]
 
@@ -94,7 +97,7 @@ head(nudibranchia_occurrences)
 
 ## Environmental Variables 
 
-Now that the we have the occurrences formatted correctly it is time to do the same to the environmental variables. For this we need to download a set of variables and then limit the geographical boundaries to just the coast of Australia. 
+Now we will download our environmental variables for our model.
 
 For the purpose of this post we are going to use 4 common marine environmental variables: 
 
@@ -111,8 +114,12 @@ env <- load_layers( layercodes = c("MS_biogeo08_sss_mean_5m",
                                    "MS_biogeo13_sst_mean_5m", 
                                    "MS_biogeo05_dist_shore_5m", 
                                    "MS_bathy_5m") , 
-                    equalarea=FALSE, rasterstack=TRUE) 
+                    equalarea=FALSE, rasterstack=TRUE)
+```
 
+To prepare this data for our model, we need crop the geographical boundaries of our data to include only the coast (and surrounding ocean) of Australia.
+
+```{r}
 # Create extent
 aus.ext <- raster::extent(100, 160, -45, -10)
 
@@ -121,15 +128,14 @@ aus_env <- raster::crop(env, aus.ext)
 
 # Check variables 
 plot(aus_env)
-
 ```
 
-Now that we have all the inputs ready we can move on to the modelling and mapping Nudibranchs.
+
 
 
 # Species Distribution Model
 
-For this post we are going to run 3 different types of statistical models. Each of these utilize the input variables based on a different set of assumptions to produce a probability value. The 1st model is a generalized linear model (GLM) which runs based off of the assumption that the relationship between the occurrences and the variables is linear. The 2nd model is a Multivariate adaptive regression spline (MARS) which assume a more nonlinear relationship and the final model is a Classification tree analysis (CTA) which ...
+For this post we are going to run 3 different types of statistical models. Each of these models use the input variables based on a different set of assumptions to produce a probability value. The 1st model is a generalized linear model (GLM) which runs based off of the assumption that the relationship between the occurrences and the variables is linear. The 2nd model is a Multivariate adaptive regression spline (MARS) which assume a more nonlinear relationship and the final model is a Classification tree analysis (CTA) which ...
 
 Using different models is an important step and part of an SDM, as environmental and species data is inherently flawed and hard to fit perfectly to one model. So creating a final value that incorporates multiple different model outputs accounts for much of the variation within data and improves the accuracy of the SDM and the overall distribution map.
 
@@ -173,10 +179,11 @@ combined_pval <- raster::calc(combined, fun = Chi_sq)
 species_distribution <- stars::st_as_stars(combined_pval) 
 ```
 
+# Map
 
 Now that we have run our model we can plot it on a map and view the probable distribution of Nudibranchs. 
 
-First create the colour palette for our map:
+First create the colour palette for our map. To make this map easier to interpret, we've elected to make lower values a dark blue and higher values a bright yellow:
 
 ```{r}
 #| message: false
@@ -188,10 +195,16 @@ colour_palette <- colorRampPalette(blue_yellow)(50)
 ```
 
 
-Build the map:
+Now we are ready to build a map of our results using `ggplot()`, `geom_stars()` and `geom_sf()`. 
+
+In our map, we can see there is a higher probability of seeing Nudibranchs around the coast, and this probability decreases further away from the coastline towards deeper water. 
+
+:::{.column-page fig.aligh="center"}
+
 ```{r}
 #| message: false
 #| warning: false
+#| fig.aligh: center
 ggplot() +
   geom_stars(data = species_distribution) +  # Plot SDM
   geom_sf(data = ozmaps::ozmap_country, colour = "grey", fill = "#C8C6AF")  + # Add Australian map
@@ -221,10 +234,13 @@ ggplot() +
                        labels = c("0%", "50%", "100%")) 
 ```
 
-Now we have produced a species distribution map of nudibranchs across Australia! 
-From this, we can see there is a high probability of seeing them around the coast, and this decreases further away from the coastline towards deeper water. This map provides an excellent overview of nudibranchs across Australia; however, we can zoom into specific regions where we will see a more detailed view of their potential distribution. 
+:::
 
-For this we need to limit the map to a specific region within ggplot. First lets download point data of the main cities in Australia so we can visualize the map locations better. 
+Now we have produced a species distribution map of nudibranchs across Australia! This map provides an excellent overview of nudibranchs across Australia; however, we can zoom into specific regions where we will see a more detailed view of their potential distribution. 
+
+# Prepare map for animation
+
+For this we need to limit the map to a specific region within ggplot. First let's download point data of the main cities in Australia so we can visualize the map locations better. 
 
 ```{r}
 #| message: false
@@ -256,12 +272,6 @@ east_coast_map <-  ggplot() +
   geom_stars(data = species_distribution) +
   geom_sf(data = ozmaps::ozmap_states, colour = "#A9A793", fill = "#C8C6AF")  +
   coord_sf(crs = "WGS84", xlim= c(141,159), ylim = c(-38.5, -11.5)) + # Limit to east coast
-  theme_void() +
-  theme(legend.position = c(1.2, 0.2), 
-        legend.direction="vertical") + 
-  theme(panel.border = element_rect(color = "#FFFFFF",
-                                   fill = NA,
-                                    size = 2)) +
   labs(fill = "Probability") +
   scale_fill_gradientn(colours = c(colour_palette),
                        limits = c(0, 1),
@@ -281,9 +291,13 @@ east_coast_map <-  ggplot() +
                        labels = c("0%", "50%", "100%")) +
   geom_point(data = east_west_cities, aes(x = long, y = lat), colour = "#3D4040") +  # Add points of city locations
   geom_text(data = east_west_cities, aes(x = long, y = lat, label = name), colour = "#3D4040",  # Add names of the cities
-            nudge_x = -1.8, nudge_y = 0.6, family = "Times New Roman") # Move the writing so it doesn't overlap the points
-
-east_coast_map
+            nudge_x = -1.8, nudge_y = 0.6, family = "Times New Roman") + # Move the writing so it doesn't overlap the points
+  theme_void() +
+  theme(legend.position = c(1.2, 0.2), 
+        legend.direction="vertical",
+        panel.border = element_rect(color = "#FFFFFF",
+                                    fill = NA,
+                                    size = 2))
 ```
 
 ```{r}
@@ -320,8 +334,6 @@ labs(fill = "Probability") +
                        labels = c("0%", "50%", "100%")) +
 geom_point(data = east_west_cities, aes(x = long, y = lat), colour = "#3D4040") +
 geom_text(data = east_west_cities, aes(x = long, y = lat, label = name), colour = "#3D4040", nudge_x = 1.1, nudge_y = 0.4, family = "Times New Roman")
-
-west_coast_map
 ```
 
 
@@ -359,20 +371,32 @@ south_coast_map <- ggplot() +
   geom_point(data = south_coast_cities, aes(x = long, y = lat), colour = "#3D4040") +
   geom_text(data = south_coast_cities, aes(x = long, y = lat, label = name), colour = "#3D4040", 
             nudge_x = 1.5, nudge_y = 0.5, family = "Times New Roman")
+```
 
+:::{.column-body-outset}
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| fig.align: center
+#| layout-ncol: 1
+east_coast_map
+west_coast_map
 south_coast_map
 ```
 
+:::
 
 Each of the closeup maps of the coasts provides improved detail of the occurrence probability and the SDM's mapping of each region. 
 
-These species distribution models and maps are insightful and can be essential as it helps to visualize the areas that species might be found in. While Nudibranchs have an extensive distribution and are most likely found across all of Australia's coastline, using this kind of model on other species can provide vital information that would benefit both its conservation and management. 
+These species distribution models and maps are insightful as they help to visualize the areas that species might be found in. While Nudibranchs have an extensive distribution and are most likely found across all of Australia's coastline, using this kind of model on other species can provide vital information that would benefit both its conservation and management. 
 
 
 
 # Creating the animation
 
-Now that we have seen the occurrence probability of nudibranchs lets have a go at mapping this on a monthly basis to see if there are any distinct changes from month to month.
+Now that we have seen the occurrence probability of Nudibranchs lets have a go at mapping this on a monthly basis to see if there are any distinct changes from month to month.
 
 First download the packages needed: 
 ```{r}
@@ -415,9 +439,8 @@ From here we need a function that will create individual data frames for each mo
 #| warning: false
 # Build function (for each month select the lat and long)
 make_months <- function(chosen_month) {
-  
-  
-  monthly_data <- nudibranchia_occurrences %>% filter(month == {{chosen_month}}) %>%
+  monthly_data <- nudibranchia_occurrences %>% 
+    filter(month == {{chosen_month}}) %>%
     dplyr::select(Latitude, Longitude)
 }
 
