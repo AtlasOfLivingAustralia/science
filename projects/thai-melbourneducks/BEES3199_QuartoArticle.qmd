@@ -61,6 +61,8 @@ Melb_dates #View results
 
 We will need to filter to specify results from Melbourne only, from 2017-2021. Searching with **search_fields** for a relevant term (e.g.‘city’) returns any matching fields, then from there we can search for the correct value using the field ID we just returned.
 
+We also need to filter for human observations only, as the ALA also receives data from institutions such as museums and other sources.
+
 ```{r}
 search_fields("city")   #Search for fields containing 'city'
 search_fields("cl10929") |> #Search for values of that field using the ID 
@@ -68,6 +70,10 @@ search_fields("cl10929") |> #Search for values of that field using the ID
 
 search_fields("date")   #Search for fields containing 'date'
 search_fields("eventDate") |> #Search for values of that field using the ID 
+  show_values()
+
+search_fields("basis")   #Search for fields containing 'basis'
+search_fields("basisOfRecord") |> #Search for values of that field using the ID 
   show_values()
 ```
 
@@ -78,7 +84,10 @@ From here on we know we can filter for Melbourne results using ‘GREATER MELBOU
 Ducksbyweek_data <- data.frame(
   galah_call() |>      #Call ALA data                          
     galah_identify("Anatidae")|>       #Identify ducks          
-    galah_filter(cl10929 == "GREATER MELBOURNE", eventDate >= "2017-01-01T00:00:00Z", eventDate <= "2021-12-31T23:59:00Z") |>  #Filter for 2017-2021 records in Melbourne
+    galah_filter(cl10929 == "GREATER MELBOURNE",
+                 eventDate >= "2017-01-01T00:00:00Z", 
+                 eventDate <= "2021-12-31T23:59:00Z",
+                 basisOfRecord == "HUMAN_OBSERVATION") |>  #Filter for 2017-2021 records in Melbourne, human observation records only
     galah_select(eventDate) |> #Retrieve only event date of each entry
     atlas_occurrences())
 
