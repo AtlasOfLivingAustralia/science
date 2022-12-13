@@ -276,8 +276,7 @@ east_coast_map <-   ggplot() +
   theme_void() +
   theme(legend.position = c(1.2, 0.2),
         legend.direction="vertical") + 
-  labs(title = "month:Jan", 
-       fill = "Probability") +
+  labs(fill = "Probability") +
   scale_fill_gradientn(colours = c(colour_palette),
                        limits = c(0, 1),
                        guide = guide_colourbar(title = "Occurrence\nprobability",
