@@ -1,0 +1,93 @@
+---
+title: "Untitled"
+output: html_document
+date: "2023-01-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r}
+library(galah)
+library(ggnewscale) 
+library(here) 
+library(purrr) 
+library(rmapshaper) 
+library(tidyverse) 
+library(sf)
+```
+
+```{r}
+capad <- st_read(here(
+                           "CAPAD",
+                           "CAPAD2020_terrestrial.shp"),
+                      quiet = TRUE) |>
+  ms_simplify(keep = 0.1)
+```
+
+```{r}
+summary(capad)
+```
+
+
+```{r}
+capad |> 
+  st_transform(crs = st_crs("WGS84")) |> 
+  st_make_valid() 
+```
+
+```{r}
+ggplot() +
+  geom_sf(data = capad) +
+  theme(axis.text.x=element_text(angle = -90, hjust = 0))
+```
+```{r}
+galah_config(email = "SMI9E9@csiro.au", verbose = FALSE) 
+```
+
+```{r}
+dingoocc <- galah_call() |>
+  galah_identify("canis familiaris") |>
+  galah_filter(raw_vernacularName == "Dingo") |>
+  galah_apply_profile(ALA) |>
+  galah_group_by(dataResourceName) |>
+  atlas_occurrences()
+```
+
+```{r}
+alldingopoints <- dingoocc %>% 
+  split(1:nrow(.)) %>% 
+  map(~ st_point(c(as.numeric(.x['decimalLongitude']), 
+                   as.numeric(.x['decimalLatitude']))))
+```
+
+```{r}
+points_geomall <- alldingopoints |> st_as_sfc() |> st_set_crs("WGS84") 
+```
+
+```{r}
+intersect <- st_intersects(points_geomall, capad) 
+```
+
