@@ -1,0 +1,179 @@
+---
+title: "Untitled"
+output: html_document
+date: "2022-12-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+library(galah)
+library(tidyverse)
+library(purrr)
+library(lubridate)
+```
+
+```{r}
+galah_config(email = "SMI9E9@csiro.au")
+```
+
+```{r}
+occ <- galah_call() |>
+  galah_identify("canis familiaris") |>
+  galah_filter(raw_vernacularName == "Dingo") |>
+  galah_apply_profile(ALA) |>
+  atlas_occurrences()
+```
+
+```{r}
+occs <- occ |>
+  mutate(raw_date = ymd_hms(eventDate),
+         eventDate = as_date(raw_date))
+```
+
+```{r}
+occ |>
+  search_fields_values("as_date")
+```
+```{r}
+occs
+```
+Built a column of required days
+```{r}
+day_interval <- tibble(eventDate = seq(ymd("2018-01-01"), ymd("2022-12-31"), by = "days"))
+
+day_interval
+```
+```{r}
+date_df <- tibble(
+  date = day_interval$eventDate,
+  date_numeric = as.numeric(day_interval$eventDate),
+  date_julian = yday(day_interval$eventDate))
+date_df
+```
+```{r}
+counts <- occs %>% 
+  select(eventDate) |>
+  group_by(eventDate) |>
+  count() 
+counts
+```
+```{r}
+date_df <- date_df |>
+  left_join(counts, by = c("date" = "eventDate")) |>
+  replace_na(list(n = 0))
+date_df
+```
+```{r}
+library(mgcv)
+```
+
+```{r}
+date_df$date_scaled <- scale(date_df$date_numeric)
+date_df$julian_scaled <- scale(date_df$date_julian)
+
+?scale
+```
+
+```{r}
+model <- gam(unlist(n) ~ s(date_scaled, bs = "cc") + s(julian_scaled, bs = "cc"),
+  data = date_df,
+  family = poisson(link = "log")
+)
+
+?gam
+?bs
+?s
+?family
+```
+
+```{r}
+prediction_2 <- data.frame(
+  julian_scaled = seq(
+    min(date_df$julian_scaled),
+    max(date_df$julian_scaled),
+    length.out = 100
+  ),
+  date_scaled = 0
+)
+
+```
+
+```{r}
+model_prediction <- predict(model, newdata = prediction_2, se.fit = TRUE)
+```
+
+```{r}
+prediction_2 <- prediction_2 %>%
+  mutate(
+    fit = exp(model_prediction$fit),
+    fit_prop = fit / sum(fit),
+    lci = exp(model_prediction$fit - (2 * model_prediction$se.fit)),
+    uci = exp(model_prediction$fit + (2 * model_prediction$se.fit)),
+    lci_prop = lci / sum(lci),
+    uci_prop = uci / sum(uci),
+    julian_unscaled = seq(min(date_df$date_julian), max(date_df$date_julian), length.out = 100), # readjusting scale for plotting
+    fit_total = sum(fit),
+    fit_percent = fit / fit_total * 100,
+    lci_percent = lci / fit_total * 100,
+    uci_percent = uci / fit_total * 100
+  )
+```
+
+what is this prediction mutating? 
+
+is it adding in new lines??
+
+exponentional fit -> what made you choose that
+
+lci
+uci
+
+seq func? 
+
+
+```{r}
+library(pilot)
+
+prediction_2 %>%
+  ggplot(mapping = aes(x = julian_unscaled, y = fit_prop)) +
+  geom_ribbon(aes(ymin = lci_prop, ymax = uci_prop), linewidth = 1, colour = "blue") +
+  geom_area(alpha = 0.5, fill = "Red") +
+  geom_path() +
+  theme_pilot(axes = "", 
+              grid = "hv",
+              legend_position = "none") +
+  scale_fill_pilot() +
+  scale_color_pilot(breaks = "") +
+  scale_x_continuous(limits = c(1, 366), breaks = c(1, 92, 183, 275), labels = c("Jan", "Apr", "Jul", "Oct")) +
+  labs(x = "Month of Year", y = "Number of Records (Proportional)")  +
+  coord_polar() +
+  theme(axis.text.y = element_blank(),
+        axis.text.x = element_text(size = 14),
+        axis.title = element_text(size = 16)
+  ) 
+  
+```
+
