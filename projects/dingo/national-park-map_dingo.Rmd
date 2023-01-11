@@ -1,0 +1,89 @@
+---
+title: "Dingo National Park map"
+author: "Amos Smith"
+date: "2023-01-11"
+output: html_document
+---
+
+
+```{r}
+library(galah)
+library(here)
+library(rmapshaper)
+library(tidyverse)
+library(sf)
+library(ozmaps)
+```
+
+You can put the CAPAD folder in the projects/dingo/data folder and this will run
+
+```{r}
+capad <- st_read(here("projects",
+                      "dingo",
+                      "data",
+                      "CAPAD",
+                      "CAPAD2020_terrestrial.shp"),
+                 quiet = TRUE) |>
+  ms_simplify(keep = 0.1)
+```
+
+```{r}
+summary(capad)
+```
+
+```{r}
+capad <- capad |>
+  st_transform(crs = st_crs("WGS84")) |>
+  st_make_valid()
+```
+
+
+**Looks like there are national reserves outside of mainland australia that are mapped**
+
+```{r}
+capad %>%
+  filter(LONGITUDE > 155 | LONGITUDE < 110 | LATITUDE < -45 | LATITUDE > -10)
+```
+
+Let's filter the coordinates to narrow our map to within mainland australia
+
+```{r}
+ggplot() +
+  geom_sf(data = capad_filtered) +
+  coord_sf(xlim = c(110, 155), ylim = c(-10, -45)) + # filter to mainland australia
+  theme(axis.text.x=element_text(angle = -90, hjust = 0))
+```
+
+```{r}
+galah_config(email = "SMI9E9@csiro.au", verbose = FALSE)
+```
+
+```{r}
+dingoocc <- galah_call() |>
+  galah_identify("canis familiaris") |>
+  galah_filter(raw_vernacularName == "Dingo") |>
+  galah_apply_profile(ALA) |>
+  galah_group_by(dataResourceName) |>
+  atlas_occurrences()
+```
+
+**This is a simpler way to prepare the points for plotting if you want to plot using `geom_sf()`**
+
+```{r}
+# convert occurrence points to `sf` object, drop records without lat or lon coords, add projection
+dingo_sf <- dingoocc |> 
+  drop_na(decimalLongitude, decimalLatitude) |>
+  st_as_sf(coords = c("decimalLongitude", "decimalLatitude"), 
+           crs = st_crs("WGS84"))
+```
+
+
+**From this point, you should have everything you need to make the map**
+- I think it would be nice to have a white map of australia underneath the CAPAD layer. You can get this from the {ozmaps} package
+- Then you can plot the dingo observations points on the map. Using `alpha` could help make it easier to see which points are in the national parks
+- Decide whether looking at all of Australia is too difficult to see the points and the national parks. Maybe it would be better to filter the map to only show one state at a time? I think you should be able to do that with the code that is here :)
+
+
+
+
+
