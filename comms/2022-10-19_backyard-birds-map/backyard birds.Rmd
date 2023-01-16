@@ -60,7 +60,7 @@ actsuburbs <- st_read(here("act_localitiesunzip",
 
 ## Clean the shapefile
 
-The actsuburbs shapefile countains both suburb boundaries and larger, enmcompassing "district" boundaries (see actsuburbs in environment). There are overlaps in these names, so to avoid confusion I will remove the districts as we are only interested in suburbs. 
+The actsuburbs shapefile countains both suburb boundaries and larger, encompassing "district" boundaries (see actsuburbs in environment). There are overlaps in these names, so to avoid confusion I will remove the districts as we are only interested in suburbs. 
 
 ```{r}
 actsuburbsonly <- subset(actsuburbs, LOC_CLASS != "District") #remove districts, and save as actsuburbsonly
