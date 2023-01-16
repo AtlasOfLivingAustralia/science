@@ -11,25 +11,26 @@ format:
 ------------------------------------------------------------------------
 
 
-Mapping the distribution of a species is useful way to understand a species' range and what environmental factors most strongly influence this range over time. Understanding species distributions is vital for conserving species now and in the future. 
-Here we will model distribution of *Nudibranchia* across Australia. 
+Mapping the distribution of a species is a useful way to understand a species' range and what environmental factors most strongly influence this range over time. Understanding species distributions is vital for conserving species now and in the future. 
+
+Here we will model distribution of *Nudibranchia* (Nudibranchs) across Australia. 
 
 ------------------------------------------------------------------------
 
-**Species distribution models** (SDM) are used to predict the habitat range of different organisms. They are useful because they can model how changing environmental conditions impact the probability that a species occurs in a specific location. These predications are particularly useful for management, conservation and predicting the impacts of climate change. 
+**Species distribution models** (SDM) are used to predict the habitat range of different organisms. They are useful as they can model how changing environmental conditions impact the probability that a species occurs in a specific location. These predictions are particularly useful for management, conservation and modelling possible impacts of climate change. 
 
-Here we will use an SDM to predict the occurrence probability of Nudibranchs around Australia and map this monthly to look at seasonal changes. This post is inspired by Liam Bailey's Bigfoot SDM map and code which can be found [here](https://github.com/LiamDBailey/TidyTuesday/blob/93cbe1143757c97ddaf36c564ac03a2b8088cb56/R/2022/Week37_2022.qmd)
+Here we will use an SDM to predict the occurrence probability of Nudibranchs around Australia, mapping monthly to look at seasonal changes. This post is inspired by Liam Bailey's Bigfoot SDM map and code which can be found [here](https://github.com/LiamDBailey/TidyTuesday/blob/93cbe1143757c97ddaf36c564ac03a2b8088cb56/R/2022/Week37_2022.qmd)
 
 # SDM basics
 
-Before we begin, it is important to first understand the basics behind SDMs. SDMs are built using different types of statistical models depending on the type and suitability of your data. However in every SDM there are always 2 main inputs: 
+Before we begin, it is important to first understand the basics behind SDMs. SDMs are built using different types of statistical models depending on the type and suitability of your data. However, in every SDM there are always 2 main inputs: 
 
-* Occurrence data 
-* Environmental variables
+1. Occurrence data 
+2. Environmental variables
 
-From this the model predicts the probability of a species being found across a broader area. It takes the locations the species has been found, then finds the associated environmental variables and uses this to assess the suitability of the remaining area. 
+From this, the model predicts the probability of a species being found across a broader area. It takes the locations the species has already been found, then finds the associated environmental variables, and uses this to assess the suitability of the remaining area. 
 
-So now we understand the basics lets begin building our SDM of Nudibranchs across Australia.
+Having gone over the basics, let's begin building our SDM of Nudibranchs across Australia.
 
 # Download and prepare data 
 
@@ -51,11 +52,16 @@ library(maps) # Cities for map
 
 ## Observation data 
   
-Now we will use the galah package to download the observations of *Nudibranchia* across Australia:
+Now we will use the {`galah`} package to download the observations of *Nudibranchia* across Australia:
 
-N.B. first we need to register our email with the ALA 
+You will need to provide a [registered email with the ALA](https://auth.ala.org.au/userdetails/registration/createAccount) using `galah_config()` before retrieving records.
 
-```{r}
+```{r, eval = FALSE}
+galah_config(email = "your-email@email.com", verbose = FALSE) 
+```
+
+
+```{r, echo = FALSE}
 #| message: false
 #| warning: false
 # Add registered email (register at ala.org.au) #"your-email@email.com"
@@ -76,7 +82,7 @@ nudibranchia_observations <- galah_call() |>
 ```
 
 
-Now we need to prepare the observations for the model, for this we must remove everything apart from the latitude and longitude of each observation and clean the data so there are no duplicates. 
+Now we need to prepare the observations for the model. For this, we remove everything except the latitude and longitude of each observation and clean the data for duplicates. 
 
 ```{r}
 #| message: false
@@ -99,7 +105,7 @@ head(nudibranchia_occurrences)
 
 Now we will download our environmental variables for our model.
 
-For the purpose of this post we are going to use 4 common marine environmental variables: 
+For the purpose of this post, we will use 4 common marine environmental variables: 
 
 * Sea surface temperature 
 * Sea surface salinity 
@@ -117,7 +123,7 @@ env <- load_layers( layercodes = c("MS_biogeo08_sss_mean_5m",
                     equalarea=FALSE, rasterstack=TRUE)
 ```
 
-To prepare this data for our model, we need crop the geographical boundaries of our data to include only the coast (and surrounding ocean) of Australia.
+To prepare variable data for our model, we need to crop the geographical boundaries of our data to include *only* the coast (and surrounding ocean) of Australia.
 
 ```{r}
 #| fig.aligh: center
@@ -136,7 +142,7 @@ plot(aus_env)
 
 # Species Distribution Model
 
-To build the SDM we will run 3 different statistical models. Each model makes a different assumption about the data and its variation. The outputs are then merged into one final value for us to plot. Although this method isn't perfect by merging multiple models we attempt to balance the outputs into a value more coherent and less skewed by our model choice. 
+To build the SDM we will run 3 different statistical models. Each model makes a different assumption about the data and its variation. The outputs are then merged into one final value for us to plot. Although this method isn't perfect, by merging multiple models we attempt to balance the outputs into a value more coherent and less skewed by our model choice. 
 
 
 First run the SDM:
@@ -234,9 +240,9 @@ ggplot() +
 
 :::
 
-Now we have produced a species distribution map of nudibranchs across Australia! This map provides an excellent overview of nudibranchs across Australia. Species distribution model and this map are insightful as they help to visualize the areas that species might be found in. While Nudibranchs have an extensive distribution and are most likely found across all of Australia's coastline, using this kind of model on other species can provide vital information that would benefit both its conservation and management. 
+Now we have produced a species distribution map of Nudibranchs across Australia! This map provides an excellent overview of their distribution across Australia. Species distribution models are insightful as they help to visualize the areas that species might be found in. While Nudibranchs have an extensive distribution and are most likely found across all of Australia's coastline, using this kind of model on other species can provide vital information that would benefit both its conservation and management. 
 
-Now that we have seen the overall occurrence probability of Nudibranchs lets have a go at mapping this on a monthly basis to see if there are any distinct changes from month to month. For this lets zoom into a specific region where we will see a more detailed view of their potential distribution. 
+Now that we have seen the overall occurrence probability of Nudibranchs, lets have a go at mapping this on a monthly basis to see if there are any distinct changes from month to month. For this, lets zoom into a specific region where we will see a more detailed view of their potential distribution. 
 
 
 # Prepare map for animation
@@ -261,7 +267,7 @@ south_coast_cities <- world_cities %>%
 
 ```
 
-Now plot and limit the map to each coast 
+Now plot and limit the map to each coast:
 
 ```{r}
 #| message: false
@@ -390,7 +396,7 @@ east_coast_map
 
 # Creating the animation
 
-Now lets create a monthly animation of the east coast map.
+Now let's create a monthly animation of the east coast map.
 
 First download the packages needed: 
 ```{r}
@@ -405,7 +411,7 @@ library(knitr) # View GIF
 ```
 
 
-In order to create monthly SDM we first need to wrangle our data to contain the latitude, longitude and the month of observation: 
+In order to create a monthly SDM, we first need to wrangle our data to contain the latitude, longitude and the month of observation: 
 
 ```{r}
 #| message: false
@@ -426,7 +432,7 @@ nudibranch_occurrences <- nudibranchia_occurrences[!duplicates,]
 ```
 
 
-From here we need a function that will create individual data frames for each month containing only the latitude and longitude: 
+From here, we need a function that will create individual data frames for each month containing only the latitude and longitude: 
 
 ```{r}
 #| message: false
@@ -448,7 +454,7 @@ month_list <- purrr::map(months_list, make_months)
 month_list[[1]]
 ```
 
-Now that we have created list of 12 dataframes with each one containing the latitude and longitude for each month we need to build another function that runs the SDM for each of the months. For this we create a function that runs the exact same SDM as before but use the chosen month for occurrences rather than overall observations. 
+Now that we have created list of 12 data frames; each containing the latitude and longitude for each month, we need to build another function that runs the SDM for each data frame. For this we create a function that runs the exact same SDM as before, but uses the chosen month for occurrences rather than overall observations. 
 
 N.B. The SDM uses the chi squared function we created for the initial SDM and map near the start of this post. 
 
@@ -484,7 +490,7 @@ return(species_dis)
 }
 ```
 
-Then run this function on our monthly dataframes
+Then, run this function on our monthly data frames:
 ```{r}
 #| message: false
 #| warning: false
@@ -493,12 +499,12 @@ model_list <- purrr::map(month_list, make_model)
 ```
 
 
-The last step before building the animation is to create a plot of each month, for this we are going to use the East Coast of Australia, however you can manipulate it to any area just by changing the latitude and longitude the map is limited by. 
+The last step before building the animation is to create a plot of each month. For this we are going to use the East Coast of Australia, however, you can manipulate it to any area just by changing the latitude and longitude the map is limited by. 
 
-To build a map for each month we need to conduct 2 main steps: 
+To build a map for each month we need to conduct two main steps: 
 
-* the first is to build a function that will create the map, this is through using the ggplot code from above within a function. 
-* the second is to build a function that will save the map as a png within your designated workspace.
+1. Build a function that will create the map, this is through using the ggplot code from above within a function. 
+2. Build a function that will save the map as a .png within your designated work space.
 
 ```{r}
 #| message: false
@@ -516,7 +522,7 @@ ggplot() +
   geom_sf(data = ozmaps::ozmap_states, colour = "#A9A793", fill = "#C8C6AF")  +
   coord_sf(crs = "WGS84", xlim= c(141,159), ylim = c(-38.5, -11.5)) +
   theme_void() +
-  theme(legend.position = c(1.2, 0.2),,
+  theme(legend.position = c(1.2, 0.2),
         legend.direction="vertical") + 
   labs(title = glue("month:{month}"), 
        fill = "Probability") +
@@ -563,7 +569,7 @@ save_the_map <- function(chosen_map, number) {
 }
 ```
 
-Once we have build both of these functions we run them on our monthly SDM with the following code: 
+Once we have built both of these functions we run them on our monthly SDM with the following code: 
 ```{r}
 #| message: false
 #| warning: false
@@ -586,7 +592,7 @@ model_list %>%
 ```
 
 
-Now that we have successfully created 12 SDM maps we need to build them into an animation or GIF, for this we are using the package gifski which combines a series of images into an animation. 
+Now that we have successfully created 12 SDM maps, we need to build them into an animation or GIF. For this we are using the package gifski which combines a series of images into an animation. 
 
 ```{r}
 #| message: false
@@ -608,10 +614,10 @@ knitr::include_graphics("SDM.gif")
 ```
 
 
-The animation shows only minor changes to the distribution of Nudibranchs from month to month. The changes aren't seasonal but rather just smaller variations based on our input data. While there's isn't a clear difference across the year, splitting the observations to a monthly basis does a good job of conveying the abilities of the SDM and the predictive capacity it holds. However, it also helps demonstrate the model's weaknesses, with certain months showing abnormally high probabilities in areas that seem unlikely (i.e away from the coast in deep water).
+The animation shows only minor changes to the distribution of Nudibranchs from month to month. The changes aren't seasonal, but rather, just smaller variations based on our input data. While there's isn't a clear difference across the year, splitting the observations to a monthly basis does a good job of conveying the abilities of the SDM and the predictive capacity it holds. However, it also helps demonstrate the model's weaknesses, with certain months showing abnormally high probabilities in areas that seem unlikely (i.e away from the coast in deep water).
 
 ------------------------------------------------------------------------
 
-This post has shown just one of the interesting ways you can use the ALA data and using this code we have mapped the species distribution of nudibranchs. Theoretically, you could switch Nudibranchs out and discover the potential distribution of almost any species, although it will not necessarily be accurate as the variables and input data are different for every species. There are also always limitations and errors within the model. Therefore, the maps and SDM presented in this post should be considered with these limitations in mind. 
+This post has shown just one of the interesting ways you can use ALA data. Using this code, we have mapped the species distribution of Nudibranchs. Theoretically, you could switch Nudibranchs out and discover the potential distribution of almost any species, although, note that it will not necessarily be accurate as the recommended variables and input data are different for every species. There are also always limitations and errors within the model (as any). Therefore, the maps and SDM presented in this post should be considered with these limitations in mind. 
 
 ------------------------------------------------------------------------
