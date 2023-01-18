@@ -178,6 +178,30 @@ dingo_palette <- list("Australian Protected Areas" = "#00A600FF",
                       "Dingo observations" = " viridis::scale_color_viridis")
 ```
 
+```{r}
+galah_config(email = "SMI9E9@csiro.au")
+
+dingo_records <- galah_call() |>
+  galah_identify("canis familiaris") |>
+  galah_filter(raw_vernacularName == "Dingo")|>
+  # galah_filter(cl22 == "NT")
+  atlas_occurrences()
+```
+
+
+```{r}
+# Tidy
+dingo_records <- dingo_records |>
+  drop_na() |>                      # drop NAs
+  filter(decimalLongitude < 155,    # filter records to only mainland/tasmania
+         decimalLongitude > 110, 
+         decimalLatitude > -45,
+         decimalLatitude < -10)
+```
+
+
+
+I'm also unsure of how to get the records just in the NT, I have tried the group by function and filter but doesnt seem to work f
 
 This is the point density one which I prefer more. 
 
@@ -205,10 +229,11 @@ ggplot() +
         axis.ticks = element_line(colour = "grey70", size = 0.2),
         axis.title.y = element_text(size = 12),
         axis.title.x = element_text(size = 12)) +
-  labs(title = glue("<br> <span style = 'color: {Dingo_palette$Dingo obsverations}'> **Dingo Observations</span> in <br>
+        labs(title = glue("<br> <span style = 'color: {Dingo_palette$Dingo obsverations}'> **Dingo Observations</span> in <br>
                     <span style = 'color: {dingo_palette$Australian Protected Areas}'>
                     **Australian Protected Areas</span> in the Northern Territory (NT)", x = "Longitude", y = "Latitude"))
 ```
+
 
 
 
