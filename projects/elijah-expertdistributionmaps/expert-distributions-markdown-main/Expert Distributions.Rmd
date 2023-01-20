@@ -1,0 +1,151 @@
+---
+title: "Visualising occurrence records against expert distribution maps"
+author: "Elijah Magistrado"
+date: "2022-11-18"
+output: html_document
+---
+
+The geographic distribution of a species can tell us a lot of information, such as climatic tolerances, adaptability, and dispersal capability. Species distributions are commonly represented as points on a map showing individual occurrence records. While these are great, occurrence records often have outliers that are found in unreasonable locations for a given species. But how would we determine which occurrence records are "unreasonable" apart from the obvious (i.e., Koalas in the Pacific Ocean).
+
+Expert distribution maps offer a way to reliably visualise the geographic range of species. In this context, experts are defined as people or organisations that have abundant knowledge on the distribution of certain species. Examples include government institutions, non-government organisations related to conservation, and academics. These experts collect and analyse occurrence records of species and provide either a presence/absence map over a grid, or an educated estimate of the distribution using computer modelling. They can also have additional functions, such as determining the validity of occurrence data by comparison.
+
+These distribution maps can also let us know if certain records have errors, or are not valid for research purposes. For example, an observational record of a giraffe might be present in Perth, but it is unlikely to be a valid record. Since the ALA stores data from many places, including citizen science projects like iNaturalist, it is likely that there are going to be invalid records present. By plotting the occurrence records against an expert distribution map of that species, we can determine if a dataset contains records that are spatially suspect.
+
+Here, we show how expert distribution maps can be obtained from the ALA, how to plot them, and using them to filter occurrence records.
+
+## Downloading the data
+
+Firstly, we must get our occurrence data from the ALA. To do this, we must have the `galah` package loaded. We also need to use the packages `tidyverse`, `httr`, `jsonlite`, `sf`, and `leaflet` later on, so we will load them now.
+
+```{r}
+library(galah)
+library(tidyr)
+library(dplyr)
+library(httr)
+library(jsonlite)
+library(sf)
+library(leaflet)
+```
+
+To use galah, we must add our email used to register for our ALA account.
+
+```{r, include=FALSE}
+galah_config(email = "elijah.magi28@gmail.com")
+```
+
+```{r, eval = FALSE}
+galah_config(email = "hungry_wombat@email.com")
+```
+
+We must first pick a species to visualise. Currently, the ALA has expert distribution maps for many different taxa. However, not all species have an associated distribution map. To check if a species has an expert distribution map in the ALA, we can search the species in the ALA website and see if there is a `Compiled distribution map` present on its species page.
+
+Then, we are going to download the records of our chosen species. For this demonstration, we chose the **Rainbow Lorikeet**, *Trichoglossus haematodus*. If there are lots of records of your species, this might take a minute! To speed up the download process, we will only download records from 2020 onwards.
+
+```{r}
+lorikeet_data <- galah_call() %>% 
+  galah_identify("Trichoglossus haematodus") %>% 
+  galah_filter(year >= 2020) %>% 
+  atlas_occurrences()
+```
+
+Now, we need to remove any duplicate and empty records from our data. We do that by using the `drop_na()` and `distinct()` function from the `tidyr` and `dplyr` packages respectively.
+
+```{r}
+lorikeet_filtered <- lorikeet_data %>% 
+  drop_na(decimalLatitude, decimalLongitude) %>% 
+  distinct(decimalLatitude, decimalLongitude, .keep_all = TRUE)
+```
+
+Obtaining the expert distribution map from the ALA is slightly more complicated. To access the polygons stored in the ALA, we must use the ALA Web Service API. We do this by using the `GET()` function from the `httr` package. The following chunk of code will return the list of all distributions that are found in the ALA. However, the `GET()` function returns a `JSON` file which is not very readable for us. So, we use the `rawToChar()` and `fromJSON()` functions from `jsonlite` to convert the file to something readable in R. The result that we get is a data frame containing all the distribution maps found in the ALA.
+
+```{r}
+distribution_json <- GET("https://spatial.ala.org.au/ws/distributions")
+
+distribution_list <- rawToChar(distribution_json$content) %>% 
+  fromJSON()
+```
+
+But we only need the row for our species! To filter the data frame for our species, we use the `filter()` function from the `dplyr` package.
+
+```{r}
+lorikeet_map <- distribution_list %>% filter(scientific == "Trichoglossus haematodus")
+```
+
+## Plotting the distribution map
+
+Using the [ALA Web service API](https://api.ala.org.au/), we can download a WKT file from the ALA. WKT files store information about geometry in a text form. We can take this WKT file and convert it into a form that we can use to plot the map.
+
+Firstly, we need to get the value of `pid` from `lorikeet_map`.
+
+```{r}
+lorikeet_map$pid
+```
+
+To retrieve the WKT file, we use the `GET()` function again to send a request to the "Download a shape object as WKT" webservice in the API, with the `pid` as our parameter. This webservice also returns a `JSON` file which we can read using the `rawToChar()`. The WKT file is then converted into an `sfc` object using the `st_as_sfc()` function from the `sf` package. This will allow us to plot the map later on. The following code shows all of this in action:
+
+```{r}
+# pid from lorikeet_map added to the end of the URL:
+map_wkt <- GET("https://spatial.ala.org.au/ws/shape/wkt/7043792")
+distribution_map <- st_as_sfc(rawToChar(map_wkt$content))
+```
+
+We can now plot this distribution map using the `leaflet` package. The `leaflet` package creates interactive maps that are similar to what is currently found in the ALA species pages. The maps allow for zooming and panning, which make them more flexible to use.
+
+```{r}
+leaflet() %>% 
+  addTiles() %>% 
+  addPolygons(data = distribution_map, weight = 0, fillColor =  "#00a0b0", fillOpacity = 1) %>%
+  setView(lng = 135, lat = -26, zoom = 4)
+```
+
+## Adding the observation records
+
+To add our observations on the interactive map, we need to convert them into `POINT` objects. We can do that by using the `sf` package. We can use the `st_as_sf()` function to create an object containing the coordinates from each observation record.
+
+```{r}
+test_points <- st_as_sf(lorikeet_filtered, coords = c("decimalLongitude", "decimalLatitude"))
+```
+
+These points are then added to the interactive map using the `addCirclemarkers()` function.
+
+```{r}
+leaflet() %>% 
+  addTiles() %>% 
+  addPolygons(data = distribution_map, weight = 0, fillColor = "#00a0b0", fillOpacity = 1) %>% 
+  addCircleMarkers(data = test_points, stroke = FALSE, fillOpacity = 1, radius = 3, color = "#C44D34") %>% 
+  setView(lng = 135, lat = -26, zoom = 4)
+```
+
+Now, we can see that the majority of the observation records of Rainbow Lorikeets are present within the range suggested by the expert distribution map. It is also interesting to see the sampling bias that results in higher observation records in highly populated areas! There are a few points that are just outside of the range, which may be outliers, or errors caused by high positional uncertainty. However, if we zoom out all the way, we can see that there are some observations recorded in the Gulf of Guinea. Sometimes, there are these types of records where it might be a data entry issue. It is important that we filter out records like these from our dataset before it is used for any analyses.
+
+## Filtering outliers
+
+We can remove outliers that are not inside the range of the distribution map using the `st_filter()` function from the `sf` package.
+
+```{r}
+cleaned <- st_filter(test_points, distribution_map)
+```
+
+The filtered dataset can then be added to our leaflet map to get our final result. The filtered dataset can also be exported as a csv to be used in research.
+
+```{r}
+leaflet() %>% 
+  addTiles() %>% 
+  addPolygons(data = distribution_map, weight = 0, fillColor = "#00a0b0", fillOpacity = 1) %>% 
+  addCircleMarkers(data = cleaned, stroke = FALSE, fillOpacity = 1, radius = 3, color = "#C44D34") %>% 
+  setView(lng = 135, lat = -26, zoom = 4)
+```
+
+## Limitations
+
+While expert distributions are extremely useful for the analysis of occurrence records, there are a few limitations. Firstly, the distribution of a given species can change over time. Climate change and other anthropogenic activities such as habitat degradation, can cause large shifts in distribution.
+
+Secondly, distributions do not fully represent how many species, especially migratory animals, exist in the real world. An extreme example of this would be the Bar-tailed Godwit which can travel from Alaska to Tasmania in a single year. Distribution maps can show the migration paths that these birds take, but it is not as representative of their distribution compared to species with limited dispersal capabilities.
+
+Thirdly, while experts created these maps, they are still mostly based on occurrence records. This means that occurrence records of a given species should mostly follow the distribution maps, and are subject to error. This also means that distribution maps don't show the density of occurrences, only their presence.
+
+Finally, when we zoom in to any coastline of the map, we can see that the polygons do not fit geographic boundaries perfectly. Polygons have a limit to how precise they can be, and can have edges that are simplified to make them faster to render. This can cause valid records close to the edges of the polygons to be incorrectly considered spatially suspect.
+
+## Final thoughts
+
+Occurrence records provide a great resource for visualising the geographic distribution of species, but many records can have major issues with their validity. Expert distribution maps provide a more reliable source of a species' geographic range compared to occurrence records alone. With more and more distribution maps being uploaded to the ALA, there is a good chance that you will be able to see and use an expert-vetted distribution map of your favourite species!
