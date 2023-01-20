@@ -214,13 +214,13 @@ NT_plot <- ggplot() +
   theme(axis.text.x=element_text(angle = -90, hjust = 0), 
         panel.background = element_rect(fill = "white", size = 2), 
         panel.grid.major = element_line(colour = NA),
-        legend.position = "left",
+        legend.position = "bottom",
         plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
         axis.ticks = element_line(colour = "grey70", size = 0.2),
         axis.title.y = element_text(size = 12),
         axis.title.x = element_text(size = 12)) +
         labs(title = "Dingo obsverations in 
-             Australian Protected Areas in the Northern Territory (NT)", x = "Longitude", y = "Latitude")
+             Australian Protected Areas in the Northern Territory (NT)", x = "Longitude", y = "Latitude") 
 ```
 
 ```{r}
