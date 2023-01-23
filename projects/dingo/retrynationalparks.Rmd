@@ -1,32 +1,3 @@
----
-title: "Untitled"
-output: html_document
-date: "2023-01-11"
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 
 
@@ -37,14 +8,25 @@ library(rmapshaper)
 library(tidyverse)
 library(sf)
 library(ozmaps)
+library(tidyr)
+library(ggpointdensity)
+library(glue)
+install.packages("ggtext")
+library(ggtext)
+library(prismatic)
+library(magrittr)
 ```
 
 You can put the CAPAD folder in the projects/dingo/data folder and this will run
 
 here()
+here::here("/Users/smi9e9/Documents/tutorials")
 
 ```{r}
-capad <- st_read(here(
+capad <- st_read(here("/Users",
+                      "smi9e9",
+                      "Documents",
+                      "tutorials",                     
                       "CAPAD",
                       "CAPAD2020_terrestrial.shp"),
                  quiet = TRUE) |>
@@ -53,6 +35,7 @@ capad <- st_read(here(
 
 ```{r}
 summary(capad)
+view(capad_counts)
 ```
 
 ```{r}
@@ -62,39 +45,30 @@ capad <- capad |>
 ```
 
 
-**Looks like there are national reserves outside of mainland australia that are mapped**
-
 ```{r}
-capad_filtered <- capad %>%
-  filter(LONGITUDE > 155 | LONGITUDE < 110 | LATITUDE < -45 | LATITUDE > -10)
+install.packages("prismatic")
 ```
 
-```{r}
-#capad_NT <- capad %>%
-#  filter(capad_filtered$NAME %in% NAME)
-```
-
-Let's filter the coordinates to narrow our map to within mainland australia
 
 ```{r}
-ggplot() +
-  geom_sf(data = ozmap_states, 
-          fill = "white") +
-  geom_sf(data = capad) +
-  coord_sf(xlim = c(125, 140), ylim = c(-10, -27)) + # filter to mainland australia
-  theme(axis.text.x=element_text(angle = -90, hjust = 0)) +
-  geom_point(data = dingo_sf, 
-               mapping = aes(x = LONGITUDE,
-                             y = LATITUDE, colour = 'red', size = 2, alpha = 0.25))
+terrain10 <- terrain.colors(10)
 
-#coord_sf(xlim = c(125, 140), ylim = c(-10, -27)) + # filter to mainland australia
-# geom_point(data = points_fitered,
-            # mapping = aes(x = decimalLongitude,
-             #              y = decimalLatitude,
-              #             colour = dataResourceName,
-            # alpha = 0.25))
-  
+terrain10
+#>  [1] "#00A600" "#2DB600" "#63C600" "#A0D600" "#E6E600" "#E8C32E" "#EBB25E"
+#>  [8] "#EDB48E" "#F0C9C0" "#F2F2F2"
+
+terrain_color <- color(terrain10)
+
+terrain_color
+#> <colors>
+#> #00A600FF #2DB600FF #63C600FF #A0D600FF #E6E600FF #E8C32EFF #EBB25EFF #EDB48EFF #F0C9C0FF #F2F2F2FF
+
+plot(terrain_color)
 ```
+```{r}
+color(rainbow(64))
+```
+
 
 ```{r}
 galah_config(email = "SMI9E9@csiro.au", verbose = FALSE)
@@ -105,11 +79,11 @@ dingoocc <- galah_call() |>
   galah_identify("canis familiaris") |>
   galah_filter(raw_vernacularName == "Dingo") |>
   galah_apply_profile(ALA) |>
-  galah_group_by(dataResourceName) |>
+  galah_group_by(dataResourceName, cl22) |>
   atlas_occurrences()
 ```
 
-**This is a simpler way to prepare the points for plotting if you want to plot using `geom_sf()`**
+This is a simpler way to prepare the points for plotting if you want to plot using `geom_sf()`**
 
 ```{r}
 # convert occurrence points to `sf` object, drop records without lat or lon coords, add projection
@@ -120,12 +94,196 @@ dingo_sf <- dingoocc |>
 ```
 
 
-**From this point, you should have everything you need to make the map**
+From this point, you should have everything you need to make the map**
 - I think it would be nice to have a white map of australia underneath the CAPAD layer. You can get this from the {ozmaps} package
 - Then you can plot the dingo observations points on the map. Using `alpha` could help make it easier to see which points are in the national parks
 - Decide whether looking at all of Australia is too difficult to see the points and the national parks. Maybe it would be better to filter the map to only show one state at a time? I think you should be able to do that with the code that is here :)
-```
+
+
 ```{r}
 
+capad_counts <- capad |> 
+  mutate(dingo_count = pmap(.l = list(x = capad$geometry),
+                           .f = function(x) {
+                             lengths(st_intersects(x, dingo_sf))
+                             }))
+```
+
+```{r}
+dingoNT <- capad_counts |> select(STATE, dingo_count, NAME) |>
+  filter(STATE == "NT")
+```
+
+```{r}
+hist(as.numeric(capad_counts$dingo_count))
+```
+
+```{r}
+dingoNT |>
+  arrange(desc(dingo_count)) 
+#still need to get this to work
+
+view(dingoNT)
+```
+
+
+```{r}
+dingo_palette <- list("AustralianProtectedAreas" = "#00A600FF")
+
+                      #"Dingoobservations" = " viridis::scale_color_viridis")
+```
+
+```{r}
+galah_config(email = "SMI9E9@csiro.au")
+
+dingo_records <- galah_call() |>
+  galah_identify("canis familiaris") |>
+  galah_filter(raw_vernacularName == "Dingo")|>
+  # galah_filter(cl22 == "NT")
+  atlas_occurrences()
+```
+
+
+```{r}
+# Tidy
+dingo_records <- dingo_records |>
+  drop_na() |>                      # drop NAs
+  filter(decimalLongitude < 155,    # filter records to only mainland/tasmania
+         decimalLongitude > 110, 
+         decimalLatitude > -45,
+         decimalLatitude < -10)
+```
+
+```{r}
+capad <- st_read(here("/Users",
+                      "smi9e9",
+                      "Documents",
+                      "tutorials",                     
+                      "Transport",
+                      "Roads_Principle_Aust.shp"),
+                 quiet = TRUE) |>
+  ms_simplify(keep = 0.1)
+```
+```{r}
+roads <- capad |>
+  st_transform(crs = st_crs("WGS84")) |>
+  st_make_valid()
+```
+
+```{r}
+view(roads)
+```
+
+```{r}
+Dog_Fence <- st_read(here("/Users",
+                      "smi9e9",
+                      "Documents",
+                      "tutorials",                     
+                      "Dog Fence",
+                      "Dog_Fence.shp"),
+                 quiet = TRUE) |>
+  ms_simplify(keep = 0.1)
+```
+
+
+```{r}
+Dog_Fence <- Dog_Fence |>
+  st_transform(crs = st_crs("WGS84")) |>
+  st_make_valid()
+```
+
+I'm also unsure of how to get the records just in the NT, I have tried the group by function and filter but doesnt seem to work f
+
+This is the point density one which I prefer more. 
+
+```{r}
+NT_plot <- ggplot() +
+  geom_sf(data = ozmap_states, 
+          fill = "beige", colour = "black", linewidth = 0.3) +
+  geom_sf(data = capad, fill = "#00A600FF", colour = "black", linewidth = 0.25, alpha = 0.3, linetype = "dashed") +
+  geom_pointdensity(data = dingo_records, size = 1, alpha = 0.5,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude)) +
+    viridis::scale_color_viridis(option = "B", 
+                               begin = 0.1,
+                               guide_colorbar(
+                                              title = ("Number of \nOverlapping observations"), 
+                                              alpha = "none")) +
+  coord_sf(xlim = c(128, 140), ylim = c(-10, -26)) + # filter to mainland australia+
+  theme_bw() +
+  theme(axis.text.x=element_text(angle = -90, hjust = 0), 
+        panel.background = element_rect(fill = "white", size = 2), 
+        panel.grid.major = element_line(colour = NA),
+        legend.position = "bottom",
+        plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+        axis.ticks = element_line(colour = "grey70", size = 0.2),
+        axis.title.y = element_text(size = 12),
+        axis.title.x = element_text(size = 12)) +
+        labs(title = "Dingo obsverations in 
+             Australian Protected Areas in the Northern Territory (NT)", x = "Longitude", y = "Latitude") 
+```
+
+```{r}
+library(ggnewscale)
+```
+
+
+
+
+```{r}
+NT_plot
+```
+```{r}
+labelled_plot <- NT_plot +
+  ggnewscale::new_scale_color() +
+  scale_colour_manual(values = dingo_palette) +
+  labs(title = glue("in <span style='color:{dingo_palette$AustralianProtectedAreas}'>**AustralaianProtectedAreas**</span> <br> in the Northern Territory")) +
+  theme(plot.subtitle = element_markdown())
+```
+
+```{r}
+labelled_plot
+```
+
+
+```{r}
+table(dingoNT$dingo_count, dingoNT$NAME)
+```
+
+
+```{r}
+labelled_plot
+```
+
+```{r}
+SA_plot <- ggplot() +
+  geom_sf(data = ozmap_states, 
+          fill = "beige", colour = "black", linewidth = 0.3) +
+  geom_sf(data = capad, fill = "#00A600FF", colour = "black", linewidth = 0.25, alpha = 0.3, linetype = "dashed") +
+  geom_sf(data = Dog_Fence, color = "#0800FFFF", linewidth = 2) +
+  geom_pointdensity(data = dingo_records, size = 1, alpha = 0.5,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude)) +
+    viridis::scale_color_viridis(option = "F", 
+                               begin = 0.1,
+                               guide_colorbar(direction = "horizontal", label.position = "left",
+                                              title = ("Number of \nOverlapping observations"), 
+                                              alpha = "none")) +
+  coord_sf(xlim = c(128, 145), ylim = c(-40, -26)) + # filter to mainland australia
+  theme_bw() +
+  theme(axis.text.x=element_text(angle = -90, hjust = 0), 
+        panel.background = element_rect(fill = "white", size = 2), 
+        panel.grid.major = element_line(colour = NA),
+        plot.title = element_text(face = "bold", size = 16, hjust = 0.5, line = 1),
+        axis.ticks = element_line(colour = "grey70", size = 0.2),
+        axis.title.y = element_text(size = 12),
+        axis.title.x = element_text(size = 12)) +
+        labs(title = 
+        "Dingo obsverations in 
+        Australian Protected Areas in South Australia (SA)", x = "Longitude", y = "Latitude")
+```
+
+```{r}
+SA_plot
 ```
 
