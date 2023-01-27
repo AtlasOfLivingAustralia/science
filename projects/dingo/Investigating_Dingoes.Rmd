@@ -1,3 +1,9 @@
+---
+title: "An exploration of dingo observations in the ALA"
+author: "Amos Smith"
+output: html_document
+date: "2022-01-27"
+---
 
 Investigating species within the Atlas and understanding the factors that effect the data collection of a species can be key to better data collection of a species for future conservation. In this instance we are going to investigate the dingo which is distributed throughout Australia. 
 
@@ -191,7 +197,7 @@ So lets do that!!
 
 Install the packages. 
 ```{r}
-install.packages(lubridate)
+
 library(galah)
 library(tidyverse)
 library(lubridate)
