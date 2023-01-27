@@ -35,7 +35,7 @@ capad <- st_read(here("/Users",
 
 ```{r}
 summary(capad)
-view(capad_counts)
+View(capad)
 ```
 
 ```{r}
@@ -128,9 +128,11 @@ view(dingoNT)
 
 
 ```{r}
-dingo_palette <- list("AustralianProtectedAreas" = "#00A600FF")
-
-                      #"Dingoobservations" = " viridis::scale_color_viridis")
+dingo_palette <- list(
+                      "Protected" = "#00A600FF",
+                      "Areas" = "#00A600FF",
+                      "Dingo" = "#67136B",
+                      "observations" = "#FC6B00")
 ```
 
 ```{r}
@@ -154,16 +156,6 @@ dingo_records <- dingo_records |>
          decimalLatitude < -10)
 ```
 
-```{r}
-capad <- st_read(here("/Users",
-                      "smi9e9",
-                      "Documents",
-                      "tutorials",                     
-                      "Transport",
-                      "Roads_Principle_Aust.shp"),
-                 quiet = TRUE) |>
-  ms_simplify(keep = 0.1)
-```
 ```{r}
 roads <- capad |>
   st_transform(crs = st_crs("WGS84")) |>
@@ -215,14 +207,12 @@ NT_plot <- ggplot() +
         panel.background = element_rect(fill = "white", size = 2), 
         panel.grid.major = element_line(colour = NA),
         legend.position = "bottom",
-        plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
         axis.ticks = element_line(colour = "grey70", size = 0.2),
         axis.title.y = element_text(size = 12),
-        axis.title.x = element_text(size = 12)) +
-        labs(title = "Dingo obsverations in 
-             Australian Protected Areas in the Northern Territory (NT)", x = "Longitude", y = "Latitude") 
+        axis.title.x = element_text(size = 12)) 
+        
 ```
-
+element_text(face = "bold", size = 16, hjust = 0.5),
 ```{r}
 library(ggnewscale)
 ```
@@ -237,8 +227,8 @@ NT_plot
 labelled_plot <- NT_plot +
   ggnewscale::new_scale_color() +
   scale_colour_manual(values = dingo_palette) +
-  labs(title = glue("in <span style='color:{dingo_palette$AustralianProtectedAreas}'>**AustralaianProtectedAreas**</span> <br> in the Northern Territory")) +
-  theme(plot.subtitle = element_markdown())
+  labs(title = glue("<span style='color: {dingo_palette$Dingo}' >**Dingo**</span> <span style='color: {dingo_palette$observations}' >**observations**</span> in <br> Australian <span style='color:{dingo_palette$Protected}'>**Protected**</span> <br> <span style='color:{dingo_palette$Areas}'>**Areas**</span>  in the Northern Territory <br>", x = Latitude, y = Longitude)) +
+  theme(plot.title = element_markdown(face = "bold", size = 16, hjust = 0.5))
 ```
 
 ```{r}
@@ -256,31 +246,30 @@ labelled_plot
 ```
 
 ```{r}
+
 SA_plot <- ggplot() +
   geom_sf(data = ozmap_states, 
           fill = "beige", colour = "black", linewidth = 0.3) +
   geom_sf(data = capad, fill = "#00A600FF", colour = "black", linewidth = 0.25, alpha = 0.3, linetype = "dashed") +
-  geom_sf(data = Dog_Fence, color = "#0800FFFF", linewidth = 2) +
   geom_pointdensity(data = dingo_records, size = 1, alpha = 0.5,
                     mapping = aes(x = decimalLongitude,
                                   y = decimalLatitude)) +
-    viridis::scale_color_viridis(option = "F", 
+    viridis::scale_color_viridis(option = "B", 
                                begin = 0.1,
-                               guide_colorbar(direction = "horizontal", label.position = "left",
+                               guide_colorbar(
                                               title = ("Number of \nOverlapping observations"), 
                                               alpha = "none")) +
-  coord_sf(xlim = c(128, 145), ylim = c(-40, -26)) + # filter to mainland australia
+  geom_sf(data = Dog_Fence, fill = "blue", linewidth = 2) +
+  coord_sf(xlim = c(128, 145), ylim = c(-40, -26)) + # filter to mainland australia+
   theme_bw() +
   theme(axis.text.x=element_text(angle = -90, hjust = 0), 
         panel.background = element_rect(fill = "white", size = 2), 
         panel.grid.major = element_line(colour = NA),
-        plot.title = element_text(face = "bold", size = 16, hjust = 0.5, line = 1),
+        legend.position = "bottom",
         axis.ticks = element_line(colour = "grey70", size = 0.2),
         axis.title.y = element_text(size = 12),
-        axis.title.x = element_text(size = 12)) +
-        labs(title = 
-        "Dingo obsverations in 
-        Australian Protected Areas in South Australia (SA)", x = "Longitude", y = "Latitude")
+        axis.title.x = element_text(size = 12)) 
+
 ```
 
 ```{r}
