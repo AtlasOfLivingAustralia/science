@@ -1,8 +1,11 @@
 ---
 title: "An exploration of dingo observations in the ALA"
 author: "Amos Smith"
-output: html_document
 date: "2022-01-27"
+output: 
+  html_document:
+    css: style.css
+    highlight: tango
 ---
 
 Pest or Native species? This is an ongoing debate for our nationally treasured dingo with each state having different legislation whether it is protected or not. The dingo is under threat from human wildlife conflict around agriculture, habitat loss and breeding with domestic dogs losing its genetic 'purity'. From this, they are listed as Vulnerable to extinction under the International Union of Nature Conservation’s Red List of Threatened Species.
@@ -21,7 +24,6 @@ library(galah)
 library(tidyverse)
 library(ozmaps)
 library(sf)
-library(dplyr)
 ```
 
 
@@ -45,7 +47,7 @@ dingo_counts <- galah_call()|>
 Arrange the counts in descending order. 
 
 ```{r}
-dingo_counts|>
+dingo_counts |>
   arrange(desc(count))
 ```
 From this information it is obvious that the Northern Territory and South Australia hold the highest counts where in some states have very minimal observations. If we want to visually see this on a chloropleth map we will run the following code. 
@@ -59,8 +61,8 @@ aus <- ozmap_data(data = "states")
 Join the counts by state to our base map. 
 
 ```{r}
-state_counts <- aus|>
-  full_join(counts, by = c("NAME" = "cl22"))
+state_counts <- aus %>%
+  full_join(dingo_counts, by = c("NAME" = "cl22"))
 ```
 
 Log the counts by 10 to create a smoother distribution of the data by states. This will categorize it into counts by 10,100 and 1000.
@@ -81,7 +83,7 @@ Chloropleth_map <- ggplot() +
                         direction = 1,
                         labels = c("10", "100", "1000"),
                         guide = guide_colorsteps(direction = "horizontal",
-                        title = "No. of Dingo Counts per State",
+                        title = "No. of Dingo Observations",
                         title.position = "top")) +
   theme_bw() +
   theme(axis.text.x=element_text(angle = -90, hjust = 0), 
@@ -91,13 +93,13 @@ Chloropleth_map <- ggplot() +
         axis.ticks = element_line(colour = "grey70", size = 0.2),
         axis.title.y = element_text(size = 12, vjust = 3),
         axis.title.x = element_text(size = 12, vjust = -1)) +
-   theme(legend.position = "top", legend.key.width = unit(12, 'mm')) +
+   theme(legend.position = "bottom", legend.key.width = unit(12, 'mm')) +
     labs(x = "Longitude", y = "Latitude")
 
 Chloropleth_map
 ```
 
-Why is it that majority of dingo observations are only occurring in the Northern Territory in comparison to Western Australia? We know that dingoes do occurr in Western Australia but are not recorded into the Atlas. If we want to investigate this further, we can break down our observations by data providers. 
+Why is it that majority of dingo observations are only occurring in the Northern Territory in comparison to Western Australia? We know that dingoes do occurr in Western Australia but are not recorded into the Atlas. If we want to investigate this further, we can break down our observations by data providers. **Investigate this further is a bit vague. Maybe try "To understand xx...we decided to view the top data providers of dingo observations"**
 
 ```{r}
 dingo_dataproviders_count <- galah_call()|>
@@ -114,9 +116,13 @@ Arrange it in descending order.
 dingo_dataproviders_count |>
   arrange(desc(count))
 ```
+**Remember, do your explaining of the things you want your readers to notice before they see the data**
+
 Here we can see that it is mainly state organisations recording the data, with 0 public/citizen recordings. If we want to visually see this on a map we can run the following code. 
 
-Citizen records can also be unreliable because they involve bias where alot recordings are usually around rivers, national parks and along roads, which doesn't truly represent the distribution of a species rather only where humans and dingoes both occur. 
+
+**This is one point of how citizen science records are negative, but I would argue that in the case of dingoes, incidental records from citizen scientists would be useful for our knowledge of dingo distributions, because it seems most states don't have programs to monitor dingoes. Try to balance your point against citizen records with a more positive view**
+Citizen records can also be unreliable because they involve bias where a lot of recordings are usually around rivers, national parks and along roads, which doesn't truly represent the distribution of a species rather only where humans and dingoes both occur. 
 
 This will obtain the dingo occurrences rather than counts which is useful for mapping because they obtain longitudinal and latitudinal values. 
 
@@ -131,18 +137,18 @@ dingoocc_dataproviders <- galah_call()|>
 
 
 This filters data providers that have more than 5 observations. 
+**Maybe try, "To view the main data providers, we'll filter to only providers that have provided more than 5 observations of dingoes"**
 
 ```{r}
 counts_fitered <- dingo_dataproviders_count |>
   filter(count > 5)
 ```
 
-Not sure what this code does?
+Not sure what this code does?**This filters our data frame with occurrences so that only the observations from each data provider with greater than 5 observations (in our `counts_filtered` data frame) are returned**
 ```{r}
 points_fitered <- dingoocc_dataproviders |>
   filter(dataResourceName %in% counts_fitered$dataResourceName)
 ```
-
 
 Now we can plot
 
@@ -167,14 +173,12 @@ Dataproviders <- ggplot() +
   labs(x = "Longitude",
        y = "Latitude") +
   ggtitle("Data Providers for Dingo Occurrences")
-
-Dataproviders
 ```
 
 If we want to see this as a bar plot we can run the following code. 
 
 Install the packages. 
-
+**all packages should be loaded at the top of the document. I'd suggest combining the code in the above chunk and the code to make `BarPlot`, with a final plot of the two side-by-side**
 ```{r}
 library(ggplot2)
 library(patchwork)
@@ -190,8 +194,6 @@ Barplot <-  counts_fitered %>%
     coord_flip() +
     xlab("") +
     theme_bw() 
-
-Barplot
 ```
 
 To see these two graphs visually at the same time we can do this. 
@@ -200,9 +202,13 @@ To see these two graphs visually at the same time we can do this.
 Dataproviders / Barplot
 ```
 
+
+# When are observations recorded?
+**Use headings like the one above to split up your document into the 3 sections we had agreed on before. Rendering your document will help you see how these look**
+
 We can also investigate what months of the year are they been recorded and if there any patterns that can tell us about the biology of species of when they are most active or the bias in data collection when people like to go and record dingoes. 
 
-So lets do that!!
+So lets do that!! **Add a little more info here. Because records are occurring in 2 states that have pretty extreme climate gradients, we thought it would be interesting to check whether there were differences in the time of year records were collected, which might be another important difference in the data in SA compared to NT**
 
 Install the packages. 
 ```{r}
@@ -213,42 +219,41 @@ library(lubridate)
 ```
 
 
-????
+????**Remember, this bit of code puts our dates into a more usable format and tells R the structure of our date. Then we use this correctly formatted date column to make a new column with the month that each observation was recorded. Work through these steps here before you run the code. I've combined the code below into a single chunk (rather than 3) because they are really for the same goal of making a bar plot**
 ```{r}
 dingo_dates <- dingoocc_dataproviders |>
   mutate(eventDate = ymd_hms(eventDate), 
          month = month(eventDate, label = TRUE))
          
-```
-
-Group the counts by month. 
-```{r}
 month_counts <- dingo_dates|>
   group_by(month) |>
   count()
-```
 
-
-Plot!
-```{r}
 ggplot() +
   geom_bar(data = month_counts,
            mapping = aes(x = month, y = n),
            stat = "identity")
 ```
 
-From this point, we have found our main data providers for the Atlas, which states in Australia have the highest counts and majority of records are recorded during winter. 
+From this point, we have found our main data providers for the Atlas, which states in Australia have the highest counts and majority of records are recorded during winter. **Are there differences between the states or not? Why might there be differences if so? What does that mean dingo data? Are we biased to know where dingoes are at certain times of the year, and if so, is that because there are fewer dingoes at that time or because of our data collection? Do some research on this, and the answer may very well be both - there might be fewer dingoes, but we might not know to what extent because we don't collect as much data at certain times of the year to be certain.**
 
-Why is it only state organisations are recording dingoes, why aren't they been recorded in other states and why are the records in the NT disproportionality higher? One explanation could be that the public has no invested interest in recording dingos but would rather avoid the species. Each state also has different legislation on the dingo and some states may value this species more than others. For example, the Northern Territory is the only state in Australia that recognizes it as a protected species, however outside of protected areas permits can still be applied for to take or remove wildlife. In other states such as Western Australia, New South Wales it is declared a pest species. So now we start to see a correlation between states having it a protected species with the highest amount of observations verse states that have the lowest amount recognise it as a pest species. 
+Why is it only state organisations are recording dingoes, why aren't they been recorded in other states and why are the records in the NT disproportionality higher? One explanation could be that the public has no invested interest in recording dingos but would rather avoid the species. **hmm, maybe the tone isn't quite here because it's difficult to make that assumption about people, but I get your meaning. Maybe the idea is that certain state/territory decisions about dingo conservation status has had repercussions on their data collection?**  
+
+Attitudes towards dingoes and their conservation vary between states/territores, with each possessing different legislation on dingoes. For example, the Northern Territory is the only state in Australia that recognizes dingoes as a protected species. However, outside of protected areas the Northen Territory still allows people to apply for permits to take or remove wildlife. In other states such as Western Australia, New South Wales dingoes are declared a pest species. **What about SA?** These differences in legislation between states might help to explain why the highest numbers of observations are in states and territories that recognise dingoes as protected. 
 
 
 ...................................................................
 
-Each state has different legislation on the dingo. For example, in the Northern Territory it is the only state in Australia that recognizes it as a protected species, however outside of protected areas permits can still be applied for to take or remove wildlife. In other states such as Western Australia, New South Wales it is declared a pest species. In Queensland, it is declared an invasive animal outside of nationally protected areas, however inside these protected areas they are a protected species. Finally in South Australia,  Inside the Dog Fence wild dogs are declared for destruction under the Landscape South Australia Act 2019 (hereafter LSA Act). Outside the Dog Fence they are managed as unprotected native animals under the National Parks and Wildlife Act 1972 because they also have an important ecological role. - I'm guessing this is too lengthy??
+In other states such as Western Australia, New South Wales it is declared a pest species. In Queensland, it is declared an invasive animal outside of nationally protected areas, however inside these protected areas they are a protected species. Finally in South Australia,  Inside the Dog Fence wild dogs are declared for destruction under the Landscape South Australia Act 2019 (hereafter LSA Act). Outside the Dog Fence they are managed as unprotected native animals under the National Parks and Wildlife Act 1972 because they also have an important ecological role. - I'm guessing this is too lengthy?? **Because you are focusing a lot on NT and SA, it's important to include details of that legislation. Then you can group all the other states/territories together and compare them to these two**
+
+**For example, you might write something like:**
+**In the NT and SA, dingoes are declared as protected animals. However, in NT they can still apply for permits, and in SA dingoes are unprotected outside of the Dog Fence, which runs from xxx to yyy (Landscape South Australia Act 2019). In comparison, dingoes are considered invasive species in NSW, QLD and WA.**
+
+This was an interesting point so I decided to plot dingo observations over the top of nationally protected areas as well as the dingo fence within South Australia to see if there was any correlation between national parks, dingo fence and dingoes. **I think there was more to this decision here, rather than it just being interesting. I thought it was because even in states where dingoes are protected, that dingoes weren't universally protected in all circumstances led you to think that maybe it would be interesting to know the proportion of records in protected areas compared to unprotected areas?**
 
 
-This was an interesting point so I decided to plot dingo observations over the top of nationally protected areas as well as the dingo fence within South Australia to see if there was any correlation between national parks, dingo fence and dingoes. 
-
+**Even though you are going to fold this code up, you should explain very basically what is happening below within the code, kinda like this (copy-paste the link in your browser):**
+https://labs.ala.org.au/posts/2022-07-22_sample-bias/#:~:text=Expand%20for%20code%20to%20create%20map
 
 Code here: 
 
@@ -298,6 +303,8 @@ dingoocc <- galah_call() |>
   atlas_occurrences()
 ```
 
+**I'm remembering I never figured this out, sorry. I will have a look tomorrow**
+
 ```{r}
 capad_counts <- capad |> 
   mutate(dingo_count = pmap(.l = list(x = capad$geometry),
@@ -318,7 +325,7 @@ dingoNT |>
 
 view(dingoNT)
 ```
-
+ 
 ```{r}
 dingo_palette <- list(
                       "Protected" = "#00A600FF",
@@ -328,8 +335,6 @@ dingo_palette <- list(
 ```
 
 ```{r}
-galah_config(email = "SMI9E9@csiro.au")
-
 dingo_records <- galah_call() |>
   galah_identify("canis familiaris") |>
   galah_filter(raw_vernacularName == "Dingo")|>
@@ -391,6 +396,6 @@ labelled_plot2
 ```
 
 
-Could this possibly mean that the legislation around a species whether it is protected or not from state to state effect the data collection of it?
+Could this possibly mean that the legislation around a species whether it is protected or not from state to state effect the data collection of it? **I think you need to try to answer this question based on these maps. I think just comment on how you can see many more records in protected areas (and on the protected side of the Dog Fence) than outside of these areas, and comment on what this means about the limitations of our knowledge of dingoes**
 
 
