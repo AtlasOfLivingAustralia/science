@@ -1,0 +1,434 @@
+---
+title: "Analysing species observation numbers through time: area charts with *galah* and *ggplot2*"
+categories:
+  - Maps
+  - Eukaryota
+  - Animalia
+  - Chordata
+  - Aves
+output: 
+  distill::distill_article:
+    highlight: tango
+    toc: true
+    toc_float: true
+    toc_depth: 3
+format: 
+  html:
+    css: style.css
+    highlight-style: tango
+---
+<!------ Complete title, description, author and date for website metadata ------>
+
+<!-- load html package & get date -->
+```{r, include=FALSE}
+library(htmltools)
+date.func <- format(Sys.time(), '%d %B, %Y')
+```
+
+<!-- remove distill metadata section -->
+```{css, echo = FALSE}
+d-byline {
+    display: none;
+  }
+```
+
+<!-- Author card -->
+
+:::author-card
+:::float-image
+
+<!-- Author image --> 
+```{r, out.width='120px', out.extra='style="float:right; margin-left:15px; margin-right:50px; clip-path: circle();"', echo=FALSE}
+# add author first name at the end of this url (e.g., ".../people/martin.jpg")
+knitr::include_graphics(c("https://raw.githubusercontent.com/AtlasOfLivingAustralia/ala-labs/main/images/people/thai.jpg", "https://raw.githubusercontent.com/AtlasOfLivingAustralia/ala-labs/main/images/people/olivia.jpg"))
+```
+
+:::author-card-text
+<!-- Author name -->
+<h4 style = "margin-bottom:5px">Author:</h4>
+[Thai Rushbrook]()
+[Olivia Torresan](https://labs.ala.org.au/people/Torresan_Olivia/index.html)
+
+<!-- Date -->
+<h4 style = "margin-bottom:5px">Date:</h4>
+17 January, 2023
+:::
+
+:::
+:::
+
+<br>
+
+
+
+<!------ Post content starts here ------>
+
+
+
+------------------------------------------------------------------------ 
+Opportunistically collected species occurrence data (often citizen science data) tend to experience fluctuations in collection rates through time. They are influenced by a variety of external factors. Therefore, the collection rate is one variable to consider when investigating rises and falls in species occurrences data. Could the species be truly increasing or decreasing in population, or could it just be more or less sought after? Socio-political events (or even related health events, e.g. the COVID-19 pandemic) that impact accessibility to sites and data collection resources can also play a role here. 
+
+Melbourne (Australia) was a city to experience some of the longest enduring COVID-19 lockdown responses globally. In order to showcase the ability to investigate these factors' influence on species occurrence collection rates, we use {galah} and {ggplot} to investigate the question:
+
+**Are the number of ducks recorded in Melbourne significantly different in the COVID-19 lockdown periods of 2020-21 compared to 2017-19?**
+
+
+First, let's load the needed packages: 
+
+```{r}
+#| message: false
+#| warning: false
+#| error: false
+# Load packages
+library(galah)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(pilot) # remotes::install_github("olihawkins/pilot")
+library(showtext)
+```
+
+To do this, we break our data down into weekly occurrence records as this provides a fine level of detail without the extra noise of daily variation in the final product.
+
+
+## Step 1: Gathering data
+
+During the height of the pandemic, Melbourne had 6 distinct lockdowns. It's easiest to start by forming a table with the start and end date of each lockdown period so we can refer back to this periodically. We also add columns for the start and end date as a week of the year, which becomes helpful when plotting our data later.
+
+```{r}
+#| message: false
+Lockdown <- c(1:6) 
+Start <- c("2020-03-31",
+           "2020-07-09", 
+           "2021-02-13", 
+           "2021-05-28", 
+           "2021-07-16", 
+           "2021-08-05")  
+End <- c("2020-05-12",
+         "2020-10-27", 
+         "2021-02-17", 
+         "2021-06-10", 
+         "2021-07-27", 
+         "2021-10-21")
+
+Melb_dates <- data.frame(Lockdown, Start, End) 
+Melb_dates$Num_Days <- as.Date(as.character(Melb_dates$End), format="%Y-%m-%d")-
+  as.Date(as.character(Melb_dates$Start), format="%Y-%m-%d") 
+
+Melb_dates <- Melb_dates |> 
+  mutate(weekstart = week(Start)) |>  
+  mutate(weekend = week(End)) 
+
+Melb_dates 
+```
+
+We will need to filter to results from Melbourne only, from 2017-2021. Searching with `search_fields` in {galah}for a relevant term (e.g.‘city’) returns any matching fields. From there you can search for the correct value using the field ID returned (cl1092). 
+
+We also need to filter for human observations only, as the ALA also receives specimen data from institutions such as museums and other sources.
+
+
+We will use the {galah} package to download the observations of *Anatidae* across Australia:
+
+You will need to first provide a [registered email with the ALA](https://auth.ala.org.au/userdetails/registration/createAccount) using `galah_config()` before retrieving records.
+
+```{r}
+#| eval : false
+galah_config(email = "your-email@email.com", verbose = FALSE) 
+```
+
+```{r}
+#| echo : false
+#| message: false
+#| warning: false
+galah_config(email = "oliviajane.t@hotmail.com",
+             verbose = FALSE)
+```
+
+From here on we know we can filter for Melbourne results using ‘GREATER MELBOURNE’. We apply this when using `atlas_occurrences` to call ALA duck records matching our enquiry. The `galah_select` function can be used to only return the date of each record, as the other information stored in the ALA database is not relevant.
+
+```{r}
+#| message: false
+Ducksbyweek_data <- data.frame(
+  galah_call() |>                           
+    galah_identify("Anatidae") |>              
+    galah_filter(cl10929 == "GREATER MELBOURNE",
+                 eventDate >= "2017-01-01T00:00:00Z", 
+                 eventDate <= "2021-12-31T23:59:00Z",
+                 basisOfRecord == "HUMAN_OBSERVATION") |>  
+      galah_select(eventDate) |>
+    atlas_occurrences())
+Ducksbyweek_data |> head(6L)
+```
+
+This produces a data frame with a list of all occurrences. We need to combine these to produce a tally of occurrence records for each date.
+
+```{r}
+Ducksbyweek_table <- Ducksbyweek_data 
+
+Ducksbyweek_table$eventDate <-
+  as.Date(as.character(Ducksbyweek_table$eventDate),format="%Y-%m-%d") 
+
+Ducksbyweek_table <- Ducksbyweek_table |> 
+  count(eventDate)
+Ducksbyweek_table <- Ducksbyweek_table |> 
+  mutate(year = year(eventDate)) |> 
+  mutate(week = week(eventDate)) 
+
+colnames(Ducksbyweek_table) = c("date","count", "year", "week") 
+
+Ducksbyweek_table |> head(6L)
+```
+
+To get a fair representation of the differences for comparison, we need to scale the results for the total number of Atlas records each year. We are interested in **how occurrences changed between years**, without the influence of generally increasing popularity of the database over time.
+We can do this by looking at the number of duck occurrences as a proportion of overall records. For this, we need to create a data frame with the overall number of records in Melbourne each year for use in the next step.
+
+```{r}
+Allmelbrecords_data <- as.data.frame(
+  galah_call() |>                              
+    galah_filter(cl10929 == "GREATER MELBOURNE", year >= 2017, year <= 2021) |> 
+    galah_group_by(year) |>  
+    atlas_counts())
+
+Allmelbrecords_data <- Allmelbrecords_data |> arrange(desc(year)) 
+
+Allmelbrecords_data 
+```
+
+## Step 2: Organising data
+
+It's far easier to scale each value with everything organised into columns according to year. We can achieve this by using `pivot_wider`, and then scaling each column according to the corresponding value in the table of total records we just created. Counts are divided by their relative overall number of records and then multiplied by 100 to retrieve a proportionate value of overall records. They are then multiplied by 100 again to present percentage values.
+
+
+```{r}
+Ducksbyweek_scaled <- Ducksbyweek_table |>  pivot_wider(
+  names_from = year,  
+  values_from = count, 
+  names_sort = TRUE)  
+
+Ducksbyweek_scaled$"2017" = (Ducksbyweek_scaled$"2017"/Allmelbrecords_data[5,2])*100*100
+Ducksbyweek_scaled$"2018" = (Ducksbyweek_scaled$"2018"/Allmelbrecords_data[4,2])*100*100
+Ducksbyweek_scaled$"2019" = (Ducksbyweek_scaled$"2019"/Allmelbrecords_data[3,2])*100*100
+Ducksbyweek_scaled$"2020" = (Ducksbyweek_scaled$"2020"/Allmelbrecords_data[2,2])*100*100
+Ducksbyweek_scaled$"2021" = (Ducksbyweek_scaled$"2021"/Allmelbrecords_data[1,2])*100*100
+
+Ducksbyweek_scaled
+```
+
+Our data is now organised and appropriately scaled, however contains a number of 'NA' values which would make it extremely difficult to calculate the mean of 2017-19 counts later on. To remove these, we need to put the data frame back in it's original format using `pivot_longer`.
+
+```{r}
+Ducksbyweek_long <- Ducksbyweek_scaled |>
+  pivot_longer(cols=c("2017", "2018", "2019", "2020", "2021"), #Select columns to pivot
+  names_to = "year", #Columns names to go to new column titled 'year'
+  values_to = "count") #Values to go to new column titled 'count'
+Ducksbyweek_long <- na.omit(Ducksbyweek_long) #Remove entries with 'NA'
+
+Ducksbyweek_long |> head(6L)  #View first 6 results
+```
+
+As mentioned previously, we are interested in narrowing this down to the number of occurrences by week rather than daily. 
+
+```{r}
+#| message: false
+Ducksbyweek_grouped <- Ducksbyweek_long
+
+Ducksbyweek_grouped <- data.frame(Ducksbyweek_grouped |>
+   group_by(week,year) |> #Group by week and year
+   summarise(across(c(count), sum))) #Sum 'count' numbers in each group
+
+Ducksbyweek_grouped |> head(6L)  #View first 6 results
+```
+
+Now we can calculate the average (mean) weekly counts from 2017-19. We do this by using `pivot_wider` again, so that it's possible to calculate the mean across rows using `rowMeans`.
+
+```{r}
+Ducksbyweek_mean <- Ducksbyweek_grouped |> #Pivot wider again
+  pivot_wider(names_from = year, 
+              values_from = count, 
+              names_sort = TRUE)
+
+Ducksbyweek_mean$"2017_19_mean" = rowMeans(Ducksbyweek_mean[,2:4]) #Add row with 2017-19 average
+
+Ducksbyweek_mean #View results
+```
+
+Now we have our dataset, it needs a bit of reorganising to make it suitable for plotting. Counts are grouped by week of the year, meaning we have 2 sets of weeks 1-52 (one for 2020, one for 2021). To plot these in order along an axis we need to convert this to 1-53 for 2020, then 54-106 for 2021.
+
+```{r}
+Ducksbyweek_select <- Ducksbyweek_mean[,-c(2:4)] #Create a new data frame with relevant columns from previous (i.e. week, 2017-19 mean, 2020 and 2021 counts)
+
+Ducksbyweek_2020 <- Ducksbyweek_select[,-3]
+Ducksbyweek_2021 <- Ducksbyweek_select[,-2] #Separate 2020 and 2021 data
+
+Ducksbyweek_2021 <- as.data.frame(Ducksbyweek_2021) #Convert to data frame
+Ducksbyweek_2021$week <- c(54:106) #Change 'week' to 54-106
+rownames(Ducksbyweek_2021) <- c(54:106) #Change row names so when we combine data frames later, they appear after rows 1-53 (2020 data)
+
+colnames(Ducksbyweek_2020)[2] = "count"
+colnames(Ducksbyweek_2021)[2] = "count" #Change column names to 'count' so they match
+
+Ducksbyweek_plottingdata <- rbind(Ducksbyweek_2020,Ducksbyweek_2021) #Combine into one data frame, suitable for plotting
+
+Ducksbyweek_plottingdata   #View first 10 results
+```
+
+## Step 3: Plot!
+
+We'll be creating the foundation for our visual representation using {ggplot2}, then using the package `pilot` for a clean, minimalist style.
+
+Using {ggplot2}, we set the legend for our graph using `scale_fill_manual` and `scale_color_manual` to specify the colour of each variable, as well as set or remove legend titles.
+
+```{r}
+Ducksbyweek_pilot1 <- ggplot() +
+  scale_fill_manual(
+    values=c("Lockdown" = pilot_color("yellow")), #Lockdowns will be highlighted in yellow
+    name = NULL) + #Remove legend title for 'lockdown'
+  scale_color_manual(
+    values = c(pilot_color("orange"),pilot_color("blue")), #Set line colours as orange and blue
+    labels=c("2017-19 average", "2020-21 occurrences", #label lines appropriately
+    name = "Year")) + 
+   theme(axis.line = element_line(linewidth = 0.5)) +
+  theme(axis.text.x = element_text(size = 5)) +
+  theme(axis.text.y = element_text(size =5))
+         #(axis.text = "black"))
+Ducksbyweek_pilot1
+```
+
+After this, we add rectangles to our plotting area according to lockdown dates. When we use `alpha` to adjust the transparceny, these will appear to be highlighting the relevant points along the x axis.
+This is where we can use the table of lockdown dates we created initially. The starting point of the first rectangle (`xmin`) should be taken from the 'weekstart' column, and the end point (`xmax`) taken from the 'weekend' column. We set `ymax` as infinite (Inf) so the highlighted sections reach to the top of the graph. Repeat this for each of the 6 lockdowns.
+
+Note that for the first rectangle, we set `color` as "NA" to remove rectangle borders, and from there we can use `fill` to set the colour to yellow. `pilot_color` takes colours from the `pilot` package, keeping everything cohesive.
+
+```{r}
+Ducksbyweek_pilot2 <- Ducksbyweek_pilot1 +
+  geom_rect(aes(NULL,NULL, #No mapping or data frame required
+            xmin=13,xmax=19, #Take x values from start and end date in table of lockdown dates
+            fill="Lockdown"),
+            ymin=0,ymax=Inf, 
+            color= NA, #To remove the border
+            alpha=0.2) + #Adjust transparency
+  
+  geom_rect(aes(NULL,NULL,
+            xmin=28,xmax=43,
+            fill="Lockdown"),
+            ymin=0,ymax=Inf, 
+            fill=pilot_color("yellow"),
+            alpha=0.2) +
+
+#Repeat for each lockdown!
+  geom_rect(aes(NULL,NULL,xmin=60,xmax=60,fill="Lockdown"),
+            ymin=0,ymax=Inf, fill=pilot_color("yellow"), alpha=0.2)  +
+  geom_rect(aes(NULL,NULL,xmin=77,xmax=78,fill="Lockdown"),
+            ymin=0,ymax=Inf, fill=pilot_color("yellow"), alpha=0.2) +
+  geom_rect(aes(NULL,NULL,xmin=82,xmax=83,fill="Lockdown"),
+            ymin=0,ymax=Inf, fill=pilot_color("yellow"), alpha=0.2) +
+  geom_rect(aes(NULL,NULL,xmin=84,xmax=95,fill="Lockdown"),
+            ymin=0,ymax=Inf, fill=pilot_color("yellow"), alpha=0.2)
+```
+:::{.column-body-outset}
+```{r}
+#| warning: false
+Ducksbyweek_pilot2
+```
+:::
+
+Now we can add our lines over the highlight rectangles we created. We have already set colours for this previously, but we still need to specify the x and y variables from our dataset, and apply the colours we set earlier.
+We can fill the area under the 2020-21 occurence line using `geom_area`, with reduced transparency for clarity.
+
+```{r}
+#| warning: false
+Ducksbyweek_pilot3 <- Ducksbyweek_pilot2 +
+  geom_line(data = Ducksbyweek_plottingdata, 
+            aes(x = week, y = count, #Plot 2020-21 line using 'count' column
+            color = "2020-21 Records"), #Apply colours we set earlier 
+            linewidth=0.7) + #Set thickness of line
+  geom_line(data = Ducksbyweek_plottingdata, 
+            aes(x = week, y =  Ducksbyweek_plottingdata$"2017_19_mean", #Plot 2017-19 line using 'mean' column
+            color = "2017-19 Average"),
+            linetype = "twodash", #Set line style
+            linewidth=0.5) + 
+  geom_area(data = Ducksbyweek_plottingdata, #Fill area under the 2020-21 line
+            aes(x = week, y = count),
+            fill=pilot_color("blue"), 
+            alpha=0.3)
+```
+:::{.column-body-outset}
+```{r}
+#| warning: false
+Ducksbyweek_pilot3
+```
+:::
+
+It is possible to set all labels and titles using {ggplot2}, however setting the title and subtitle now will clash with the {pilot} package when we try and and apply this later. For now, we'll just set the axis labels and caption.
+
+We then set our axis limits. For the x axis, this is from 0 to 106 (number of rows of data). For the y axis, we want to start at 0 but we do not need an upper limit.
+
+```{r}
+library(grid)
+text_2020 <- textGrob("2020", gp=gpar(fontsize=5))
+text_2021 <- textGrob("2021", gp=gpar(fontsize=5))
+```
+
+
+```{r}
+#| warning: false
+Ducksbyweek_pilot4 <- Ducksbyweek_pilot3 +
+  labs(color= "Year",  #Set axis labels and caption
+       y = "Proportion of ducks recorded (%)",
+       x = "Year") +
+  scale_x_continuous(expand = c(0, 0), 
+                     limits = c(0, 106)) + 
+  scale_y_continuous(expand = c(0, 0), 
+                     limits = c(0, 22)) +
+  scale_x_continuous(limits = c(1, 106), 
+                     breaks = c(1, 12.5, 25, 37.5, 51, 64, 78, 87.5, 103), 
+                     labels = c("Jan", "April", "Jul", "Sep", "Jan", "April", "Jul", "Sep", "Jan")) + annotation_custom(text_2020, xmin=25,xmax=25, ymin=-3.7, ymax=-3.7) + 
+annotation_custom(text_2021, xmin=80,xmax=80,ymin=-3.7, ymax=-3.7) +
+coord_cartesian(clip = "off")
+```
+:::{.column-body-outset}
+```{r}
+#| warning: false
+Ducksbyweek_pilot4
+```
+:::
+
+To access more fonts, we can download from the Google Fonts library using the `{showtext}` package. 
+
+```{r}
+#| warning: false
+font_add_google("Montserrat", #Download font from Google fonts
+                family = "mont")  #Name font for later use
+font_add_google("Hind", 
+                family = "hind")  
+showtext_auto(enable = TRUE)  #Make 'font family' functions select from showtext package
+```
+
+This is where we add our title and subtitle using `add_pilot_titles`, as well as specify the downloaded font. In `theme_pilot`, we can specify design features such as grid lines, axes position, legend position, caption position and text size. `ggplot2` feature `theme` can be used to remove the y axis.
+
+```{r}
+#| warning: false
+Ducksbyweek_pilottitles <- add_pilot_titles(  #Add titles in pilot theme
+  Ducksbyweek_pilot4,
+  title = "Recorded Ducks in Melbourne (2020-21 vs. 2017-19)",
+  subtitle = "By week, with lockdowns highlighted in yellow - scaled for total Atlas records by year") +
+  theme_pilot(
+    grid = "", #No grid lines
+    axes = "bl",
+    legend_position = "right",
+    caption_position = "right",
+    title_size = 5, #Set label font sizes
+    subtitle_size = 10,
+    axis_title_size = 8,
+    axis_text_size = 50,
+    legend_title_size = 8,
+    legend_text_size = 8,
+    facet_title_size = 13,
+    caption_size = 10)
+```
+:::{.column-body-outset}
+```{r}
+#| warning: false
+Ducksbyweek_pilottitles
+```
+:::

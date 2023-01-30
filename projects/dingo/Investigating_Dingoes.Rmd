@@ -1,3 +1,9 @@
+---
+title: "An exploration of dingo observations in the ALA"
+author: "Amos Smith"
+output: html_document
+date: "2022-01-27"
+---
 
 Pest or Native species? This is an ongoing debate for our nationally treasured dingo with each state having different legislation whether it is protected or not. The dingo is under threat from human wildlife conflict around agriculture, habitat loss and breeding with domestic dogs losing its genetic 'purity'. From this, they are listed as Vulnerable to extinction under the International Union of Nature Conservation’s Red List of Threatened Species.
 
@@ -200,7 +206,7 @@ So lets do that!!
 
 Install the packages. 
 ```{r}
-install.packages(lubridate)
+
 library(galah)
 library(tidyverse)
 library(lubridate)
