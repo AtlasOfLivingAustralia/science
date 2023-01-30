@@ -259,8 +259,8 @@ SA_plot <- ggplot() +
                                guide_colorbar(
                                               title = ("Number of \nOverlapping observations"), 
                                               alpha = "none")) +
-  geom_sf(data = Dog_Fence, fill = "blue", linewidth = 2) +
-  coord_sf(xlim = c(128, 145), ylim = c(-40, -26)) + # filter to mainland australia+
+  geom_sf(data = Dog_Fence, color = "blue", linewidth = 2) +
+  coord_sf(xlim = c(128, 143), ylim = c(-40, -10)) + # filter to mainland australia+
   theme_bw() +
   theme(axis.text.x=element_text(angle = -90, hjust = 0), 
         panel.background = element_rect(fill = "white", size = 2), 
@@ -274,5 +274,19 @@ SA_plot <- ggplot() +
 
 ```{r}
 SA_plot
+```
+
+```{r}
+labelled_plot2 <- SA_plot +
+  ggnewscale::new_scale_color() +
+  scale_colour_manual(values = dingo_palette) +
+  labs(title = glue("<span style='color: {dingo_palette$Dingo}' >**Dingo**</span> <span style='color: {dingo_palette$observations}' >**observations**</span> in <br> Australian <span style='color:{dingo_palette$Protected}'>**Protected**</span> <span style='color:{dingo_palette$Areas}'>**Areas**</span> <br> in the Northern Territory and South Australia <br>", x = Latitude, y = Longitude)) +
+  theme(plot.title = element_markdown(face = "bold", size = 16, hjust = 0.5)) +
+  p + 
+  annotate(geom = "line", colour = "blue", size = 1) + 
+  annotate(geom = "text", label = "subaru", hjust = "left")
+
+```{r}
+labelled_plot2
 ```
 

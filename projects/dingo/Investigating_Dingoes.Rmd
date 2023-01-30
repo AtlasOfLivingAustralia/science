@@ -1,5 +1,12 @@
 
-Investigating species within the Atlas and understanding the factors that effect the data collection of a species can be key to better data collection of a species for future conservation. In this instance we are going to investigate the dingo which is distributed throughout Australia. 
+Pest or Native species? This is an ongoing debate for our nationally treasured dingo with each state having different legislation whether it is protected or not. The dingo is under threat from human wildlife conflict around agriculture, habitat loss and breeding with domestic dogs losing its genetic 'purity'. From this, they are listed as Vulnerable to extinction under the International Union of Nature Conservation’s Red List of Threatened Species.
+
+Dingoes have been heavily culled across Australia from broad - scale baiting and shooting programs because of the impact they have on the agricultural industry and are only found to be protected within reserves. Its estimated the impact they have on the industry cause 1900 sheep deaths annually. 
+
+From an ecological perspective, dingoes are crucial to regulating ecological cascades as an apex predator decreasing the abundance and impacts herbivores have by trampling on native vegetation. Also controls invasive mesopredator numbers like the red fox (Vulpus vulpes) and from this the loss of dingoes, has lead to widespread losses of small and medium -  sized native mammals and plant biomass. 
+
+Investigating species within the Atlas and understanding the factors that effect the data collection of a species can be key to better data collection of a species for future conservation. 
+
 
 First lets install the required packages.
 
@@ -18,7 +25,7 @@ Register email to the galah package.
 galah_config(email = "SMI9E9@csiro.au")
 ```
 
-We can now acquire the counts for the dingo by each state. Within the Atlas dingoes fall under the class canis familiaris which is also wild and domesticated dogs, therefore we had to filter records that were only recorded as dingoes. This can potentially mean that we have missing observations because data collectors did not specify that it was a dingo. 
+We can now acquire the counts for the dingo by each state. Within the Atlas dingoes fall under the class canis familiaris which is also wild and domesticated dogs, therefore we had to filter records that were only recorded as dingoes. This can potentially mean that we have missing observations because data collectors did not specify that it was a dingo even if it was. We also filter our records that have been verified by the ALA so we aren't getting unreliable observations. 
 
 ```{r}
 dingo_counts <- galah_call()|>
@@ -29,7 +36,7 @@ dingo_counts <- galah_call()|>
   atlas_counts()
 ```
 
-Arrange it in descending order. 
+Arrange the counts in descending order. 
 
 ```{r}
 dingo_counts|>
@@ -102,6 +109,8 @@ dingo_dataproviders_count |>
   arrange(desc(count))
 ```
 Here we can see that it is mainly state organisations recording the data, with 0 public/citizen recordings. If we want to visually see this on a map we can run the following code. 
+
+Citizen records can also be unreliable because they involve bias where alot recordings are usually around rivers, national parks and along roads, which doesn't truly represent the distribution of a species rather only where humans and dingoes both occur. 
 
 This will obtain the dingo occurrences rather than counts which is useful for mapping because they obtain longitudinal and latitudinal values. 
 
@@ -224,7 +233,10 @@ ggplot() +
 
 From this point, we have found our main data providers for the Atlas, which states in Australia have the highest counts and majority of records are recorded during winter. 
 
-- Why is it only state organisations are recording dingoes, why aren't they been recorded in other states and why are the records in the NT disproportionality higher? Could data collectors only like recording dingoes during the cooler times of the year, especially in the NT? As a conservationist these are important questions to be asking. - unsure about this paragraph. 
+Why is it only state organisations are recording dingoes, why aren't they been recorded in other states and why are the records in the NT disproportionality higher? One explanation could be that the public has no invested interest in recording dingos but would rather avoid the species. Each state also has different legislation on the dingo and some states may value this species more than others. For example, the Northern Territory is the only state in Australia that recognizes it as a protected species, however outside of protected areas permits can still be applied for to take or remove wildlife. In other states such as Western Australia, New South Wales it is declared a pest species. So now we start to see a correlation between states having it a protected species with the highest amount of observations verse states that have the lowest amount recognise it as a pest species. 
+
+
+...................................................................
 
 Each state has different legislation on the dingo. For example, in the Northern Territory it is the only state in Australia that recognizes it as a protected species, however outside of protected areas permits can still be applied for to take or remove wildlife. In other states such as Western Australia, New South Wales it is declared a pest species. In Queensland, it is declared an invasive animal outside of nationally protected areas, however inside these protected areas they are a protected species. Finally in South Australia,  Inside the Dog Fence wild dogs are declared for destruction under the Landscape South Australia Act 2019 (hereafter LSA Act). Outside the Dog Fence they are managed as unprotected native animals under the National Parks and Wildlife Act 1972 because they also have an important ecological role. - I'm guessing this is too lengthy??
 
