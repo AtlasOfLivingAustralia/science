@@ -146,6 +146,7 @@ dingo_dataproviders_count |>
   arrange(desc(count))
 ```
 **Remember, do your explaining of the things you want your readers to notice before they see the data**
+
  If we want to visually see this on a map we can run the following code. 
 
 
@@ -240,18 +241,15 @@ Barplot + Dataproviders +
               heights = c(2, 1))
 ```
 
-
-
-
 # When are observations recorded?
 **Use headings like the one above to split up your document into the 3 sections we had agreed on before. Rendering your document will help you see how these look**
 
-We can also investigate what months of the year are they been recorded and if there any patterns that can tell us about the biology of species of when they are most active or the bias in data collection when people like to go and record dingoes. With the Northern Territory and South Australia having the highest counts, it may also be good to break the times of year its recorded by the state. 
+**Add a little more info here. Because records are occurring in 2 states that have pretty extreme climate gradients, we thought it would be interesting to check whether there were differences in the time of year records were collected, which might be another important difference in the data in SA compared to NT**
 
-So lets do that!! **Add a little more info here. Because records are occurring in 2 states that have pretty extreme climate gradients, we thought it would be interesting to check whether there were differences in the time of year records were collected, which might be another important difference in the data in SA compared to NT**
+**Remember, this bit of code puts our dates into a more usable format and tells R the structure of our date. Then we use this correctly formatted date column to make a new column with the month that each observation was recorded. Work through these steps here before you run the code. I've combined the code below into a single chunk (rather than 3) because they are really for the same goal of making a bar plot**
 
 
-????**Remember, this bit of code puts our dates into a more usable format and tells R the structure of our date. Then we use this correctly formatted date column to make a new column with the month that each observation was recorded. Work through these steps here before you run the code. I've combined the code below into a single chunk (rather than 3) because they are really for the same goal of making a bar plot**
+We can also investigate what months of the year are they been recorded and if there any patterns that can tell us about the biology of species of when they are most active or the bias in data collection when people like to go and record dingoes. With the Northern Territory and South Australia having the highest counts, it may also be good to break the times of year its recorded by the state.
 
 ```{r}
 dingo <- galah_call() |>
@@ -337,15 +335,12 @@ In South Australia and the Northern Territory, majority of counts are been recor
 
 
 **Are there differences between the states or not? Why might there be differences if so? What does that mean dingo data? Are we biased to know where dingoes are at certain times of the year, and if so, is that because there are fewer dingoes at that time or because of our data collection? Do some research on this, and the answer may very well be both - there might be fewer dingoes, but we might not know to what extent because we don't collect as much data at certain times of the year to be certain.**
- 
-
  **I think there was more to this decision here, rather than it just being interesting. I thought it was because even in states where dingoes are protected, that dingoes weren't universally protected in all circumstances led you to think that maybe it would be interesting to know the proportion of records in protected areas compared to unprotected areas?**
-
-
-
-
 **Even though you are going to fold this code up, you should explain very basically what is happening below within the code, kinda like this (copy-paste the link in your browser):**
 https://labs.ala.org.au/posts/2022-07-22_sample-bias/#:~:text=Expand%20for%20code%20to%20create%20map
+
+
+
 
 Dingoes are the most protected within National Parks because of the permits that can be applied for to take or remove wildlife outside of these areas, therefore I decided to plot dingo observations over Nationally protected areas as well as the dingo fence within South Australia to see if there is any correlation between the legislation in these areas and the occurrence of dingoes. This is point density map which shows overlapping observations. 
 
