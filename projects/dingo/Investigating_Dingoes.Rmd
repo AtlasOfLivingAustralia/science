@@ -145,7 +145,7 @@ Here we can see that it is mainly state organisations recording the data, with 0
 dingo_dataproviders_count |>
   arrange(desc(count))
 ```
-**Remember, do your explaining of the things you want your readers to notice before they see the data**
+
 
  If we want to visually see this on a map we can run the following code. 
 
@@ -242,11 +242,6 @@ Barplot + Dataproviders +
 ```
 
 # When are observations recorded?
-**Use headings like the one above to split up your document into the 3 sections we had agreed on before. Rendering your document will help you see how these look**
-
-**Add a little more info here. Because records are occurring in 2 states that have pretty extreme climate gradients, we thought it would be interesting to check whether there were differences in the time of year records were collected, which might be another important difference in the data in SA compared to NT**
-
-**Remember, this bit of code puts our dates into a more usable format and tells R the structure of our date. Then we use this correctly formatted date column to make a new column with the month that each observation was recorded. Work through these steps here before you run the code. I've combined the code below into a single chunk (rather than 3) because they are really for the same goal of making a bar plot**
 
 
 We can also investigate what months of the year are they been recorded and if there any patterns that can tell us about the biology of species of when they are most active or the bias in data collection when people like to go and record dingoes. With the Northern Territory and South Australia having the highest counts, it may also be good to break the times of year its recorded by the state.
@@ -334,13 +329,6 @@ SA + NT
 In South Australia and the Northern Territory, majority of counts are been recorded during winter, this is telling us that either dingoes are more active during winter or data collectors prefer surveying during cooler times of the year. Research has shown that dingoes studies in the Northern Territory, energy expenditure was significantly lower during summer with 91% of their day was spent stationary in comparison to 46% in Winter. This was measured through tri-axial accelerometry and using GPS data. 
 
 
-**Are there differences between the states or not? Why might there be differences if so? What does that mean dingo data? Are we biased to know where dingoes are at certain times of the year, and if so, is that because there are fewer dingoes at that time or because of our data collection? Do some research on this, and the answer may very well be both - there might be fewer dingoes, but we might not know to what extent because we don't collect as much data at certain times of the year to be certain.**
- **I think there was more to this decision here, rather than it just being interesting. I thought it was because even in states where dingoes are protected, that dingoes weren't universally protected in all circumstances led you to think that maybe it would be interesting to know the proportion of records in protected areas compared to unprotected areas?**
-**Even though you are going to fold this code up, you should explain very basically what is happening below within the code, kinda like this (copy-paste the link in your browser):**
-https://labs.ala.org.au/posts/2022-07-22_sample-bias/#:~:text=Expand%20for%20code%20to%20create%20map
-
-
-
 
 Dingoes are the most protected within National Parks because of the permits that can be applied for to take or remove wildlife outside of these areas, therefore I decided to plot dingo observations over Nationally protected areas as well as the dingo fence within South Australia to see if there is any correlation between the legislation in these areas and the occurrence of dingoes. This is point density map which shows overlapping observations. 
 
@@ -418,7 +406,50 @@ dingo_records <- dingo_records |>
 ```
 
 ```{r}
-NTSA_plot <- ggplot() +
+NT_plot <- ggplot() +
+  geom_sf(data = ozmap_states, 
+          fill = "beige", colour = "black", linewidth = 0.3) +
+  geom_sf(data = capad, fill = "#00A600FF", colour = "black", linewidth = 0.25, alpha = 0.3, linetype = "dashed") +
+  geom_pointdensity(data = dingo_records, size = 0.7, alpha = 0.35,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude)) +
+  viridis::scale_color_viridis(option = "B", 
+                              begin = 0.1, 
+                             guide_colorbar( 
+                                            title = ("Number of \nOverlapping observations"), 
+                                            alpha = "none")) +
+  geom_sf(data = Dog_Fence, color = "blue", linewidth = 1) +
+  coord_sf(xlim = c(128, 139), ylim = c(-26, -10)) + # filter to mainland australia+
+  theme_bw() +
+  theme(axis.text.x=element_text(angle = -90, hjust = 0), 
+        panel.background = element_rect(fill = "white", size = 2), 
+        panel.grid.major = element_line(colour = NA),
+        legend.position = "bottom",
+        axis.ticks = element_line(colour = "grey70", size = 0.2),
+        axis.title.y = element_text(size = 12),
+        axis.title.x = element_text(size = 12)) 
+```
+
+```{r}
+NT_plot
+```
+
+```{r}
+NT_plot <- NT_plot +
+ ggnewscale::new_scale_color() +
+ scale_colour_manual(values = dingo_palette) +
+  labs(title = glue("Dingo observations in <br> Australian <span style='color:{dingo_palette$Protected}'>**Protected**</span> <span style='color:{dingo_palette$Areas}'>**Areas**</span> <br> in the Northern Territory <br>")) +
+ theme(plot.title = element_markdown(face = "bold", size = 16, hjust = 0.5)) +
+annotate(geom = "line", colour = "blue", linewidth = 1) +        
+ annotate(geom = "text", label = "Dingo Fence", hjust = "left") +#couldnt get the annotation to work 
+  labs(y = "Latitude", x = "Longitude") 
+```
+
+```{r}
+NT_plot
+```
+```{r}
+SA_plot <- ggplot() +
   geom_sf(data = ozmap_states, 
           fill = "beige", colour = "black", linewidth = 0.3) +
   geom_sf(data = capad, fill = "#00A600FF", colour = "black", linewidth = 0.25, alpha = 0.3, linetype = "dashed") +
@@ -431,7 +462,7 @@ NTSA_plot <- ggplot() +
                                               title = ("Number of \nOverlapping observations"), 
                                               alpha = "none")) +
   geom_sf(data = Dog_Fence, color = "blue", linewidth = 1) +
-  coord_sf(xlim = c(128, 143), ylim = c(-40, -10)) + # filter to mainland australia+
+  coord_sf(xlim = c(128, 141), ylim = c(-26, -40)) + # filter to mainland australia+
   theme_bw() +
   theme(axis.text.x=element_text(angle = -90, hjust = 0), 
         panel.background = element_rect(fill = "white", size = 2), 
@@ -443,31 +474,27 @@ NTSA_plot <- ggplot() +
 ```
 
 ```{r}
-NTSA_plot
+SA_plot
 ```
 
 ```{r}
-labelled_plot2 <- NTSA_plot +
+SA_plot2 <- SA_plot +
   ggnewscale::new_scale_color() +
   scale_colour_manual(values = dingo_palette) +
-  labs(title = glue("<span style='color: {dingo_palette$Dingo}' >**Dingo**</span> <span style='color: {dingo_palette$observations}' >**observations**</span> in <br> Australian <span style='color:{dingo_palette$Protected}'>**Protected**</span> <span style='color:{dingo_palette$Areas}'>**Areas**</span> <br> in the Northern Territory and South Australia <br>")) +
+  labs(title = glue("Dingo observations in <br> Australian <span style='color:{dingo_palette$Protected}'>**Protected**</span> <span style='color:{dingo_palette$Areas}'>**Areas**</span> <br> in South Australia <br>")) +
   theme(plot.title = element_markdown(face = "bold", size = 16, hjust = 0.5)) +
   annotate(geom = "line", colour = "blue", linewidth = 1) +        
-  annotate(geom = "text", label = "Dingo Fence", hjust = "left") +#couldnt get the annotation to work 
+  annotate(geom = "text", label = "Dingo Fence", hjust = "left") + #couldnt get the annotation to work 
   labs(y = "Latitude", x = "Longitude")
 ```
-
+ 
 ```{r}
-labelled_plot2
+SA_plot2
 ```
-
-
- **I think you need to try to answer this question based on these maps. I think just comment on how you can see many more records in protected areas (and on the protected side of the Dog Fence) than outside of these areas, and comment on what this means about the limitations of our knowledge of dingoes**
 
 In this map, it is visually quite obvious especially in the Northern Territory that majority of the counts fall within the Nationally protected areas. In South Australia, it is also clear dingoes are only been recorded on one side of the fence where they remain an unprotected native species. Therefore, we can see there is correlation between legislation effecting the data collection and the occurence of a species. 
 
-In conclusion, dingoes are ecologically important playing an important role as apex predators, regulating ecological cascades. The impact they have on the sheep industry is recognised, however because of their ecological importance we need to find a balance in keeping this species protected in areas for maintaining healthy ecosystems, where native small mammals can persist.
-
+In conclusion, dingoes are ecologically important playing an important role as apex predators, regulating ecological cascades. The impact they have on the sheep industry is recognised, however because of their ecological importance we need to find a balance in keeping this species protected in areas for maintaining healthy ecosystems, where native small mammals can persist. The data collection of a species becomes more valuable when there public invested interest and we see this a species we want to protect. Just relying on state organisation to record dingo observations limits our knowledge on the distribution of the dingo in Australia and where they actually are now. 
 
 
 
