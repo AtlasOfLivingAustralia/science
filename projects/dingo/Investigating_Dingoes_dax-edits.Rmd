@@ -262,7 +262,7 @@ From this point, we have found our main data providers for the Atlas, which stat
 
 Why is it only state organisations are recording dingoes, why aren't they been recorded in other states and why are the records in the NT disproportionality higher? One explanation could be that the public has no invested interest in recording dingos but would rather avoid the species. **hmm, maybe the tone isn't quite here because it's difficult to make that assumption about people, but I get your meaning. Maybe the idea is that certain state/territory decisions about dingo conservation status has had repercussions on their data collection?**  
 
-Attitudes towards dingoes and their conservation vary between states/territores, with each possessing different legislation on dingoes. For example, the Northern Territory is the only state in Australia that recognizes dingoes as a protected species. However, outside of protected areas the Northen Territory still allows people to apply for permits to take or remove wildlife. In other states such as Western Australia, New South Wales dingoes are declared a pest species. **What about SA?** These differences in legislation between states might help to explain why the highest numbers of observations are in states and territories that recognise dingoes as protected. 
+ 
 
 
 ...................................................................

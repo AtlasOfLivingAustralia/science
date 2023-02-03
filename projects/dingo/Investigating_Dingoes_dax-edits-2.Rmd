@@ -8,13 +8,13 @@ output:
     highlight: tango
 ---
 
-Internationally, the dingo is one of Australia's most recognised species. However, debate continues nationally of whether dingoes are considered native or invasive. Whether dingoes are considered invasive or not has had dramatic effects on the management of dingo populations across Australia. 
+Internationally, the dingo is one of Australia's most recognised species. However, debate continues nationally of whether dingoes are considered a protected native species or a pest. Whether dingoes are considered pest or not has had dramatic effects on the management of dingo populations across Australia. 
 
-Dingoes have had a major negative impact on the agricultural industry, estimated to account for 1,900 sheep deaths annually. As a result, some dingo populations have been controlled using baiting and shooting programs. Thanks to control programs, along with additional threats of habitat loss, dingo populations have diminished*it would be good to have a link or citation here*.
+Dingoes have had a major impact on the agricultural industry, causing stock losses and effecting farmers welfare. As a result, dingo populations have been controlled by baiting, shooting other techniques. The annual cost of this between landowners and the government is $30 million annually across Australia. 
+
+Thanks to control programs, along with additional threats of habitat loss, dingo populations have diminished and are currently listed as Vulnerable to extinction under the International Union of Nature Conservation’s Red List of Threatened Species.*it would be good to have a link or citation here*.
 
 One of the more dramatic examples of dingo population control is South Australia's Dingo Fence. Purposed to protect from the loss of sheep for the sheep industry, the Dingo Fence is the longest fence in the world (5,614 km). Unintentionally, the Dingo Fence showed the importance of dingoes in ecosystems - on the side where dingoes remained present, there is more vegetation cover than on the side where dingoes were made absent for over 80 years. The side with dingoes also has fewer kangaroos and greater biodiversity than the side without (*can you supply a link to back this up*). The difference between sides is so distinct that you can even see if from space: https://youtu.be/ivmQk5EsScw. 
-
-As a result, dingoes are currently listed as Vulnerable to extinction under the International Union of Nature Conservation’s Red List of Threatened Species.
 
 Research has supported that dingoes are key contributors to healthy Australian ecosystems (*citations*). As an apex predator, dingoes control the abundance of herbivores. With fewer herbivores in an area, there is less risk impact from their trampling and over-consumption of vegetation, allowing native plants to grow. Dingoes help maintain populations of smaller native mammals and marsupials as well by controlling the populations of their predators, like the red fox (Vulpus vulpes). As a result, areas with dingoes, have larger populations of native mammals/marsupials and greater plant biomass than areas without dingoes (*citations*).*I know that there is research on this. Maybe kieth leggett has a few papers? Check google scholar, the Conversation, or even the ABC and see what you can find* 
 

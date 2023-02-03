@@ -8,20 +8,27 @@ output:
     highlight: tango
 ---
 
-Pest or Native species? This is an ongoing debate for our nationally treasured dingo with each state having different legislation whether it is protected or not. The dingo is under threat from human wildlife conflict around agriculture, habitat loss and breeding with domestic dogs losing its genetic 'purity'. From this, they are listed as Vulnerable to extinction under the International Union of Nature Conservation's Red List of Threatened Species.
 
-Dingoes have been heavily culled across Australia from broad - scale baiting and shooting programs because of the impact they have on the agricultural industry and are only found to be protected within reserves. Its estimated the impact they have on the industry cause 1900 sheep deaths annually.
+# Investigating Dingo data within the ALA
 
-From an ecological perspective, dingoes are crucial to regulating ecological cascades as an apex predator decreasing the abundance and impacts herbivores have by trampling on native vegetation. Also controls invasive mesopredator numbers like the red fox (Vulpus vulpes) and from this the loss of dingoes, has lead to widespread losses of small and medium - sized native mammals and plant biomass.
+Internationally, the dingo is one of Australia's most recognised species. However, the debate continues in Australia whether dingoes are considered a protected native species or a pest. The legislation that has been put forward on dingoes has had dramatic effects on the management of dingo populations across Australia and its distribution.
 
-In South Australia, the dingo fence is the longest fence in the world, purposed to keep dingoes on one side and exterminated on the other because of the impacts it has on the sheep industry. This turned to be a natural experiment showing the removal of apex predators transformed an entire ecosystem and could be visually seen from space. On the side where dingoes remain present, there is more mammals, natural vegetation cover from less kangaroos and overall greater biodiversity. On the other side where dingoes have not been present for over 80 years in the region, there is more red foxes, feral cats and kangaroos which has denuded the natural vegetation. Too visually see this from space see here: <https://youtu.be/ivmQk5EsScw>.
+Dingoes have a major impact on the agricultural industry, causing stock losses and effecting farmers welfare. As a result, dingo populations have been controlled by baiting, shooting and other techniques. The annual cost of this between landowners and the government is \$30 million annually across Australia.
 
-Investigating species within the Atlas and understanding the factors that effect the data collection of a species can be key to better data collection of a species for future conservation, therefore we are going to investigate the dingo.
+Thanks to control programs, along with additional threats of habitat loss, dingo populations have diminished and are currently listed as Vulnerable to extinction under the International Union of Nature Conservation's Red List of Threatened Species. [Bush Heritage Australia](https://www.bushheritage.org.au/species/dingoes).
 
-First lets install the required packages.
+One of the more dramatic examples of dingo population control is South Australia's Dingo Fence. Purposed to protect from the loss of sheep for the sheep industry, the Dingo Fence is the longest fence in the world (5,614 km). Unintentionally, the Dingo Fence showed the importance of dingoes in ecosystems - on the side where dingoes remained present, there is more vegetation cover than on the side where dingoes were made absent for over 80 years. The side with dingoes also has fewer kangaroos and greater biodiversity than the side without. For further reading see here: [Remote sensing of trophic cascades: multi‐temporal landsat imagery reveals vegetation change driven by the removal of an apex predator](https://link.springer.com/article/10.1007/s10980-021-01206-w). The difference between sides is so distinct that you can even see it from space: [Click here](https://youtu.be/ivmQk5EsScw).
+
+Research has supported that dingoes are key contributors to healthy Australian ecosystems. [Top predators as biodiversity regulators: the dingo Canis lupus dingo as a case study](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1469-185X.2011.00203.x). As an apex predator, dingoes control the abundance of herbivores. With fewer herbivores in an area such as the kangaroo, there is less risk impact from their trampling and over-consumption of vegetation, allowing native plants to grow. Dingoes help maintain populations of smaller native mammals and marsupials as well by controlling the populations of their predators, like the red fox (Vulpus vulpes). From this, areas with dingoes, have larger populations of native mammals/marsupials and greater plant biomass than areas without dingoes. [Australias Wild Oddessy: Series 1; following the rain. Forward to 49 minutes](https://iview.abc.net.au/video/DO2104H002S00).
+
+In this article, we investigate observations of dingoes within the Atlas of Living Australia (ALA) to understand how historical and current differences in attitudes towards dingo conservation affects their data.
+
+## Download data
+
+First let's install the required packages.
+
 
 ```{r}
-#| eval: false
 library(galah)
 library(tidyverse)
 library(ozmaps)
@@ -34,32 +41,35 @@ library(rmapshaper)
 library(ggpointdensity)
 library(glue)
 library(ggtext)
+
 ```
 
-First we should know how many counts are within the Atlas.
+
+## Which states have the highest counts of dingoes?
+
+First let's find how many dingo observations there are in the ALA.
+
 
 ```{r}
-count <- galah_call()|>
+galah_call()|>
   galah_identify("canis familiaris")|>
   galah_filter(raw_vernacularName == "Dingo")|>
   galah_apply_profile(ALA)|>
   atlas_counts()
-count
 ```
 
-Register email to the galah package.
 
-```{r}
-#| eval: false
-galah_config(email = "SMI9E9@csiro.au")
+Next, we can get the number of observations by each state. Within the Atlas dingoes fall under the class **Canis familiaris** which is also the taxonomic name of wild and domesticated dogs. Hence, we have to filter records that were only recorded with the name "Dingo".
+
+This can potentially mean that we have missing observations because data collectors may not always specify the name "Dingo", even when it was. We'll also add an ALA "profile", a set of data quality filters by the ALA to remove unreliable observations.
+
+
+```{r, echo = FALSE}
+# Use a ALA-registered email (register at ala.org.au)
+galah_config(email = "SMI9E9@csiro.au", verbose = FALSE)
 ```
 
-#Which states have the highest counts of dingoes?
-
-We can now acquire the counts for the dingo by each state. Within the Atlas dingoes fall under the class canis familiaris which is also wild and domesticated dogs, therefore we had to filter records that were only recorded as dingoes. This can potentially mean that we have missing observations because data collectors did not specify that it was a dingo even if it was. We also filter our records that have been verified by the ALA so we aren't getting unreliable observations.
-
 ```{r}
-#| eval: false
 dingo_counts <- galah_call()|>
   galah_identify("canis familiaris")|>
   galah_filter(raw_vernacularName == "Dingo")|>
@@ -68,43 +78,52 @@ dingo_counts <- galah_call()|>
   atlas_counts()
 ```
 
-Arrange the counts in descending order.
+
+We'll arrange the counts in descending order.
+
 
 ```{r}
 dingo_counts |>
   arrange(desc(count))
 ```
 
-From this information it is obvious that the Northern Territory and South Australia hold the highest counts where in some states have very minimal observations. If we want to visually see this on a chloropleth map we will run the following code.
 
-This gives us our base map of Australia.
+Here we can see the Northern Territory and South Australia hold the highest number of observations where in some states have very limited observations.
+
+Let's see this visually on a choropleth map.
+
+We'll start by getting our base map of Australia.
+
 
 ```{r}
-#| eval: false
 aus <- ozmap_data(data = "states")
 ```
 
+
 Join the counts by state to our base map.
 
+
 ```{r}
-#| eval: false
 state_counts <- aus %>%
   full_join(dingo_counts, by = c("NAME" = "cl22"))
 ```
 
-Log the counts by 10 to create a smoother distribution of the data by states. This will categorize it into counts by 10,100 and 1000.
+
+Here we log-transform which standardises the data when there very low numbers and very high numbers (and not much in-between), that you want to analyse or visualise
+
 
 ```{r}
-#| eval: false
 logged_counts <- state_counts |>
   mutate(log = log10(count))|>
   replace_na(list(log = 0))
 ```
 
-We can plot our chloropleth map.
+
+We can plot our choropleth map.
+
 
 ```{r}
-Chloropleth_map <- ggplot() +
+choropleth_map <- ggplot() +
   geom_sf(data = logged_counts,
           mapping = aes(fill = log,)) +
    scale_fill_distiller(palette = "OrRd",
@@ -124,67 +143,58 @@ Chloropleth_map <- ggplot() +
    theme(legend.position = "bottom", legend.key.width = unit(12, 'mm')) +
     labs(x = "Longitude", y = "Latitude")
 
-Chloropleth_map
+choropleth_map
 ```
 
-#Who are our main data providers?
 
-Why is it that majority of dingo observations are only occurring in the Northern Territory in comparison to Western Australia? We know that dingoes do occur in Western Australia but are not recorded into the Atlas. To understand who is currently recording them, we decided to break down our top data providers of the dingo into the atlas. This may give an idea of the absence of data of who could be recording dingoes but isn't.
+## Who are the main data providers?
+
+Why is it that majority of dingo observations are in the Northern Territory? Are people seeing them mainly in the Northern Territory, or are there some data providers that provide more records of dingo observations than others?
+
+To understand who is currently recording dingoes, we decided to break down our top data providers of the dingo into the atlas. This may give us an idea of the absence of data of who could be recording dingoes but isn't.
+
+So, let's see this visually on a map. To do so, we can run the following code to download dingo occurrences.
+
+To view only the main data providers, we'll filter to only providers that have provided more than 5 observations of dingoes
+
 
 ```{r}
-#| eval: false
 dingo_dataproviders_count <- galah_call()|>
   galah_identify("canis familiaris")|>
   galah_filter(raw_vernacularName == "Dingo")|>
   galah_group_by(dataResourceName)|>
   galah_apply_profile(ALA)|>
   atlas_counts()
+
+counts_fitered <- dingo_dataproviders_count |>
+  filter(count > 5)
 ```
 
-Arrange it in descending order.
 
-Here we can see that it is mainly state organisations recording the data, with 0 public/citizen recordings. With 0 public records it limits the ability to span our knowledge of its distribution from incidental records that can be in areas where state organisations aren't surveying for dingoes. For instance in WA, there is little observations on dingoes, citizen science can then become very valuable where its filling in those gaps that state organisations aren't able to cover for a certain species. Yes, it will have some bias to the data but in the long run we are still getting a better idea of where they are occurring.
+Now we'll filter our `data.frame` with occurrences so that only the observations from each data provider with greater than 5 observations (saved in `counts_filtered`) are returned.
 
-```{r}
-dingo_dataproviders_count |>
-  arrange(desc(count))
-```
-
-If we want to visually see this on a map we can run the following code.
-
-This will obtain the dingo occurrences rather than counts which is useful for mapping because they obtain longitudinal and latitudinal values.
 
 ```{r}
-#| eval: false
 dingoocc_dataproviders <- galah_call()|>
   galah_identify("canis familiaris")|>
   galah_filter(raw_vernacularName == "Dingo")|>
   galah_group_by(dataResourceName)|>
   galah_apply_profile(ALA)|>
   atlas_occurrences()
-```
 
-To view the main data providers, we'll filter to only providers that have provided more than 5 observations of dingoes
-
-```{r}
-#| eval: false
-counts_fitered <- dingo_dataproviders_count |>
-  filter(count > 5)
-```
-
-This filters our data frame with occurrences so that only the observations from each data provider with greater than 5 observations (in our `counts_filtered` data frame) are returned
-
-```{r}
-#| eval: false
 points_fitered <- dingoocc_dataproviders |>
   filter(dataResourceName %in% counts_fitered$dataResourceName)
 ```
 
+
 Now we can plot
 
-From this point, we have found our main data providers for the Atlas, which states in Australia have the highest counts and majority of records are recorded during winter. There are only 4 main data providers all state organisations that account for 98.5% of records and two of them are from the Northern Territory. The Northern Territory counts accounts for 56% of dingo records in contrast to Western Australia, Victoria, Australian Capital Territory and Queensland collectively accounting for only 5% of records. This is a heavily skewed distribution and could be explained by the legislation each state holds around dingoes.
+Here, we find that it is state organisations recording dingo data, with 0 public/citizen recordings from popular apps like iNaturalist. With mainly government monitoring programs providing dingo observations, our knowledge of dingo's true distribution depends a lot on differences between state organisations and their willingness to survey for dingoes.
 
-Attitudes towards dingoes and their conservation status vary between states/territores. For example, the Northern Territory is the only state in Australia that recognizes dingoes as a protected species, however permits can still be applied for to take or remove wildlife. In other states such as Western Australia, New South Wales, Queensland and South Australia inside the dog fence dingoes are declared a pest species. Outside the Dog Fence they are managed as unprotected native animals under the National Parks and Wildlife Act 1972 because they also have an important ecological role. These differences in legislation between states might help to explain why the highest numbers of observations are in states and territories that recognize dingoes as protected.
+This should be a highlited in the article as a special quote. ***For instance, in areas where there are few observations of dingoes, citizen science can then be valuable to fill gaps that state organisations aren't currently recording data. As a result, incidental dingo observations from citizen scientists could improve our overall knowledge of dingo distributions across Australia*** There are only 4 data providers all state organisations that account for 98.5% of records and two of them are within the Northern Territory. The Northern Territory accounts for 56% of all dingo records. In contrast, Western Australia, Victoria, Australian Capital Territory and Queensland combined account for only 5% of records.
+
+It's possible that varying attitudes towards dingoes and their conservation status between states/territories affect the amount of data recorded of dingo observations. For example, the Northern Territory is the only state in Australia that recognizes dingoes as a protected species which also has the highest amount of observations. In other states such as Western Australia, New South Wales, Queensland and South Australia inside the dog fence dingoes are declared a pest species. Outside the Dog Fence they are managed as unprotected native animals under the National Parks and Wildlife Act 1972. These differences in legislation between states might help to explain why the highest numbers of observations are in areas that recognize dingoes as protected.
+
 
 ```{r}
 Dataproviders <- ggplot() +
@@ -244,11 +254,15 @@ Barplot + Dataproviders +
               heights = c(2, 1))
 ```
 
-# When are observations recorded?
 
-We can also investigate what months of the year are they been recorded and if there any patterns that can tell us about the biology of species of when they are most active or the bias in data collection when people like to go and record dingoes. With the Northern Territory and South Australia having the highest counts, it may also be good to break the times of year its recorded by the state.
+##What times of the year are they been recorded?
 
-```{r}
+Investigating what months of the year are they been recorded can show patterns that can be linked to the biology of a species like when they are most active. It can also show the bias in data collection when people like to go and record dingoes. From dingo observations been mainly in 2 states, this may also affect the times when data on dingoes is collected.
+
+I think this code should be zipped up as well.
+
+
+```{r, eval = FALSE }
 dingo <- galah_call() |>
   galah_identify("canis familiaris") |>
   galah_filter(raw_vernacularName == "Dingo") |>
@@ -295,8 +309,9 @@ month_counts_NT <- dingo_dates_NT |>
 NT <- ggplot() +
   geom_bar(data = month_counts_NT,
            mapping = aes(x = month, y = n),
-           stat = "identity")
-
+           stat = "identity", fill = "darkorange") +
+    labs(title = "Northern Territory", x = "Month", y = "No. of observations") +
+  theme_bw()
 
 
 dingo_SA <- galah_call() |>
@@ -320,21 +335,37 @@ month_counts_SA <- dingo_dates_SA |>
 SA <- ggplot() +
   geom_bar(data = month_counts_SA,
            mapping = aes(x = month, y = n),
-           stat = "identity")
+           stat = "identity", fill = "darkturquoise") +
+  labs(title = "South Australia", x = "Month", y = "No. of observations") +
+  theme_bw()
 ```
 
 ```{r}
 SA + NT
 ```
 
-In South Australia and the Northern Territory, majority of counts are been recorded during winter, this is telling us that either dingoes are more active during winter or data collectors prefer surveying during cooler times of the year. Research has shown that dingoes studies in the Northern Territory, energy expenditure was significantly lower during summer with 91% of their day was spent stationary in comparison to 46% in Winter. This was measured through tri-axial accelerometry and using GPS data.
 
-Dingoes are the most protected within National Parks because of the permits that can be applied for to take or remove wildlife outside of these areas, therefore I decided to plot dingo observations over Nationally protected areas as well as the dingo fence within South Australia to see if there is any correlation between the legislation in these areas and the occurrence of dingoes. This is point density map which shows overlapping observations.
+From this point, we have found our main data providers for the Atlas, which states in Australia have the highest counts and majority of records are recorded during winter.
+
+Our barplots show that the majority of observations of dingoes are been recorded during winter. Does this reflect that dingoes are more active during winter, or are data collectors surveying during cooler times of the year?
+
+One research study might provide us a clue. Researchers tracked dingoes through summer and winter months using tri-axial accelerometry and GPS data. They found that dingoes studies in the Northern Territory, energy expenditure was significantly lower during summer with 91% of their day was spent stationary in comparison to 46% in Winter. [Accelerometer informed time-energy budgets reveal the importance of temperature to the activity of a wild, arid zone canid](https://movementecologyjournal.biomedcentral.com/articles/10.1186/s40462-021-00246-w).
+
+## Dingo observations in Protected Areas
+
+Dingoes are most protected within National Parks because of the permits that can be applied for to take or remove wildlife outside of these areas. Does this mean more dingo observations are recorded in protected areas than outside of them, and by how much?
+
+To answer this, I decided to plot dingo observations over Nationally protected areas. I also decided to map where Dingo Fence is within South Australia to see how noticeable differences in dingo observations are inside and outside of the dingo fence.
+
+Below is a point density map which shows the density of overlapping observations in the Northern Territory and South Australia. The Dingo Fence in South Australia is in blue.
+
+*I've had trouble zipping the code*
 
 Expand code here:
 
+
 ```{r}
-#| eval: false
+#| code-fold: true
 capad <- st_read(here("/Users",
                       "smi9e9",
                       "Documents",
@@ -346,14 +377,12 @@ capad <- st_read(here("/Users",
 ```
 
 ```{r}
-#| eval: false
 capad <- capad |>
   st_transform(crs = st_crs("WGS84")) |>
   st_make_valid()
 ```
 
 ```{r}
-#| eval: false
 Dog_Fence <- st_read(here("/Users",
                       "smi9e9",
                       "Documents",
@@ -365,19 +394,16 @@ Dog_Fence <- st_read(here("/Users",
 ```
 
 ```{r}
-#| eval: false
 Dog_Fence <- Dog_Fence |>
   st_transform(crs = st_crs("WGS84")) |>
   st_make_valid()
 ```
 
 ```{r}
-#| eval: false
 galah_config(email = "SMI9E9@csiro.au", verbose = FALSE)
 ```
 
 ```{r}
-#| eval: false
 dingoocc <- galah_call() |>
   galah_identify("canis familiaris") |>
   galah_filter(raw_vernacularName == "Dingo") |>
@@ -387,7 +413,6 @@ dingoocc <- galah_call() |>
 ```
 
 ```{r}
-#| eval: false
 dingo_palette <- list(
                       "Protected" = "#00A600FF",
                       "Areas" = "#00A600FF",
@@ -396,7 +421,6 @@ dingo_palette <- list(
 ```
 
 ```{r}
-#| eval: false
 dingo_records <- galah_call() |>
   galah_identify("canis familiaris") |>
   galah_filter(raw_vernacularName == "Dingo")|>
@@ -404,10 +428,9 @@ dingo_records <- galah_call() |>
 ```
 
 ```{r}
-#| eval: false
 dingo_records <- dingo_records |>
-  drop_na() |>                      # drop NAs
-  filter(decimalLongitude < 155,    # filter records to only mainland/tasmania
+  drop_na() |>                      
+  filter(decimalLongitude < 155,    
          decimalLongitude > 110, 
          decimalLatitude > -45,
          decimalLatitude < -10)
@@ -487,7 +510,7 @@ SA_plot
 ```
 
 ```{r}
-SA_plot2 <- SA_plot +
+SA_plot <- SA_plot +
   ggnewscale::new_scale_color() +
   scale_colour_manual(values = dingo_palette) +
   labs(title = glue("Dingo observations in <br> Australian <span style='color:{dingo_palette$Protected}'>**Protected**</span> <span style='color:{dingo_palette$Areas}'>**Areas**</span> <br> in South Australia <br>")) +
@@ -501,6 +524,23 @@ SA_plot2 <- SA_plot +
 SA_plot
 ```
 
-In this map, it is visually quite obvious especially in the Northern Territory that majority of the counts fall within the Nationally protected areas. In South Australia, it is also clear dingoes are only been recorded on one side of the fence where they remain an unprotected native species. Therefore, we can see there is correlation between legislation effecting the data collection and the occurence of a species.
 
-In conclusion, dingoes are ecologically important playing an important role as apex predators, regulating ecological cascades. The impact they have on the sheep industry is recognised, however because of their ecological importance we need to find a balance in keeping this species protected in areas for maintaining healthy ecosystems, where native small mammals can persist. The data collection of a species becomes more valuable when there public invested interest and we see this a species we want to protect. Just relying on state organisation to record dingo observations limits our knowledge on the distribution of the dingo in Australia and where they actually are now.
+*Hey Dax, I think It would be good if we could just make one color bar that is centred as well as one title that is just centred so we aren't repeating information in the graph. I tried giving this a crack but let me know what you rekon?*
+
+
+```{r}
+#| echo: false
+#| column: page
+#| layout-ncol: 2
+#| fig-align: center
+#| fig-height: 7
+NT_plot + SA_plot
+```
+
+
+In the Northern Territory and South Australia, majority of the observations fall within Nationally protected areas. The effect of the Dingo Fence in South Australia on dingo records is clear, with few observations recorded south of the fence where they remain declared as pest.
+
+## Final thoughts
+
+Research shows that dingoes are important keystone species in Australian ecosystems. Despite there being over 10,000 observations of dingoes in the ALA, we found that differences in attitudes between states and territories towards dingoes can have big effects on our knowledge of their distribution, and as a result, our ability to conserve or manage their population effectively.
+
