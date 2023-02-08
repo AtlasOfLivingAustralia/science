@@ -111,11 +111,8 @@ End <- c("2020-05-12",
          "2021-07-27", 
          "2021-10-21")
 
-Melb_dates <- data.frame(Lockdown, Start, End) 
-Melb_dates$Num_Days <- as.Date(as.character(Melb_dates$End), format="%Y-%m-%d")-
-  as.Date(as.character(Melb_dates$Start), format="%Y-%m-%d") 
-
-Melb_dates <- Melb_dates |> 
+Melb_dates <- tibble(Lockdown, Start, End) |>
+  mutate(Num_Days = as_date(ymd(End)) - as_date(ymd(Start))) |> 
   mutate(weekstart = week(Start)) |>  
   mutate(weekend = week(End)) 
 
@@ -148,7 +145,7 @@ From here on we know we can filter for Melbourne results using ‘GREATER MELBOU
 
 ```{r}
 #| message: false
-Ducksbyweek_data <- data.frame(
+Ducksbyweek_data <-
   galah_call() |>                           
     galah_identify("Anatidae") |>              
     galah_filter(cl10929 == "GREATER MELBOURNE",
@@ -156,42 +153,42 @@ Ducksbyweek_data <- data.frame(
                  eventDate <= "2021-12-31T23:59:00Z",
                  basisOfRecord == "HUMAN_OBSERVATION") |>  
       galah_select(eventDate) |>
-    atlas_occurrences())
+    atlas_occurrences()
 Ducksbyweek_data |> head(6L)
 ```
 
-This produces a data frame with a list of all occurrences. We need to combine these to produce a tally of occurrence records for each date.
+This produces a tibble with a list of all occurrences as dates. We need to combine these to produce a tally of occurrence records for each date.
 
 ```{r}
-Ducksbyweek_table <- Ducksbyweek_data 
-
-Ducksbyweek_table$eventDate <-
-  as.Date(as.character(Ducksbyweek_table$eventDate),format="%Y-%m-%d") 
-
-Ducksbyweek_table <- Ducksbyweek_table |> 
-  count(eventDate)
-Ducksbyweek_table <- Ducksbyweek_table |> 
-  mutate(year = year(eventDate)) |> 
-  mutate(week = week(eventDate)) 
-
-colnames(Ducksbyweek_table) = c("date","count", "year", "week") 
-
-Ducksbyweek_table |> head(6L)
+Ducksbyweek_table <- Ducksbyweek_data |> 
+mutate(date = as_date(eventDate)) |> 
+mutate(year = year(eventDate)) |>
+mutate(week = week(eventDate)) |>
+group_by(date, year, week) |>
+  summarise(weeklycount = n())
+Ducksbyweek_table 
 ```
 
-To get a fair representation of the differences for comparison, we need to scale the results for the total number of Atlas records each year. We are interested in **how occurrences changed between years**, without the influence of generally increasing popularity of the database over time.
+
+To get a fair representation of the differences for comparison, we need to *scale* the results for the total number of Atlas records each year. We are interested in **how occurrences changed between years**, without the influence of generally increasing popularity of the database over time.
 We can do this by looking at the number of duck occurrences as a proportion of overall records. For this, we need to create a data frame with the overall number of records in Melbourne each year for use in the next step.
 
 ```{r}
-Allmelbrecords_data <- as.data.frame(
+Allmelbrecords_data <- 
   galah_call() |>                              
     galah_filter(cl10929 == "GREATER MELBOURNE", year >= 2017, year <= 2021) |> 
-    galah_group_by(year) |>  
-    atlas_counts())
+    galah_group_by(year) |>
+    atlas_counts()
 
-Allmelbrecords_data <- Allmelbrecords_data |> arrange(desc(year)) 
+Allmelbrecords_data <- Allmelbrecords_data |>
+  arrange(desc(year)) |>
+  rename(yearlytotal = count) 
 
-Allmelbrecords_data 
+Allmelbrecords_data$year <- as.numeric(Allmelbrecords_data$year)
+  
+Allmelbrecords_data <- Allmelbrecords_data |>
+left_join(Ducksbyweek_table, Allmelbrecords_data, by = c("year"))
+Allmelbrecords_data
 ```
 
 ## Step 2: Organising data
@@ -200,18 +197,18 @@ It's far easier to scale each value with everything organised into columns accor
 
 
 ```{r}
-Ducksbyweek_scaled <- Ducksbyweek_table |>  pivot_wider(
-  names_from = year,  
-  values_from = count, 
-  names_sort = TRUE)  
+Ducksbyweek_scaled <- 
+  Allmelbrecords_data |> pivot_wider(
+  names_from = year,
+  values_from = weeklycount,
+  names_sort = TRUE) |> 
+  #mutate(proportyearlypecerentage = as.integer(across(.cols = "2017":"2021", ~ sum())))
+  mutate(proportyearlypecerentage = "2017":"2021" / yearlytotal*100)
+Ducksbyweek_scaled |> tail(370L)
+```
 
-Ducksbyweek_scaled$"2017" = (Ducksbyweek_scaled$"2017"/Allmelbrecords_data[5,2])*100*100
-Ducksbyweek_scaled$"2018" = (Ducksbyweek_scaled$"2018"/Allmelbrecords_data[4,2])*100*100
-Ducksbyweek_scaled$"2019" = (Ducksbyweek_scaled$"2019"/Allmelbrecords_data[3,2])*100*100
-Ducksbyweek_scaled$"2020" = (Ducksbyweek_scaled$"2020"/Allmelbrecords_data[2,2])*100*100
-Ducksbyweek_scaled$"2021" = (Ducksbyweek_scaled$"2021"/Allmelbrecords_data[1,2])*100*100
-
-Ducksbyweek_scaled
+```{r}
+left_join(Ducksbyweek_scaled, Allmelbrecords_data, by = c("year", "year"))
 ```
 
 Our data is now organised and appropriately scaled, however contains a number of 'NA' values which would make it extremely difficult to calculate the mean of 2017-19 counts later on. To remove these, we need to put the data frame back in it's original format using `pivot_longer`.
@@ -247,7 +244,7 @@ Ducksbyweek_mean <- Ducksbyweek_grouped |> #Pivot wider again
               values_from = count, 
               names_sort = TRUE)
 
-Ducksbyweek_mean$"2017_19_mean" = rowMeans(Ducksbyweek_mean[,2:4]) #Add row with 2017-19 average
+Ducksbyweek_mean$"2017_19_mean" = rowMeans(Ducksbyweek_mean[2:4]) #Add row with 2017-19 average
 
 Ducksbyweek_mean #View results
 ```
@@ -255,10 +252,10 @@ Ducksbyweek_mean #View results
 Now we have our dataset, it needs a bit of reorganising to make it suitable for plotting. Counts are grouped by week of the year, meaning we have 2 sets of weeks 1-52 (one for 2020, one for 2021). To plot these in order along an axis we need to convert this to 1-53 for 2020, then 54-106 for 2021.
 
 ```{r}
-Ducksbyweek_select <- Ducksbyweek_mean[,-c(2:4)] #Create a new data frame with relevant columns from previous (i.e. week, 2017-19 mean, 2020 and 2021 counts)
+Ducksbyweek_select <- Ducksbyweek_mean[-c(2:4)] #Create a new data frame with relevant columns from previous (i.e. week, 2017-19 mean, 2020 and 2021 counts)
 
-Ducksbyweek_2020 <- Ducksbyweek_select[,-3]
-Ducksbyweek_2021 <- Ducksbyweek_select[,-2] #Separate 2020 and 2021 data
+Ducksbyweek_2020 <- Ducksbyweek_select[-3]
+Ducksbyweek_2021 <- Ducksbyweek_select[-2] #Separate 2020 and 2021 data
 
 Ducksbyweek_2021 <- as.data.frame(Ducksbyweek_2021) #Convert to data frame
 Ducksbyweek_2021$week <- c(54:106) #Change 'week' to 54-106
@@ -290,7 +287,6 @@ Ducksbyweek_pilot1 <- ggplot() +
    theme(axis.line = element_line(linewidth = 0.5)) +
   theme(axis.text.x = element_text(size = 5)) +
   theme(axis.text.y = element_text(size =5))
-         #(axis.text = "black"))
 Ducksbyweek_pilot1
 ```
 
@@ -381,8 +377,8 @@ Ducksbyweek_pilot4 <- Ducksbyweek_pilot3 +
   scale_y_continuous(expand = c(0, 0), 
                      limits = c(0, 22)) +
   scale_x_continuous(limits = c(1, 106), 
-                     breaks = c(1, 12.5, 25, 37.5, 51, 64, 78, 87.5, 103), 
-                     labels = c("Jan", "April", "Jul", "Sep", "Jan", "April", "Jul", "Sep", "Jan")) + annotation_custom(text_2020, xmin=25,xmax=25, ymin=-3.7, ymax=-3.7) + 
+                     breaks = c(1, 12.5, 25, 37.5, 53, 65.5, 78, 90.5, 103), 
+                     labels = c("Jan", "April", "Jul", "Oct", "Jan", "April", "Jul", "Sep", "Jan")) + annotation_custom(text_2020, xmin=25,xmax=25, ymin=-3.7, ymax=-3.7) + 
 annotation_custom(text_2021, xmin=80,xmax=80,ymin=-3.7, ymax=-3.7) +
 coord_cartesian(clip = "off")
 ```
@@ -392,17 +388,6 @@ coord_cartesian(clip = "off")
 Ducksbyweek_pilot4
 ```
 :::
-
-To access more fonts, we can download from the Google Fonts library using the `{showtext}` package. 
-
-```{r}
-#| warning: false
-font_add_google("Montserrat", #Download font from Google fonts
-                family = "mont")  #Name font for later use
-font_add_google("Hind", 
-                family = "hind")  
-showtext_auto(enable = TRUE)  #Make 'font family' functions select from showtext package
-```
 
 This is where we add our title and subtitle using `add_pilot_titles`, as well as specify the downloaded font. In `theme_pilot`, we can specify design features such as grid lines, axes position, legend position, caption position and text size. `ggplot2` feature `theme` can be used to remove the y axis.
 
