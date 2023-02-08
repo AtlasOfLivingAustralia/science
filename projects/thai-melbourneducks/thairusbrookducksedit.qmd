@@ -161,11 +161,12 @@ This produces a tibble with a list of all occurrences as dates. We need to combi
 
 ```{r}
 Ducksbyweek_table <- Ducksbyweek_data |> 
-mutate(date = as_date(eventDate)) |> 
-mutate(year = year(eventDate)) |>
-mutate(week = week(eventDate)) |>
-group_by(date, year, week) |>
+  mutate(date = as_date(eventDate),
+         year = year(eventDate),
+         week = week(eventDate)) |>
+  group_by(date, year, week) |>
   summarise(weeklycount = n())
+
 Ducksbyweek_table 
 ```
 
@@ -182,12 +183,10 @@ Allmelbrecords_data <-
 
 Allmelbrecords_data <- Allmelbrecords_data |>
   arrange(desc(year)) |>
-  rename(yearlytotal = count) 
+  rename(yearlytotal = count) |>
+  mutate(year = as.numeric(year)) |>
+  left_join(Ducksbyweek_table, Allmelbrecords_data, by = c("year"))
 
-Allmelbrecords_data$year <- as.numeric(Allmelbrecords_data$year)
-  
-Allmelbrecords_data <- Allmelbrecords_data |>
-left_join(Ducksbyweek_table, Allmelbrecords_data, by = c("year"))
 Allmelbrecords_data
 ```
 
@@ -197,18 +196,21 @@ It's far easier to scale each value with everything organised into columns accor
 
 
 ```{r}
-Ducksbyweek_scaled <- 
+Ducksbyweek_scaled <-
   Allmelbrecords_data |> pivot_wider(
-  names_from = year,
-  values_from = weeklycount,
-  names_sort = TRUE) |> 
-  #mutate(proportyearlypecerentage = as.integer(across(.cols = "2017":"2021", ~ sum())))
-  mutate(proportyearlypecerentage = "2017":"2021" / yearlytotal*100)
-Ducksbyweek_scaled |> tail(370L)
+    names_from = year,
+    values_from = weeklycount,
+    names_sort = TRUE,
+    names_glue = "year_{year}") |>
+  mutate(across(year_2017:year_2021, ~replace_na(.x, 0))) |>
+  rowwise() |>
+  mutate(perc = (sum(c(year_2017, year_2018, year_2019, year_2021)) / yearlytotal)*100) 
+
+Ducksbyweek_scaled |> tail(6L)
 ```
 
 ```{r}
-left_join(Ducksbyweek_scaled, Allmelbrecords_data, by = c("year", "year"))
+left_join(Ducksbyweek_scaled, Allmelbrecords_data, by = "year")
 ```
 
 Our data is now organised and appropriately scaled, however contains a number of 'NA' values which would make it extremely difficult to calculate the mean of 2017-19 counts later on. To remove these, we need to put the data frame back in it's original format using `pivot_longer`.
