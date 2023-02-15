@@ -83,6 +83,7 @@ First, let's load the needed packages:
 library(galah)
 library(tidyverse)
 library(lubridate)
+library(grid)
 library(ggplot2)
 library(pilot) # remotes::install_github("olihawkins/pilot")
 library(showtext)
@@ -176,7 +177,8 @@ We can do this by looking at the number of duck occurrences as a proportion of o
 
 ```{r}
 Allmelbrecords_data <- 
-  galah_call() |>                              
+  galah_call() |>    
+  galah_identify("Anatidae") |> 
     galah_filter(cl10929 == "GREATER MELBOURNE", year >= 2017, year <= 2021) |> 
     galah_group_by(year) |>
     atlas_counts()
@@ -204,72 +206,52 @@ Ducksbyweek_scaled <-
     names_glue = "year_{year}") |>
   mutate(across(year_2017:year_2021, ~replace_na(.x, 0))) |>
   rowwise() |>
-  mutate(perc = (sum(c(year_2017, year_2018, year_2019, year_2021)) / yearlytotal)*100) 
+  mutate(proportpercentage = (sum(c_across(year_2017:year_2021)) / yearlytotal)*100) 
 
 Ducksbyweek_scaled |> tail(6L)
 ```
 
-```{r}
-left_join(Ducksbyweek_scaled, Allmelbrecords_data, by = "year")
-```
-
-Our data is now organised and appropriately scaled, however contains a number of 'NA' values which would make it extremely difficult to calculate the mean of 2017-19 counts later on. To remove these, we need to put the data frame back in it's original format using `pivot_longer`.
+We should now calculate the weekly average per year
 
 ```{r}
-Ducksbyweek_long <- Ducksbyweek_scaled |>
-  pivot_longer(cols=c("2017", "2018", "2019", "2020", "2021"), #Select columns to pivot
-  names_to = "year", #Columns names to go to new column titled 'year'
-  values_to = "count") #Values to go to new column titled 'count'
-Ducksbyweek_long <- na.omit(Ducksbyweek_long) #Remove entries with 'NA'
-
-Ducksbyweek_long |> head(6L)  #View first 6 results
-```
-
-As mentioned previously, we are interested in narrowing this down to the number of occurrences by week rather than daily. 
-
-```{r}
-#| message: false
-Ducksbyweek_grouped <- Ducksbyweek_long
-
-Ducksbyweek_grouped <- data.frame(Ducksbyweek_grouped |>
-   group_by(week,year) |> #Group by week and year
-   summarise(across(c(count), sum))) #Sum 'count' numbers in each group
-
-Ducksbyweek_grouped |> head(6L)  #View first 6 results
-```
-
-Now we can calculate the average (mean) weekly counts from 2017-19. We do this by using `pivot_wider` again, so that it's possible to calculate the mean across rows using `rowMeans`.
-
-```{r}
-Ducksbyweek_mean <- Ducksbyweek_grouped |> #Pivot wider again
+Ducksbyweek_mean <- Ducksbyweek_scaled |>
+  select(date, week, proportpercentage) |>
+  mutate(year = year(ymd(date))) |>
+  group_by(week, year) |> 
+  summarise(across(c(proportpercentage), sum)) |>
   pivot_wider(names_from = year, 
-              values_from = count, 
-              names_sort = TRUE)
-
-Ducksbyweek_mean$"2017_19_mean" = rowMeans(Ducksbyweek_mean[2:4]) #Add row with 2017-19 average
-
-Ducksbyweek_mean #View results
+              values_from = proportpercentage, 
+              names_sort = TRUE) |>
+  rowwise() |>
+  mutate(mean2017_19 = mean(c_across("2017":"2019"))) |>
+  rename(year_2017 = "2017",
+         year_2018 = "2018",
+         year_2019 = "2019",
+         year_2020 = "2020",
+         year_2021 = "2021")
+Ducksbyweek_mean
 ```
 
-Now we have our dataset, it needs a bit of reorganising to make it suitable for plotting. Counts are grouped by week of the year, meaning we have 2 sets of weeks 1-52 (one for 2020, one for 2021). To plot these in order along an axis we need to convert this to 1-53 for 2020, then 54-106 for 2021.
+Now we have our dataset, it needs a bit of reorganising to make it suitable for plotting. Counts are grouped by week of the year, meaning we have 2 sets of weeks 1-52 (one for 2020, one for 2021). To plot these in order along an axis we need to convert this to 1-53 for 2020 (a leap year, extra week), then 54-106 for 2021.
 
 ```{r}
-Ducksbyweek_select <- Ducksbyweek_mean[-c(2:4)] #Create a new data frame with relevant columns from previous (i.e. week, 2017-19 mean, 2020 and 2021 counts)
+Ducksbyweek2020 <- Ducksbyweek_mean |>
+  select(week, "year_2020", mean2017_19) |>
+  rename(count = "year_2020")
+Ducksbyweek2020
 
-Ducksbyweek_2020 <- Ducksbyweek_select[-3]
-Ducksbyweek_2021 <- Ducksbyweek_select[-2] #Separate 2020 and 2021 data
 
-Ducksbyweek_2021 <- as.data.frame(Ducksbyweek_2021) #Convert to data frame
-Ducksbyweek_2021$week <- c(54:106) #Change 'week' to 54-106
-rownames(Ducksbyweek_2021) <- c(54:106) #Change row names so when we combine data frames later, they appear after rows 1-53 (2020 data)
+Ducksbyweek2021 <- Ducksbyweek_mean |>
+  select(week, "year_2021", mean2017_19) |>
+  mutate(week = 53 + week) |>
+  rename(count = "year_2021")
+Ducksbyweek2021
+  
+Ducksbyweek2020_21 <- bind_rows(Ducksbyweek2020, Ducksbyweek2021)
 
-colnames(Ducksbyweek_2020)[2] = "count"
-colnames(Ducksbyweek_2021)[2] = "count" #Change column names to 'count' so they match
-
-Ducksbyweek_plottingdata <- rbind(Ducksbyweek_2020,Ducksbyweek_2021) #Combine into one data frame, suitable for plotting
-
-Ducksbyweek_plottingdata   #View first 10 results
 ```
+
+
 
 ## Step 3: Plot!
 
@@ -280,31 +262,30 @@ Using {ggplot2}, we set the legend for our graph using `scale_fill_manual` and `
 ```{r}
 Ducksbyweek_pilot1 <- ggplot() +
   scale_fill_manual(
-    values=c("Lockdown" = pilot_color("yellow")), #Lockdowns will be highlighted in yellow
-    name = NULL) + #Remove legend title for 'lockdown'
+    values=c("Lockdown" = pilot_color("yellow"))) +
   scale_color_manual(
-    values = c(pilot_color("orange"),pilot_color("blue")), #Set line colours as orange and blue
-    labels=c("2017-19 average", "2020-21 occurrences", #label lines appropriately
+    values = c(pilot_color("orange"),pilot_color("blue")), 
+    labels=c("2017-19 average", "2020-21 occurrences", 
     name = "Year")) + 
-   theme(axis.line = element_line(linewidth = 0.5)) +
-  theme(axis.text.x = element_text(size = 5)) +
-  theme(axis.text.y = element_text(size =5))
+  theme(axis.line = element_line(linewidth = 0.5)) +
+  theme(axis.text.x = element_text(size = 5))
+  theme(axis.text.y = element_text(size = 5))
 Ducksbyweek_pilot1
 ```
 
-After this, we add rectangles to our plotting area according to lockdown dates. When we use `alpha` to adjust the transparceny, these will appear to be highlighting the relevant points along the x axis.
+After this, we add rectangles to our plotting area according to lockdown dates. When we use `alpha` to adjust the transparency, these will appear to be highlighting the relevant points along the x axis.
 This is where we can use the table of lockdown dates we created initially. The starting point of the first rectangle (`xmin`) should be taken from the 'weekstart' column, and the end point (`xmax`) taken from the 'weekend' column. We set `ymax` as infinite (Inf) so the highlighted sections reach to the top of the graph. Repeat this for each of the 6 lockdowns.
 
 Note that for the first rectangle, we set `color` as "NA" to remove rectangle borders, and from there we can use `fill` to set the colour to yellow. `pilot_color` takes colours from the `pilot` package, keeping everything cohesive.
 
 ```{r}
 Ducksbyweek_pilot2 <- Ducksbyweek_pilot1 +
-  geom_rect(aes(NULL,NULL, #No mapping or data frame required
-            xmin=13,xmax=19, #Take x values from start and end date in table of lockdown dates
+  geom_rect(aes(NULL,NULL,
+            xmin=13,xmax=19, 
             fill="Lockdown"),
             ymin=0,ymax=Inf, 
-            color= NA, #To remove the border
-            alpha=0.2) + #Adjust transparency
+            color= NA, 
+            alpha=0.2) +
   
   geom_rect(aes(NULL,NULL,
             xmin=28,xmax=43,
@@ -321,7 +302,8 @@ Ducksbyweek_pilot2 <- Ducksbyweek_pilot1 +
   geom_rect(aes(NULL,NULL,xmin=82,xmax=83,fill="Lockdown"),
             ymin=0,ymax=Inf, fill=pilot_color("yellow"), alpha=0.2) +
   geom_rect(aes(NULL,NULL,xmin=84,xmax=95,fill="Lockdown"),
-            ymin=0,ymax=Inf, fill=pilot_color("yellow"), alpha=0.2)
+            ymin=0,ymax=Inf, fill=pilot_color("yellow"), alpha=0.2) +
+   theme(legend.title=element_blank())
 ```
 :::{.column-body-outset}
 ```{r}
@@ -336,16 +318,16 @@ We can fill the area under the 2020-21 occurence line using `geom_area`, with re
 ```{r}
 #| warning: false
 Ducksbyweek_pilot3 <- Ducksbyweek_pilot2 +
-  geom_line(data = Ducksbyweek_plottingdata, 
-            aes(x = week, y = count, #Plot 2020-21 line using 'count' column
-            color = "2020-21 Records"), #Apply colours we set earlier 
-            linewidth=0.7) + #Set thickness of line
-  geom_line(data = Ducksbyweek_plottingdata, 
-            aes(x = week, y =  Ducksbyweek_plottingdata$"2017_19_mean", #Plot 2017-19 line using 'mean' column
+  geom_line(data = Ducksbyweek2020_21, 
+            aes(x = week, y = count, 
+            color = "2020-21 Records"), 
+            linewidth=0.7) + 
+  geom_line(data = Ducksbyweek2020_21, 
+            aes(x = week, y =  Ducksbyweek2020_21$"mean2017_19", 
             color = "2017-19 Average"),
-            linetype = "twodash", #Set line style
+            linetype = "twodash", 
             linewidth=0.5) + 
-  geom_area(data = Ducksbyweek_plottingdata, #Fill area under the 2020-21 line
+  geom_area(data = Ducksbyweek2020_21, 
             aes(x = week, y = count),
             fill=pilot_color("blue"), 
             alpha=0.3)
@@ -362,7 +344,6 @@ It is possible to set all labels and titles using {ggplot2}, however setting the
 We then set our axis limits. For the x axis, this is from 0 to 106 (number of rows of data). For the y axis, we want to start at 0 but we do not need an upper limit.
 
 ```{r}
-library(grid)
 text_2020 <- textGrob("2020", gp=gpar(fontsize=5))
 text_2021 <- textGrob("2021", gp=gpar(fontsize=5))
 ```
@@ -371,18 +352,19 @@ text_2021 <- textGrob("2021", gp=gpar(fontsize=5))
 ```{r}
 #| warning: false
 Ducksbyweek_pilot4 <- Ducksbyweek_pilot3 +
-  labs(color= "Year",  #Set axis labels and caption
+  labs(color= "Year", 
        y = "Proportion of ducks recorded (%)",
        x = "Year") +
-  scale_x_continuous(expand = c(0, 0), 
-                     limits = c(0, 106)) + 
   scale_y_continuous(expand = c(0, 0), 
-                     limits = c(0, 22)) +
-  scale_x_continuous(limits = c(1, 106), 
-                     breaks = c(1, 12.5, 25, 37.5, 53, 65.5, 78, 90.5, 103), 
-                     labels = c("Jan", "April", "Jul", "Oct", "Jan", "April", "Jul", "Sep", "Jan")) + annotation_custom(text_2020, xmin=25,xmax=25, ymin=-3.7, ymax=-3.7) + 
+                     limits = c(0, 4)) +
+  scale_x_continuous(expand = c(0, 0),
+                     limits = c(1, 106), 
+                     breaks = c(1, 14, 27, 40, 53, 66, 79, 92), 
+                     labels = c("Jan", "Apr", "Jul", "Oct", "Jan", "Apr", "Jul", "Oct")) +
 annotation_custom(text_2021, xmin=80,xmax=80,ymin=-3.7, ymax=-3.7) +
-coord_cartesian(clip = "off")
+coord_cartesian(clip = "off") + 
+  theme(axis.title.x = element_text(vjust = -1.60)) 
+  
 ```
 :::{.column-body-outset}
 ```{r}
@@ -395,23 +377,25 @@ This is where we add our title and subtitle using `add_pilot_titles`, as well as
 
 ```{r}
 #| warning: false
-Ducksbyweek_pilottitles <- add_pilot_titles(  #Add titles in pilot theme
+Ducksbyweek_pilottitles <- add_pilot_titles(
   Ducksbyweek_pilot4,
   title = "Recorded Ducks in Melbourne (2020-21 vs. 2017-19)",
   subtitle = "By week, with lockdowns highlighted in yellow - scaled for total Atlas records by year") +
   theme_pilot(
-    grid = "", #No grid lines
+    grid = "",
     axes = "bl",
     legend_position = "right",
     caption_position = "right",
-    title_size = 5, #Set label font sizes
+    title_size = 5, 
     subtitle_size = 10,
-    axis_title_size = 8,
-    axis_text_size = 50,
+    axis_title_size = 5,
+    axis_text_size = 10,
     legend_title_size = 8,
     legend_text_size = 8,
     facet_title_size = 13,
-    caption_size = 10)
+    caption_size = 10) +
+   annotation_custom(text_2021,xmin=79,xmax=79, ymin=-0.8,ymax=-0.8) + 
+   annotation_custom(text_2020,xmin=27,xmax=27, ymin=-0.8,ymax=-0.8)
 ```
 :::{.column-body-outset}
 ```{r}
