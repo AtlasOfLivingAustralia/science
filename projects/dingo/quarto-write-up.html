@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.313">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Amos Smith">
+<meta name="dcterms.date" content="2022-01-27">
+
+<title>An exploration of dingo observations in the ALA</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="quarto-write-up_files/libs/clipboard/clipboard.min.js"></script>
+<script src="quarto-write-up_files/libs/quarto-html/quarto.js"></script>
+<script src="quarto-write-up_files/libs/quarto-html/popper.min.js"></script>
+<script src="quarto-write-up_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="quarto-write-up_files/libs/quarto-html/anchor.min.js"></script>
+<link href="quarto-write-up_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="quarto-write-up_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="quarto-write-up_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="quarto-write-up_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="quarto-write-up_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content page-columns page-full" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">An exploration of dingo observations in the ALA</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Amos Smith </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">January 27, 2022</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<hr>
+<p>Internationally, the dingo is one of Australia’s most recognised species. However, the debate continues in Australia whether dingoes are considered pests or a protected native species.</p>
+<p>Dingoes have had a major negative impact on the agricultural industry, increasing sheep and livestock loss and affecting farmers’ welfare. In response, dingo populations have been controlled by baiting and shooting techniques. The Dingo Fence, a wire fence made to protect from the loss of sheep for the sheep industry, is also used to control dingo populations in Australia. Stretching from Queensland to South Australia, the Dingo Fence is the longest fence in the world (5,614 km). Between landowners and the government, the annual cost to control wild dog and dingo populations is estimated at <a href="https://www.publish.csiro.au/wr/pdf/WR19030">~$30 million annually across Australia</a>.</p>
+<p>Effects of control programs, along with additional threats of habitat loss, have diminished dingo populations. Dingoes are currently listed as Vulnerable to extinction under the International Union of Nature Conservation’s Red List of Threatened Species. <a href="https://www.bushheritage.org.au/species/dingoes">Bush Heritage Australia</a>.</p>
+<p>Since its construction 80 years ago, the Dingo Fence has perhaps unintentionally <a href="https://www.abc.net.au/news/2023-02-09/dingo-fence-map-ecology-farming-predator-sheep-extinction/101711608">shaped the landscape of Australia and showed the importance of apex predators like dingoes in ecosystems</a>. The dingo fence has acted as a natural experiment, demonstrating that apex predators like dingoes are <a href="https://onlinelibrary.wiley.com/doi/full/10.1111/j.1469-185X.2011.00203.x">key contributors to healthy Australian ecosystems</a>. On the side where dingoes remain present, there is <a href="https://link.springer.com/article/10.1007/s10980-021-01206-w">more vegetation because there are fewer kangaroos eating or tramping sensitive plants</a>. There are also fewer invasive species like cats and foxes where dingoes are present, <a href="https://iview.abc.net.au/video/DO2104H002S00">improving native biodiversity and increase numbers of native mammals &amp; marsupials</a>. The difference between sides of the fence is so distinct that <a href="https://youtu.be/ivmQk5EsScw">you can even see it from space</a>!</p>
+<p>Despite this evidence, historical and current legislation over the control of dingoes has had dramatic effects on dingo populations across Australia. In this article, we investigate observations of dingoes within the Atlas of Living Australia (ALA) to understand how historical and current differences in attitudes towards dingo conservation affects their data.</p>
+<section id="download-data" class="level2">
+<h2 class="anchored" data-anchor-id="download-data">Download data</h2>
+<p>First let’s install the required packages.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(galah)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ozmaps)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lubridate)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rmapshaper)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggpointdensity)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(glue)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggtext)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="which-states-have-the-highest-counts-of-dingoes" class="level2">
+<h2 class="anchored" data-anchor-id="which-states-have-the-highest-counts-of-dingoes">Which states have the highest counts of dingoes?</h2>
+<p>First let’s find how many dingo observations there are in the ALA.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">galah_call</span>()<span class="sc">|&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_identify</span>(<span class="st">"canis familiaris"</span>)<span class="sc">|&gt;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_filter</span>(raw_vernacularName <span class="sc">==</span> <span class="st">"Dingo"</span>)<span class="sc">|&gt;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_apply_profile</span>(ALA)<span class="sc">|&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">atlas_counts</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 1
+  count
+  &lt;int&gt;
+1 11010</code></pre>
+</div>
+</div>
+<p>Next, we can get the number of observations by each state. Within the Atlas dingoes fall under the class <strong>Canis familiaris</strong> which is also the taxonomic name of wild and domesticated dogs. Hence, we have to filter records that were only recorded with the name “Dingo”.</p>
+<p>This can potentially mean that we have missing observations because data collectors may not always specify the name “Dingo”, even when it was. We’ll also add an ALA “profile”, a set of data quality filters by the ALA to remove unreliable observations.</p>
+<div class="cell">
+
+</div>
+<div class="cell">
+
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>dingo_counts <span class="ot">&lt;-</span> <span class="fu">galah_call</span>()<span class="sc">|&gt;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_identify</span>(<span class="st">"canis familiaris"</span>)<span class="sc">|&gt;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_filter</span>(raw_vernacularName <span class="sc">==</span> <span class="st">"Dingo"</span>)<span class="sc">|&gt;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_group_by</span>(cl22)<span class="sc">|&gt;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_apply_profile</span>(ALA)<span class="sc">|&gt;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">atlas_counts</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We’ll arrange the counts in descending order.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>dingo_counts <span class="sc">|&gt;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(count))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 7 × 2
+  cl22                         count
+  &lt;chr&gt;                        &lt;int&gt;
+1 Northern Territory            6147
+2 South Australia               2927
+3 New South Wales               1092
+4 Victoria                       412
+5 Western Australia              130
+6 Queensland                      80
+7 Australian Capital Territory     4</code></pre>
+</div>
+</div>
+<p>Here we can see the Northern Territory and South Australia hold the highest number of observations where in some states have very limited observations.</p>
+<p>Let’s see this visually on a choropleth map.</p>
+<p>We’ll start by getting our base map of Australia.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>aus <span class="ot">&lt;-</span> <span class="fu">ozmap_data</span>(<span class="at">data =</span> <span class="st">"states"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Join the counts by state to our base map.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>state_counts <span class="ot">&lt;-</span> aus <span class="sc">%&gt;%</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">full_join</span>(dingo_counts, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"NAME"</span> <span class="ot">=</span> <span class="st">"cl22"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Here we log-transform which standardises the data when there very low numbers and very high numbers (and not much in-between), that you want to analyse or visualise</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>logged_counts <span class="ot">&lt;-</span> state_counts <span class="sc">|&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log =</span> <span class="fu">log10</span>(count))<span class="sc">|&gt;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">replace_na</span>(<span class="fu">list</span>(<span class="at">log =</span> <span class="dv">0</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We can plot our choropleth map.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>choropleth_map <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> logged_counts,</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>          <span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">fill =</span> log,)) <span class="sc">+</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>   <span class="fu">scale_fill_distiller</span>(<span class="at">palette =</span> <span class="st">"OrRd"</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>                        <span class="at">direction =</span> <span class="dv">1</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>                        <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"10"</span>, <span class="st">"100"</span>, <span class="st">"1000"</span>),</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>                        <span class="at">guide =</span> <span class="fu">guide_colorsteps</span>(<span class="at">direction =</span> <span class="st">"horizontal"</span>,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>                        <span class="at">title =</span> <span class="st">"No. of Dingo Observations"</span>,</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>                        <span class="at">title.position =</span> <span class="st">"top"</span>)) <span class="sc">+</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x=</span><span class="fu">element_text</span>(<span class="at">angle =</span> <span class="sc">-</span><span class="dv">90</span>, <span class="at">hjust =</span> <span class="dv">0</span>), </span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.background =</span> <span class="fu">element_rect</span>(<span class="at">fill =</span> <span class="st">"white"</span>, <span class="at">size =</span> <span class="dv">2</span>), </span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.grid.major =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="cn">NA</span>),</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">16</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>, <span class="at">line =</span> <span class="dv">1</span>),</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="st">"grey70"</span>, <span class="at">size =</span> <span class="fl">0.2</span>),</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>, <span class="at">vjust =</span> <span class="dv">3</span>),</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>, <span class="at">vjust =</span> <span class="sc">-</span><span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>   <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"bottom"</span>, <span class="at">legend.key.width =</span> <span class="fu">unit</span>(<span class="dv">12</span>, <span class="st">'mm'</span>)) <span class="sc">+</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Longitude"</span>, <span class="at">y =</span> <span class="st">"Latitude"</span>)</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>choropleth_map</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="quarto-write-up_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="who-are-the-main-data-providers" class="level2 page-columns page-full">
+<h2 class="anchored" data-anchor-id="who-are-the-main-data-providers">Who are the main data providers?</h2>
+<p>Why is it that majority of dingo observations are in the Northern Territory? Are people seeing them mainly in the Northern Territory, or are there some data providers that provide more records of dingo observations than others?</p>
+<p>To understand who is currently recording dingoes, we decided to break down our top data providers of the dingo into the atlas. This may give us an idea of the absence of data of who could be recording dingoes but isn’t.</p>
+<p>So, let’s see this visually on a map. To do so, we can run the following code to download dingo occurrences.</p>
+<p>To view only the main data providers, we’ll filter to only providers that have provided more than 5 observations of dingoes</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>dingo_dataproviders_count <span class="ot">&lt;-</span> <span class="fu">galah_call</span>()<span class="sc">|&gt;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_identify</span>(<span class="st">"canis familiaris"</span>)<span class="sc">|&gt;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_filter</span>(raw_vernacularName <span class="sc">==</span> <span class="st">"Dingo"</span>)<span class="sc">|&gt;</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_group_by</span>(dataResourceName)<span class="sc">|&gt;</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_apply_profile</span>(ALA)<span class="sc">|&gt;</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">atlas_counts</span>()</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>counts_fitered <span class="ot">&lt;-</span> dingo_dataproviders_count <span class="sc">|&gt;</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(count <span class="sc">&gt;</span> <span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now we’ll filter our <code>data.frame</code> with occurrences so that only the observations from each data provider with greater than 5 observations (saved in <code>counts_filtered</code>) are returned.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>dingoocc_dataproviders <span class="ot">&lt;-</span> <span class="fu">galah_call</span>()<span class="sc">|&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_identify</span>(<span class="st">"canis familiaris"</span>)<span class="sc">|&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_filter</span>(raw_vernacularName <span class="sc">==</span> <span class="st">"Dingo"</span>)<span class="sc">|&gt;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_group_by</span>(dataResourceName)<span class="sc">|&gt;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_apply_profile</span>(ALA)<span class="sc">|&gt;</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">atlas_occurrences</span>()</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>points_fitered <span class="ot">&lt;-</span> dingoocc_dataproviders <span class="sc">|&gt;</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(dataResourceName <span class="sc">%in%</span> counts_fitered<span class="sc">$</span>dataResourceName)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now we can plot</p>
+<p>Here, we find that it is state organisations recording dingo data, with 0 public/citizen recordings from popular apps like iNaturalist. With mainly government monitoring programs providing dingo observations, our knowledge of dingo’s true distribution depends a lot on differences between state organisations and their willingness to survey for dingoes.</p>
+<p><em>Incidental dingo observations from citizen scientists can improve our overall knowledge of dingo distributions across Australia. In areas where there are few observations of dingoes, citizen science can then be valuable to fill gaps where state organisations do not record data.</em></p>
+<p>There are only 4 data providers all state organisations that account for 98.5% of records and two of them are within the Northern Territory. The Northern Territory accounts for 56% of all dingo records. In contrast, Western Australia, Victoria, Australian Capital Territory and Queensland combined account for only 5% of records.</p>
+<p>It’s possible that varying attitudes towards dingoes and their conservation status between states/territories affect the amount of data recorded of dingo observations. For example, the Northern Territory is the only state in Australia that recognizes dingoes as a protected species which also has the highest amount of observations. In other states such as Western Australia, New South Wales, Queensland and South Australia inside the dog fence dingoes are declared a pest species. Outside the Dog Fence they are managed as unprotected native animals under the National Parks and Wildlife Act 1972. These differences in legislation between states might help to explain why the highest numbers of observations are in areas that recognize dingoes as protected.</p>
+<div class="cell page-columns page-full" data-layout-align="center">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>data_providers <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> aus, <span class="at">fill =</span> <span class="st">"beige"</span>) <span class="sc">+</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">data =</span> points_fitered,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>             <span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> decimalLongitude,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                           <span class="at">y =</span> decimalLatitude,</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                           <span class="at">colour =</span> dataResourceName),</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>             <span class="at">alpha =</span> <span class="fl">0.25</span>) <span class="sc">+</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Museums Victoria provider for OZCAM"</span> <span class="ot">=</span> <span class="st">"#A838FF"</span>, </span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Victorian Biodiversity Atlas"</span> <span class="ot">=</span> <span class="st">"#6095FF"</span>, </span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Australian National Wildlife Collection provider for OZCAM"</span> <span class="ot">=</span> <span class="st">"#FE7D49"</span>, </span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"NSW BioNet Atlas"</span> <span class="ot">=</span> <span class="st">"#FF38DE"</span>, </span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">"SA Fauna (BDBSA)"</span> <span class="ot">=</span> <span class="st">"#58D68D"</span>, </span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Australian Museum provider for OZCAM"</span> <span class="ot">=</span> <span class="st">"#FFC300"</span>, </span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Fauna Atlas N.T."</span> <span class="ot">=</span> <span class="st">"#566573"</span>)) <span class="sc">+</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x=</span><span class="fu">element_text</span>(<span class="at">angle =</span> <span class="sc">-</span><span class="dv">90</span>, <span class="at">hjust =</span> <span class="dv">0</span>), </span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.background =</span> <span class="fu">element_rect</span>(<span class="at">fill =</span> <span class="st">"white"</span>, <span class="at">size =</span> <span class="dv">2</span>), </span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.grid.major =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="cn">NA</span>),</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">16</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>, <span class="at">line =</span> <span class="dv">3</span>),</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="st">"grey70"</span>, <span class="at">size =</span> <span class="fl">0.2</span>),</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>, <span class="at">vjust =</span> <span class="dv">3</span>),</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>, <span class="at">vjust =</span> <span class="sc">-</span><span class="dv">3</span>),</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>        <span class="at">legend.position =</span> <span class="st">"none"</span>) <span class="sc">+</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(<span class="at">color =</span> <span class="fu">guide_legend</span>(<span class="at">title =</span> <span class="st">"Data Providers"</span>, <span class="at">alpha =</span> <span class="st">"none"</span>)) <span class="sc">+</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Longitude"</span>,</span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Latitude"</span>)</span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>bar_plot <span class="ot">&lt;-</span>  counts_fitered <span class="sc">%&gt;%</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">reorder</span>(<span class="fu">str_wrap</span>(dataResourceName, <span class="dv">25</span>), <span class="sc">-</span> count), </span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>             <span class="at">y =</span> count, <span class="at">fill =</span> dataResourceName)) <span class="sc">+</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_bar</span>(<span class="at">stat=</span><span class="st">"identity"</span>, <span class="at">width=</span>.<span class="dv">8</span>) <span class="sc">+</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(</span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Museums Victoria provider for OZCAM"</span> <span class="ot">=</span> <span class="st">"#A838FF"</span>, </span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Victorian Biodiversity Atlas"</span> <span class="ot">=</span> <span class="st">"#6095FF"</span>, </span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Australian National Wildlife Collection provider for OZCAM"</span> <span class="ot">=</span> <span class="st">"#FE7D49"</span>, </span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>    <span class="st">"NSW BioNet Atlas"</span> <span class="ot">=</span> <span class="st">"#FF38DE"</span>, </span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>    <span class="st">"SA Fauna (BDBSA)"</span> <span class="ot">=</span> <span class="st">"#58D68D"</span>, </span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Australian Museum provider for OZCAM"</span> <span class="ot">=</span> <span class="st">"#FFC300"</span>, </span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Fauna Atlas N.T."</span> <span class="ot">=</span> <span class="st">"#566573"</span>)) <span class="sc">+</span></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>    <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a>    <span class="fu">xlab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_bw</span>() <span class="sc">+</span> </span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>,</span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>))</span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot bar plot and map</span></span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a>bar_plot <span class="sc">+</span> data_providers <span class="sc">+</span> </span>
+<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot_annotation</span>(</span>
+<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Data Providers for Dingo Occurrences"</span></span>
+<span id="cb13-53"><a href="#cb13-53" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span> </span>
+<span id="cb13-54"><a href="#cb13-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot_layout</span>(<span class="at">widths =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>),</span>
+<span id="cb13-55"><a href="#cb13-55" aria-hidden="true" tabindex="-1"></a>              <span class="at">heights =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 138 rows containing missing values (geom_point).</code></pre>
+</div>
+<div class="cell-output-display column-page">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="quarto-write-up_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="1152"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="what-times-of-the-year-are-they-been-recorded" class="level2 page-columns page-full">
+<h2 class="anchored" data-anchor-id="what-times-of-the-year-are-they-been-recorded">What times of the year are they been recorded?</h2>
+<p>Investigating what months of the year they’ve been recorded can show patterns that can be linked to the biology of a species like when they are most active. It can also show the bias in data collection when people like to go and record dingoes. From dingo observations been mainly in 2 states, this may also affect the times when data on dingoes is collected.</p>
+<div class="cell page-columns page-full" data-layout-align="center">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># dingo &lt;- galah_call() |&gt;</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co">#   galah_identify("canis familiaris") |&gt;</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   galah_filter(raw_vernacularName == "Dingo") |&gt;</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">#   galah_apply_profile(ALA) |&gt;</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">#   galah_select(group = "basic", dataResourceName) |&gt;</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">#   atlas_occurrences()</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co"># dingo_dates &lt;- dingo |&gt;</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="co">#   mutate(eventDate = ymd_hms(eventDate), </span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="co">#          year = year(eventDate),</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="co">#          month = month(eventDate, label = TRUE),</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="co">#          julian = yday(eventDate))</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>         </span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="co"># month_counts &lt;- dingo_dates|&gt;</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="co">#   group_by(month) |&gt;</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="co">#   count()</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Northern Territory</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>dingo_NT <span class="ot">&lt;-</span> <span class="fu">galah_call</span>() <span class="sc">|&gt;</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_identify</span>(<span class="st">"canis familiaris"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_filter</span>(raw_vernacularName <span class="sc">==</span> <span class="st">"Dingo"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_apply_profile</span>(ALA) <span class="sc">|&gt;</span></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_select</span>(<span class="at">group =</span> <span class="st">"basic"</span>, dataResourceName, cl22) <span class="sc">|&gt;</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_filter</span>(cl22 <span class="sc">==</span> <span class="st">"Northern Territory"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">atlas_occurrences</span>()</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>dingo_dates_NT <span class="ot">&lt;-</span> dingo_NT <span class="sc">|&gt;</span></span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">eventDate =</span> <span class="fu">ymd_hms</span>(eventDate), </span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>         <span class="at">year =</span> <span class="fu">year</span>(eventDate),</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>         <span class="at">month =</span> <span class="fu">month</span>(eventDate, <span class="at">label =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>         <span class="at">julian =</span> <span class="fu">yday</span>(eventDate))</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>month_counts_NT <span class="ot">&lt;-</span> dingo_dates_NT <span class="sc">|&gt;</span></span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(month) <span class="sc">|&gt;</span></span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>()</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>NT <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">data =</span> month_counts_NT,</span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>           <span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> month, <span class="at">y =</span> n),</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>           <span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">fill =</span> <span class="st">"darkorange"</span>) <span class="sc">+</span></span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Northern Territory"</span>, <span class="at">x =</span> <span class="st">"Month"</span>, <span class="at">y =</span> <span class="st">"No. of observations"</span>) <span class="sc">+</span></span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a><span class="co"># South Australia</span></span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>dingo_SA <span class="ot">&lt;-</span> <span class="fu">galah_call</span>() <span class="sc">|&gt;</span></span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_identify</span>(<span class="st">"canis familiaris"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_filter</span>(raw_vernacularName <span class="sc">==</span> <span class="st">"Dingo"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_apply_profile</span>(ALA) <span class="sc">|&gt;</span></span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_select</span>(<span class="at">group =</span> <span class="st">"basic"</span>, dataResourceName, cl22) <span class="sc">|&gt;</span></span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_filter</span>(cl22 <span class="sc">==</span> <span class="st">"South Australia"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">atlas_occurrences</span>()</span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a>dingo_dates_SA <span class="ot">&lt;-</span> dingo_SA <span class="sc">|&gt;</span></span>
+<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">eventDate =</span> <span class="fu">ymd_hms</span>(eventDate), </span>
+<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a>         <span class="at">year =</span> <span class="fu">year</span>(eventDate),</span>
+<span id="cb15-59"><a href="#cb15-59" aria-hidden="true" tabindex="-1"></a>         <span class="at">month =</span> <span class="fu">month</span>(eventDate, <span class="at">label =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb15-60"><a href="#cb15-60" aria-hidden="true" tabindex="-1"></a>         <span class="at">julian =</span> <span class="fu">yday</span>(eventDate))</span>
+<span id="cb15-61"><a href="#cb15-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-62"><a href="#cb15-62" aria-hidden="true" tabindex="-1"></a>month_counts_SA <span class="ot">&lt;-</span> dingo_dates_SA <span class="sc">|&gt;</span></span>
+<span id="cb15-63"><a href="#cb15-63" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(month) <span class="sc">|&gt;</span></span>
+<span id="cb15-64"><a href="#cb15-64" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>()</span>
+<span id="cb15-65"><a href="#cb15-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-66"><a href="#cb15-66" aria-hidden="true" tabindex="-1"></a>SA <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb15-67"><a href="#cb15-67" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">data =</span> month_counts_SA,</span>
+<span id="cb15-68"><a href="#cb15-68" aria-hidden="true" tabindex="-1"></a>           <span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> month, <span class="at">y =</span> n),</span>
+<span id="cb15-69"><a href="#cb15-69" aria-hidden="true" tabindex="-1"></a>           <span class="at">stat =</span> <span class="st">"identity"</span>, <span class="at">fill =</span> <span class="st">"darkturquoise"</span>) <span class="sc">+</span></span>
+<span id="cb15-70"><a href="#cb15-70" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"South Australia"</span>, <span class="at">x =</span> <span class="st">"Month"</span>, <span class="at">y =</span> <span class="st">"No. of observations"</span>) <span class="sc">+</span></span>
+<span id="cb15-71"><a href="#cb15-71" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_discrete</span>(<span class="at">expand =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">0</span>)) <span class="sc">+</span></span>
+<span id="cb15-72"><a href="#cb15-72" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">expand =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">0</span>)) <span class="sc">+</span></span>
+<span id="cb15-73"><a href="#cb15-73" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>()</span>
+<span id="cb15-74"><a href="#cb15-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-75"><a href="#cb15-75" aria-hidden="true" tabindex="-1"></a>SA <span class="sc">+</span> NT</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display column-page">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="quarto-write-up_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>From this point, we have found our main data providers for the Atlas, which states in Australia have the highest counts and majority of records are recorded during winter.</p>
+<p>Our barplots show that the majority of observations of dingoes are been recorded during winter. Does this reflect that dingoes are more active during winter, or are data collectors surveying during cooler times of the year?</p>
+<p>One research study might provide us a clue. Researchers tracked dingoes through summer and winter months using tri-axial accelerometry and GPS data. They found that dingoes studies in the Northern Territory, energy expenditure was significantly lower during summer with 91% of their day was spent stationary in comparison to 46% in Winter. <a href="https://movementecologyjournal.biomedcentral.com/articles/10.1186/s40462-021-00246-w">Accelerometer informed time-energy budgets reveal the importance of temperature to the activity of a wild, arid zone canid</a>.</p>
+</section>
+<section id="dingo-observations-in-protected-areas" class="level2 page-columns page-full">
+<h2 class="anchored" data-anchor-id="dingo-observations-in-protected-areas">Dingo observations in Protected Areas</h2>
+<p>Dingoes are most protected within National Parks because of the permits that can be applied for to take or remove wildlife outside of these areas. Does this mean more dingo observations are recorded in protected areas than outside of them, and by how much?</p>
+<p>To answer this, I decided to plot dingo observations over Nationally protected areas. I also decided to map where Dingo Fence is within South Australia to see how noticeable differences in dingo observations are inside and outside of the dingo fence.</p>
+<p>Below is a point density map which shows the density of overlapping observations in the Northern Territory and South Australia. The Dingo Fence in South Australia is in blue.</p>
+<p><em>I’ve had trouble zipping the code</em></p>
+<p>Expand code here:</p>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>capad <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="fu">here</span>(<span class="st">"projects"</span>,</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"dingo"</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"data"</span>,</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"CAPAD"</span>,</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"CAPAD2020_terrestrial.shp"</span>),</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>                 <span class="at">quiet =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ms_simplify</span>(<span class="at">keep =</span> <span class="fl">0.1</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>capad <span class="ot">&lt;-</span> capad <span class="sc">|&gt;</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="fu">st_crs</span>(<span class="st">"WGS84"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_make_valid</span>()</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>Dog_Fence <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="fu">here</span>(<span class="st">"projects"</span>,</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"dingo"</span>,</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"data"</span>,                    </span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"Dog Fence"</span>,</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"Dog_Fence.shp"</span>),</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>                 <span class="at">quiet =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ms_simplify</span>(<span class="at">keep =</span> <span class="fl">0.1</span>)</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>Dog_Fence <span class="ot">&lt;-</span> Dog_Fence <span class="sc">|&gt;</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="fu">st_crs</span>(<span class="st">"WGS84"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_make_valid</span>()</span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>dingoocc <span class="ot">&lt;-</span> <span class="fu">galah_call</span>() <span class="sc">|&gt;</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_identify</span>(<span class="st">"canis familiaris"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_filter</span>(raw_vernacularName <span class="sc">==</span> <span class="st">"Dingo"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_apply_profile</span>(ALA) <span class="sc">|&gt;</span></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_group_by</span>(dataResourceName, cl22) <span class="sc">|&gt;</span></span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">atlas_occurrences</span>()</span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>dingo_palette <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"Protected"</span> <span class="ot">=</span> <span class="st">"#00A600FF"</span>,</span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"Areas"</span> <span class="ot">=</span> <span class="st">"#00A600FF"</span>,</span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"Dingo"</span> <span class="ot">=</span> <span class="st">"#67136B"</span>,</span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>                      <span class="st">"observations"</span> <span class="ot">=</span> <span class="st">"#FC6B00"</span>)</span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>dingo_records <span class="ot">&lt;-</span> <span class="fu">galah_call</span>() <span class="sc">|&gt;</span></span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_identify</span>(<span class="st">"canis familiaris"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">galah_filter</span>(raw_vernacularName <span class="sc">==</span> <span class="st">"Dingo"</span>)<span class="sc">|&gt;</span></span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">atlas_occurrences</span>()</span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>dingo_records <span class="ot">&lt;-</span> dingo_records <span class="sc">|&gt;</span></span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>() <span class="sc">|&gt;</span>                      </span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(decimalLongitude <span class="sc">&lt;</span> <span class="dv">155</span>,    </span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>         decimalLongitude <span class="sc">&gt;</span> <span class="dv">110</span>, </span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>         decimalLatitude <span class="sc">&gt;</span> <span class="sc">-</span><span class="dv">45</span>,</span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>         decimalLatitude <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">10</span>)</span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>NT_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> ozmap_states, </span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>          <span class="at">fill =</span> <span class="st">"beige"</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> capad, <span class="at">fill =</span> <span class="st">"#00A600FF"</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.25</span>, <span class="at">alpha =</span> <span class="fl">0.3</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointdensity</span>(<span class="at">data =</span> dingo_records, <span class="at">size =</span> <span class="fl">0.7</span>, <span class="at">alpha =</span> <span class="fl">0.35</span>,</span>
+<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>                    <span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> decimalLongitude,</span>
+<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">y =</span> decimalLatitude)) <span class="sc">+</span></span>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>  viridis<span class="sc">::</span><span class="fu">scale_color_viridis</span>(<span class="at">option =</span> <span class="st">"B"</span>, </span>
+<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>                              <span class="at">begin =</span> <span class="fl">0.1</span>, </span>
+<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">guide_colorbar</span>( </span>
+<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a>                                            <span class="at">title =</span> (<span class="st">"Number of </span><span class="sc">\n</span><span class="st">Overlapping observations"</span>), </span>
+<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>                                            <span class="at">alpha =</span> <span class="st">"none"</span>)) <span class="sc">+</span></span>
+<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> Dog_Fence, <span class="at">color =</span> <span class="st">"blue"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_sf</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">128</span>, <span class="dv">139</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">26</span>, <span class="sc">-</span><span class="dv">10</span>)) <span class="sc">+</span> <span class="co"># filter to mainland australia+</span></span>
+<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
+<span id="cb16-65"><a href="#cb16-65" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x=</span><span class="fu">element_text</span>(<span class="at">angle =</span> <span class="sc">-</span><span class="dv">90</span>, <span class="at">hjust =</span> <span class="dv">0</span>), </span>
+<span id="cb16-66"><a href="#cb16-66" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.background =</span> <span class="fu">element_rect</span>(<span class="at">fill =</span> <span class="st">"white"</span>, <span class="at">size =</span> <span class="dv">2</span>), </span>
+<span id="cb16-67"><a href="#cb16-67" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.grid.major =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="cn">NA</span>),</span>
+<span id="cb16-68"><a href="#cb16-68" aria-hidden="true" tabindex="-1"></a>        <span class="at">legend.position =</span> <span class="st">"bottom"</span>,</span>
+<span id="cb16-69"><a href="#cb16-69" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="st">"grey70"</span>, <span class="at">size =</span> <span class="fl">0.2</span>),</span>
+<span id="cb16-70"><a href="#cb16-70" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>),</span>
+<span id="cb16-71"><a href="#cb16-71" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>)) </span>
+<span id="cb16-72"><a href="#cb16-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-73"><a href="#cb16-73" aria-hidden="true" tabindex="-1"></a>NT_plot <span class="ot">&lt;-</span> NT_plot <span class="sc">+</span></span>
+<span id="cb16-74"><a href="#cb16-74" aria-hidden="true" tabindex="-1"></a>  ggnewscale<span class="sc">::</span><span class="fu">new_scale_color</span>() <span class="sc">+</span></span>
+<span id="cb16-75"><a href="#cb16-75" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> dingo_palette) <span class="sc">+</span></span>
+<span id="cb16-76"><a href="#cb16-76" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">glue</span>(<span class="st">"Dingo observations in &lt;br&gt; Australian &lt;span style='color:{dingo_palette$Protected}'&gt;**Protected**&lt;/span&gt; &lt;span style='color:{dingo_palette$Areas}'&gt;**Areas**&lt;/span&gt; &lt;br&gt; in the Northern Territory &lt;br&gt;"</span>)) <span class="sc">+</span></span>
+<span id="cb16-77"><a href="#cb16-77" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_markdown</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">16</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>)) <span class="sc">+</span></span>
+<span id="cb16-78"><a href="#cb16-78" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="at">geom =</span> <span class="st">"line"</span>, <span class="at">colour =</span> <span class="st">"blue"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span>        </span>
+<span id="cb16-79"><a href="#cb16-79" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="at">geom =</span> <span class="st">"text"</span>, <span class="at">label =</span> <span class="st">"Dingo Fence"</span>, <span class="at">hjust =</span> <span class="st">"left"</span>) <span class="sc">+</span><span class="co">#couldnt get the annotation to work </span></span>
+<span id="cb16-80"><a href="#cb16-80" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Latitude"</span>, <span class="at">x =</span> <span class="st">"Longitude"</span>) </span>
+<span id="cb16-81"><a href="#cb16-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-82"><a href="#cb16-82" aria-hidden="true" tabindex="-1"></a>SA_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb16-83"><a href="#cb16-83" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> ozmap_states, </span>
+<span id="cb16-84"><a href="#cb16-84" aria-hidden="true" tabindex="-1"></a>          <span class="at">fill =</span> <span class="st">"beige"</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb16-85"><a href="#cb16-85" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> capad, <span class="at">fill =</span> <span class="st">"#00A600FF"</span>, <span class="at">colour =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.25</span>, <span class="at">alpha =</span> <span class="fl">0.3</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb16-86"><a href="#cb16-86" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_pointdensity</span>(<span class="at">data =</span> dingo_records, <span class="at">size =</span> <span class="fl">0.7</span>, <span class="at">alpha =</span> <span class="fl">0.35</span>,</span>
+<span id="cb16-87"><a href="#cb16-87" aria-hidden="true" tabindex="-1"></a>                    <span class="at">mapping =</span> <span class="fu">aes</span>(<span class="at">x =</span> decimalLongitude,</span>
+<span id="cb16-88"><a href="#cb16-88" aria-hidden="true" tabindex="-1"></a>                                  <span class="at">y =</span> decimalLatitude)) <span class="sc">+</span></span>
+<span id="cb16-89"><a href="#cb16-89" aria-hidden="true" tabindex="-1"></a>    viridis<span class="sc">::</span><span class="fu">scale_color_viridis</span>(<span class="at">option =</span> <span class="st">"B"</span>, </span>
+<span id="cb16-90"><a href="#cb16-90" aria-hidden="true" tabindex="-1"></a>                               <span class="at">begin =</span> <span class="fl">0.1</span>,</span>
+<span id="cb16-91"><a href="#cb16-91" aria-hidden="true" tabindex="-1"></a>                               <span class="fu">guide_colorbar</span>(</span>
+<span id="cb16-92"><a href="#cb16-92" aria-hidden="true" tabindex="-1"></a>                                              <span class="at">title =</span> (<span class="st">"Number of </span><span class="sc">\n</span><span class="st">Overlapping observations"</span>), </span>
+<span id="cb16-93"><a href="#cb16-93" aria-hidden="true" tabindex="-1"></a>                                              <span class="at">alpha =</span> <span class="st">"none"</span>)) <span class="sc">+</span></span>
+<span id="cb16-94"><a href="#cb16-94" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> Dog_Fence, <span class="at">color =</span> <span class="st">"blue"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb16-95"><a href="#cb16-95" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_sf</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">128</span>, <span class="dv">141</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">26</span>, <span class="sc">-</span><span class="dv">40</span>)) <span class="sc">+</span> <span class="co"># filter to mainland australia+</span></span>
+<span id="cb16-96"><a href="#cb16-96" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span></span>
+<span id="cb16-97"><a href="#cb16-97" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x=</span><span class="fu">element_text</span>(<span class="at">angle =</span> <span class="sc">-</span><span class="dv">90</span>, <span class="at">hjust =</span> <span class="dv">0</span>), </span>
+<span id="cb16-98"><a href="#cb16-98" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.background =</span> <span class="fu">element_rect</span>(<span class="at">fill =</span> <span class="st">"white"</span>, <span class="at">size =</span> <span class="dv">2</span>), </span>
+<span id="cb16-99"><a href="#cb16-99" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.grid.major =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="cn">NA</span>),</span>
+<span id="cb16-100"><a href="#cb16-100" aria-hidden="true" tabindex="-1"></a>        <span class="at">legend.position =</span> <span class="st">"bottom"</span>,</span>
+<span id="cb16-101"><a href="#cb16-101" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="st">"grey70"</span>, <span class="at">size =</span> <span class="fl">0.2</span>),</span>
+<span id="cb16-102"><a href="#cb16-102" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>),</span>
+<span id="cb16-103"><a href="#cb16-103" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>)) </span>
+<span id="cb16-104"><a href="#cb16-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-105"><a href="#cb16-105" aria-hidden="true" tabindex="-1"></a>SA_plot <span class="ot">&lt;-</span> SA_plot <span class="sc">+</span></span>
+<span id="cb16-106"><a href="#cb16-106" aria-hidden="true" tabindex="-1"></a>  ggnewscale<span class="sc">::</span><span class="fu">new_scale_color</span>() <span class="sc">+</span></span>
+<span id="cb16-107"><a href="#cb16-107" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_colour_manual</span>(<span class="at">values =</span> dingo_palette) <span class="sc">+</span></span>
+<span id="cb16-108"><a href="#cb16-108" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="fu">glue</span>(<span class="st">"Dingo observations in &lt;br&gt; Australian &lt;span style='color:{dingo_palette$Protected}'&gt;**Protected**&lt;/span&gt; &lt;span style='color:{dingo_palette$Areas}'&gt;**Areas**&lt;/span&gt; &lt;br&gt; in South Australia &lt;br&gt;"</span>)) <span class="sc">+</span></span>
+<span id="cb16-109"><a href="#cb16-109" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_markdown</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">16</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>)) <span class="sc">+</span></span>
+<span id="cb16-110"><a href="#cb16-110" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="at">geom =</span> <span class="st">"line"</span>, <span class="at">colour =</span> <span class="st">"blue"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span>        </span>
+<span id="cb16-111"><a href="#cb16-111" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="at">geom =</span> <span class="st">"text"</span>, <span class="at">label =</span> <span class="st">"Dingo Fence"</span>, <span class="at">hjust =</span> <span class="st">"left"</span>) <span class="sc">+</span> <span class="co">#couldnt get the annotation to work </span></span>
+<span id="cb16-112"><a href="#cb16-112" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Latitude"</span>, <span class="at">x =</span> <span class="st">"Longitude"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p><em>Hey Dax, I think It would be good if we could just make one color bar that is centred as well as one title that is just centred so we aren’t repeating information in the graph. I tried giving this a crack but let me know what you rekon?</em></p>
+<p><strong>Dax: Yep that sounds good. This might be a bit fiddly so happy to figure this out later</strong></p>
+<div class="cell column-screen-inset quarto-layout-panel">
+<div class="quarto-layout-row quarto-layout-valign-top">
+<div class="cell-output-display quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="quarto-write-up_files/figure-html/final-nt-sa-plots-1.png" class="img-fluid figure-img" width="1152"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="quarto-write-up_files/figure-html/final-nt-sa-plots-2.png" class="img-fluid figure-img" width="1152"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<p>In the Northern Territory and South Australia, the majority of the observations fall within Nationally protected areas. The effect of the Dingo Fence in South Australia on dingo records is clear, with few observations recorded south of the fence where they remain declared as pest.</p>
+</section>
+<section id="final-thoughts" class="level2">
+<h2 class="anchored" data-anchor-id="final-thoughts">Final thoughts</h2>
+<p>Research shows that dingoes are important keystone species in Australian ecosystems. Despite there being over 10,000 observations of dingoes in the ALA, we found that differences in attitudes between states and territories towards dingoes can have big effects on our knowledge of their distribution, and as a result, our ability to conserve or manage their population effectively.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

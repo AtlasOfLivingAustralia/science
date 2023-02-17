@@ -1,0 +1,126 @@
+---
+title: "Proportion of dingo records INSIDE vs OUTSIDE of protected areas"
+author: "Amos Smith"
+date: "2023-01-31"
+output: html_document
+---
+
+# Get data
+
+```{r}
+# load packages
+library(galah)
+library(tidyverse)
+library(ozmaps)
+library(sf)
+library(rmapshaper)
+library(patchwork)
+library(here)
+```
+
+Read shapefile
+
+```{r}
+capad <- st_read(here("projects",
+                      "dingo",
+                      "data",
+                      "CAPAD",
+                      "CAPAD2020_terrestrial.shp"),
+                 quiet = TRUE) |>
+  ms_simplify(keep = 0.1)
+```
+
+Download dingo records
+
+```{r}
+dingoocc <- galah_call() |>
+  galah_identify("canis familiaris") |>
+  galah_filter(raw_vernacularName == "Dingo") |>
+  galah_apply_profile(ALA) |>
+  galah_group_by(dataResourceName, cl22) |>
+  atlas_occurrences()
+```
+
+# Wrangle data
+
+Convert data to correct format
+
+```{r}
+# convert occurrences to sf object
+dingo_sf <- dingoocc |>
+  drop_na() |>
+  st_as_sf(coords = c("decimalLongitude", "decimalLatitude"), 
+  crs = st_crs("WGS84"))
+```
+
+Filter shapefile to only protected areas in the NT
+
+```{r}
+# filter
+dingo_state <- capad |> 
+  dplyr::select(STATE, NAME) |>
+  dplyr::filter(STATE == "NT")
+```
+
+# Get counts
+
+```{r}
+# Count number of observations in each protected area
+capad_counts <- dingo_state |> 
+  mutate(dingo_count = pmap(.l = list(x = dingo_state$geometry),
+                            .f = function(x) {
+                             lengths(st_intersects(x, dingo_sf))
+                             }))
+
+
+
+# total in protected areas
+counts_list <- capad_counts %>%
+  pull(dingo_count)
+
+counts_by_area <- tibble(name = capad_counts$NAME,
+                         count = do.call(rbind, x))
+```
+
+# Results
+
+Top 10 Protected areas with most records
+
+```{r}
+counts_by_area %>% 
+  slice_max(count, n = 10)
+```
+Number of protected areas with no records
+
+```{r}
+counts_by_area %>% 
+  filter(count == 0) %>%
+  count()
+```
+
+Number of dingo records in protected areas
+
+```{r}
+total_state <- counts_by_area %>%
+  summarise(total = sum(count))
+```
+
+Number of dingo records overall in the state
+
+```{r}
+total_overall <- galah_call() |>
+  galah_identify("canis familiaris") |>
+  galah_filter(raw_vernacularName == "Dingo",
+               cl22 == "Northern Territory") |>
+  galah_apply_profile(ALA) |>
+  atlas_counts()
+```
+
+Proportion of records in Protected areas vs outside of Protected areas
+
+```{r}
+(total_state/total_overall) * 100
+```
+
+
+
