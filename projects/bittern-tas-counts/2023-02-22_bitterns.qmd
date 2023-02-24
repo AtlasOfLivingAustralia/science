@@ -1,0 +1,355 @@
+---
+title: "Bittern Observations in the Atlas of Living Australia"
+author: "Atlas of Living Australia"
+date: "23 February, 2023"
+title-block-banner: "#B8573E"
+execute:
+  echo: false
+  warning: false
+  message: false
+format: 
+  html:
+    fontfamily: Roboto
+    mainfont: Roboto
+    sansfont: Roboto
+    monofont: Fira Code
+    linkcolor: "#E06E53"
+    highlight-style: arrow
+---
+
+```{r}
+#| code-fold: true
+#| warning: false
+#| message: false
+
+# packages
+library(galah)
+library(tidyverse)
+library(sf)
+library(ozmaps)
+library(ggpointdensity)
+library(kableExtra)
+library(ggtext)
+library(glue)
+```
+
+## Bitterns in Australia
+
+There are several species of bittern in Australia
+
+```{r}
+#| column: page
+#| code-fold: true
+galah_config(email = "dax.kellie@csiro.au", verbose = FALSE)
+
+bittern_species <- search_taxa("botaurus", "Ixobrychus dubius", 
+                               "Butorides striata", "Ixobrychus flavicollis",
+                               "Ixobrychus minutus")
+
+# number of species
+galah_call() |> 
+  galah_identify(bittern_species) |> 
+  atlas_species() |>
+  select(-kingdom, -phylum, -class, -order, -family, -genus) |>
+  kbl() |>
+  kable_paper("striped")
+```
+
+<br>
+
+--------------------------------------------------------------------------------
+
+::: {.panel-tabset}
+
+## Total
+
+Total observations in Australia:
+
+```{r}
+#| code-fold: true
+# Total number
+galah_call() |>
+  galah_identify(bittern_species) |>
+  galah_apply_profile(ALA) |>
+  atlas_counts() |> kbl()
+```
+
+## Yearly
+
+```{r}
+#| code-fold: true
+#| column: page
+#| fig-width: 10
+#| fig-height: 6
+# Total number
+yearly <- galah_call() |>
+  galah_identify(bittern_species) |>
+  galah_group_by(year) |>
+  galah_apply_profile(ALA) |>
+  atlas_counts() |>
+  mutate(year = as.integer(year)) |>
+  arrange(-desc(year))
+
+all_years <- tibble(year = 1800:2022)
+
+yearly_counts <- all_years |>
+  left_join(yearly) |>
+  replace_na(list(count = 0))
+
+ggplot(data = yearly_counts,
+       aes(x = year,
+           y = count)) +
+  geom_bar(
+       stat = "identity",
+       fill = pilot::pilot_color("orange")
+       ) +
+  labs(x = "Year",
+       y = "Number of Observations") + 
+  pilot::theme_pilot(axes = "bl",
+                     grid = "h") +
+  scale_x_continuous(breaks = c(1800, 1900, 1920, 1940, 1960, 1980, 2000, 2020),
+                     expand = c(0,0)) + 
+  scale_y_continuous(expand = c(0,0))
+
+```
+
+## By species
+
+```{r}
+galah_call() |>
+  galah_identify(bittern_species) |>
+  galah_group_by(species) |>
+  galah_apply_profile(ALA) |>
+  atlas_counts() |> kbl()
+```
+:::
+
+**Data Providers:**
+
+```{r}
+#| code-fold: true
+#| column: body-outset
+#| fig-height: 9
+data_providers <- galah_call() |>
+  galah_identify(bittern_species) |>
+  galah_group_by(dataResourceName) |>
+  galah_apply_profile(ALA) |>
+  atlas_counts()
+
+data_providers <- data_providers |>
+  mutate(
+    total = sum(count),
+    prop = count / total
+  )
+
+ggplot(data = data_providers |> filter(count > 100),
+       aes(x = reorder(dataResourceName, prop),
+               y = prop,
+               fill = dataResourceName)) +
+  geom_bar(stat = "identity") +
+  coord_flip() + 
+  labs(x = "Data Providers",
+       y = "Number of Observations",
+       caption = "Only includes providers that have supplied more than 100 records.") +
+  pilot::theme_pilot() + 
+  pilot::scale_fill_pilot() +
+  scale_x_discrete(labels = scales::wrap_format(30)) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme(legend.position = "none")
+```
+
+
+```{r}
+#| code-fold: true
+#| fig-align: center
+# download occurrences
+bitterns <- galah_call() |>
+  galah_identify(bittern_species) |>
+  galah_apply_profile(ALA) |>
+  atlas_occurrences()
+
+bitterns_filtered <- 
+  bitterns |>
+  filter(decimalLongitude < 155,
+         decimalLongitude > 110,
+         decimalLatitude > -45,
+         decimalLatitude < -10)
+
+aus <- ozmap_states |>
+  st_transform(crs = st_crs("WGS84"))
+
+ggplot() +
+  geom_sf(data = aus,
+          fill = "white",
+          colour = "grey20") + 
+  geom_point(data = bitterns_filtered,
+             mapping = aes(x = decimalLongitude,
+                           y = decimalLatitude),
+             colour = pilot::pilot_color("orange"),
+             alpha = .45,
+             size = 1.5) + 
+  theme_void() + 
+  labs(title = "Bittern Observations across Australia")
+```
+
+
+## Tasmania
+
+The ALA only has records of one species of bittern in Tasmania: *Botaurus poiciloptilus* aka the Australasian Bittern
+
+```{r}
+#| column: page
+galah_call() |> 
+  galah_identify(bittern_species) |> 
+  galah_filter(cl22 == "Tasmania") |>
+  atlas_species() |>
+  select(-kingdom, -phylum, -class, -order, -family, -genus) |>
+  kbl() |>
+  kable_paper("striped")
+```
+
+
+<br>
+
+::: {.panel-tabset}
+
+## Total
+
+Total observations in Tasmania:
+
+```{r}
+#| code-fold: true
+# Total in tasmania
+galah_call() |>
+  galah_identify(bittern_species) |>
+  galah_filter(cl22 == "Tasmania") |>
+  atlas_counts() |> 
+  kbl()
+```
+
+## Yearly
+
+```{r}
+#| column: page
+#| fig-width: 10
+#| fig-height: 6
+# Total number
+yearly_tas <- galah_call() |>
+  galah_identify(bittern_species) |> 
+  galah_filter(cl22 == "Tasmania") |>
+  galah_group_by(year) |>
+  galah_apply_profile(ALA) |>
+  atlas_counts() |>
+  mutate(year = as.integer(year)) |>
+  arrange(-desc(year))
+
+all_years_tas <- tibble(year = 1894:2022)
+
+yearly_counts_tas <- all_years |>
+  left_join(yearly_tas) |>
+  replace_na(list(count = 0))
+
+ggplot(data = yearly_counts_tas,
+       aes(x = year,
+           y = count)) +
+  geom_bar(
+       stat = "identity",
+       fill = pilot::pilot_color("orange")
+       ) +
+  labs(x = "Year",
+       y = "Number of Observations") + 
+  pilot::theme_pilot(axes = "bl",
+                     grid = "h") +
+  scale_x_continuous(breaks = c(1800, 1900, 1920, 1940, 1960, 1980, 2000, 2020),
+                     expand = c(0,0)) + 
+  scale_y_continuous(expand = c(0,0))
+```
+
+
+:::
+
+<br>
+
+**Data Providers:**
+
+```{r}
+#| code-fold: true
+#| column: body-outset
+data_providers_tas <- galah_call() |>
+  galah_identify(bittern_species) |>
+  galah_filter(cl22 == "Tasmania") |>
+  galah_group_by(dataResourceName) |>
+  atlas_counts()
+
+data_providers_tas <- data_providers_tas |>
+  mutate(
+    total = sum(count),
+    prop = count / total
+  )
+
+ggplot(data = data_providers_tas,
+       aes(x = reorder(dataResourceName, prop),
+               y = prop,
+               fill = dataResourceName)) +
+  geom_bar(stat = "identity") +
+  coord_flip() + 
+  labs(x = "Data Providers",
+       y = "Number of Observations") +
+  pilot::theme_pilot() + 
+  pilot::scale_fill_pilot() +
+  scale_x_discrete(labels = scales::wrap_format(30)) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme(legend.position = "none")
+```
+
+
+
+```{r}
+#| fig-align: center
+#| column: page
+#| fig-height: 9
+
+# Just in tasmania
+tas <- ozmap_data(data = "states") |>
+  filter(NAME == "Tasmania") |>
+  st_transform(crs = st_crs("WGS84"))
+
+bitterns_tas <- galah_call() |>
+  galah_identify(bittern_species) |>
+  galah_filter(cl22 == "Tasmania") |>
+  galah_apply_profile(ALA) |>
+  atlas_occurrences()
+
+tas_map <- ggplot() +
+  geom_sf(data = tas,
+          fill = "white",
+          colour = "grey20") + 
+  geom_pointdensity(data = bitterns_tas,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude),
+                    size = 3,
+                    adjust = .2) +
+  scale_colour_viridis_c(option = "A",
+                         guide = guide_colorbar(
+                           title = "Number\nof Overlapping\nObservations",
+                           title.vjust = 5,
+                           title.hjust = 0.5,
+                           direction = "horizontal",
+                           title.position = "left",
+                           barwidth = 10,
+                           draw.ulim = FALSE, 
+                           draw.llim = FALSE)) +
+  labs(title = glue("*Botaurus poiciloptilus* observations in Tasmania")) +
+  pilot::theme_pilot(grid = "",
+                     axes = "") +
+  theme(legend.position = "bottom",
+        legend.title = element_text(face = "bold", size = 13),
+        plot.title = element_markdown(size = 18, hjust = 0.5),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.text.x = element_blank())
+tas_map
+```
+
+
