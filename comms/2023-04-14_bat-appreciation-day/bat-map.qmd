@@ -419,6 +419,9 @@ library(camcorder)
 
 gg_record(
   dir = here("comms", "2023-04-14_bat-appreciation-day", "bats"), # where to save the recording
+  width = 11.5,      # width of saved image
+  height = 13.5,     # height of saved image
+  units = "in",   # units for width and height
   device = "png",
   dpi = 350
 )
