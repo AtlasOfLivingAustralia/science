@@ -1,0 +1,426 @@
+---
+title: "Bat observations in the ALA"
+author: "Dax Kellie"
+date: "20/04/2023"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+A dataviz of the top 5 bats recorded in the ALA since 2015 (with circle photos!) and a map of where bat observations are across Australia + the top 3 bats in each state
+
+```{r}
+# packages
+library(tidyverse)
+library(galah)
+library(ozmaps)
+library(sf)
+library(here)
+library(glue)
+library(cropcircles)
+library(ggimage)
+library(ggtext)
+library(showtext)
+library(patchwork)
+
+font_add_google("Roboto")
+showtext_auto(enable = TRUE)
+```
+
+```{r}
+# registered ALA email (register at ala.org.au)
+galah_config(email = "your-email-address")
+```
+
+# Top bats
+
+Download top bats counts
+
+```{r}
+# total count
+total <- galah_call() |>
+  galah_identify("chiroptera") |>
+  atlas_counts()
+
+# download top 5 bat species
+bats_overall <- galah_call() |>
+  galah_identify("chiroptera") |>
+  galah_filter(year >= 2015) |>
+  galah_group_by(species) |>
+  atlas_counts(limit = 5)
+
+# add rank
+bats_overall <- bats_overall |>
+  mutate(rank = c(20, 40, 60, 80, 100))
+```
+
+
+Add images of bats
+
+```{r images}
+# add folder path and get list of files
+folder <- glue("{here('comms', '2023-04-14_bat-appreciation-day', 'images')}")
+files <- list.files(path = folder)
+
+# make tibble of file paths
+bat_images <- tibble("species" = bats_overall |> pull(species),
+                     images = c(glue("{folder}/{files}")))
+
+# crop image files with the {cropcircles} package
+bat_images <- bat_images |>
+  mutate(images_circle = circle_crop(images))
+
+# join to bat_ranks
+bat_ranks <- bats_overall |>
+  left_join(bat_images)
+```
+
+Add common names of top bats
+
+```{r images}
+# add common names too
+common_names <- search_taxa(bats_overall$species) |> 
+  select(scientific_name, vernacular_name) 
+
+bat_ranks <- bat_ranks |>
+  left_join(common_names, by = join_by(species == scientific_name))
+```
+
+
+## Bubble plot
+
+```{r}
+# create base for plotting, with adequate spacing for photos
+base_tibble <- tibble(x = 0:120, y = 1)
+
+# Add aspect ratio
+asp = 3.7 # ESSENTIAL for images with ggimage
+width = 10
+
+# Make total number pretty with comma
+total_comma <- prettyNum(total$count, big.mark=",")
+
+
+## Plot
+
+bubbles <- ggplot(base_tibble, aes(x = x, y = y)) +
+  geom_image(data = bat_ranks,
+             aes(x = rank, 
+                 y = 2.91, 
+                 image = images_circle),
+             color = "#38405F",
+             size = 0.172,
+             asp = asp,
+             by="width") +
+  geom_image(data = bat_ranks,
+             aes(x = rank, 
+                 y = 2.91, 
+                 image = images_circle), 
+             size = .145,
+             asp = asp,
+             by="width") +
+  scale_size_identity() +
+  geom_text(data = bat_ranks,
+            aes(y = 0.6, 
+                label = stringr::str_wrap(glue("{vernacular_name}"), 20), 
+                x = rank),
+            color = "#ECF0E9",
+            family = "Roboto",
+            size = 12,
+            lineheight = 0.25,
+            fontface = 2,
+            hjust = 0.5) +
+  geom_text(data = bat_ranks,
+            aes(y = 0.0, 
+                label = stringr::str_wrap(glue("{species}"), 20), 
+                x = rank),
+            color = "#ECF0E9",
+            family = "Roboto",
+            size = 10,
+            fontface = 1,
+            lineheight = 0.24,
+            hjust = 0.5) +
+  scale_y_continuous(limits = c(0,5.4), expand = expansion(mult = .075)) +
+  scale_x_continuous(limits = c(0,120)) + 
+  pilot::annotate_pilot(
+        x = 60,
+        y = 5.4,
+        label = "Top 5 bats recorded since 2015",
+        family = "Roboto",
+        color = "#ECF0E9",
+        hjust = 0.5,
+        size = 22) +
+  labs(title = "**Bat observations in the Atlas of Living Australia**",
+       subtitle = glue("Total observations: {total_comma} <br>")) +
+  theme(
+    plot.margin = unit(c(2,0,0,0),"cm"),
+    plot.title = element_markdown(family = "Roboto", size = 77, colour = "#ECF0E9", hjust = 0),
+    plot.subtitle = element_markdown(family = "Roboto", size = 63, colour = "#ECF0E9", hjust = 0),
+    panel.spacing = unit(c(0,0,0,0), "cm"),
+    panel.background = element_rect(fill = "#121714", color = NA),
+    plot.background = element_rect(fill = "#121714", colour = NA),
+    panel.grid = element_blank(), #remove labels, ticks etc. 
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_blank(),
+    complete = TRUE
+  )
+
+```
+
+
+
+# Bats map
+
+## Hexagons
+
+Create hexagon grid of Australia
+
+```{r}
+# AUS map
+oz_wgs84 <- ozmap_country |>
+  st_transform(crs = st_crs("WGS84"))
+
+# create grid
+oz_grid <- st_make_grid(oz_wgs84,
+                        what = "polygons",
+                        cellsize = 1.0,
+                        square = FALSE,
+                        flat_topped = TRUE)
+
+# subset to grid cells that are within land
+keep_hexes <- st_intersects(oz_grid, oz_wgs84)
+keep_hexes <- as.data.frame(keep_hexes)$row.id
+oz_grid <- oz_grid[keep_hexes]
+```
+
+Recursively query ALA for records in each hexagon
+
+```{r}
+get_counts <- function(hexagon){
+  
+    # convert to wkt
+    wkt_string <- st_as_text(oz_grid[[hexagon]])
+    
+    # get counts
+    result <- galah_call() |>
+      galah_geolocate(wkt_string) |>
+      galah_identify("chiroptera") |>
+      atlas_counts(limit = NULL)
+    
+    # light formatting to catch errors
+    if(is.null(result)){
+      tibble(count = NA, id = hexagon, area_km2 = as.integer(st_area(hexagon))/1000)
+    }else{
+      result$id <- hexagon
+      result
+    }
+}
+
+# download number of species for each polygon
+counts_list <- map(seq_along(oz_grid), get_counts)
+
+# bind lists to data frame
+counts_df <- map_dfr(counts_list, rbind)
+
+# convert to tibble, attach counts
+oz_df <- st_as_sf(oz_grid)
+oz_df$count <- NA
+oz_df$count[counts_df$id] <- counts_df$count
+
+# Convert 0s to NA for plotting
+oz_df_na <- oz_df |>
+  mutate(count = ifelse(count == 0, NA, count))
+```
+
+
+## Top 3 species in each state/territory
+
+```{r}
+# get list of states
+states <- search_fields("cl22") |> show_values()
+
+states |>
+  pull(category)
+
+# download top 3 counts
+top_counts <- galah_call() |> 
+  galah_identify("Chiroptera") |>
+  galah_group_by(species, cl22) |>
+  atlas_counts(limit = 3)
+
+top_counts
+```
+
+Finding the centre of each state/territory to point to, and setting the locations of labels around the map
+
+```{r}
+# AUS map
+aus <- ozmap_states |>
+  st_transform(crs = st_crs("WGS84"))
+
+# state/territory centroid
+centres <- aus %>%
+  rowwise() %>%
+  mutate(centre = sf::st_centroid(geometry)) %>%
+  mutate(x_coord = st_coordinates(centre)[1],
+         y_coord = st_coordinates(centre)[2]) %>%
+  as_tibble() |>
+  select(x_coord, y_coord, NAME) |>
+  filter(NAME != "Other Territories") |>
+  mutate(type = paste("centre"))
+
+# label locations
+label_coords <- tribble(
+  ~NAME,              ~x_coord,   ~y_coord,
+  "New South Wales",    155,       -24,
+  "Queensland",         150,       -16,
+  "Northern Territory", 122,       -5.8,
+  "Western Australia",  102,       -16,
+  "South Australia",    119,       -40,
+  "Tasmania",           140,       -48.5,
+  "Victoria",           154,       -40,
+  "Australian Capital Territory", 155, -32
+) |>
+  mutate(type = paste("label"))
+
+all_coords <- centres %>%
+  bind_rows(label_coords)
+```
+
+```{r}
+# create text labels
+get_text <- function(state_name) {
+  state <- {state_name}
+  
+  species <- top_counts |> 
+  filter(cl22 == {{state_name}}) |>
+  pull(species)
+  
+  glue("**{state}**<br>1  {species[1]}<br>2  {species[2]}<br>3  {species[3]}")
+}
+
+state_labels <- map_chr(label_coords$NAME, ~ get_text(.x))
+```
+
+```{r}
+# custom batty colour palette
+custom_pal <- colorRampPalette(c("#09185111", 
+                                 "#ADBEFFFF"))(5) 
+# image credits
+image_credits <- 
+  glue("
+       **Dataviz by Dax Kellie** <br> <br>
+       Image credits: <br>
+       P. poliocephalus - Will Cornwell CC-BY-NC 4.0 (Int) <br>
+       V. vulturnus - Sandy Robertson CC-BY-NC 4.0 (Int) <br>
+       C. gouldii - duke_n CC-BY-NC 4.0 (Int) <br>
+       A. australis - Darren Fielder CC-BY-NC 4.0 (Int) <br>
+       M. orianae - Michael Pennay CC-BY-NC 4.0 (Int) <br>
+       ")
+```
+
+
+```{r}
+map <- ggplot() +
+  geom_sf(
+    data = oz_df_na,
+    mapping = aes(fill = log10(count)), # log10 + 1 transformed
+    alpha = 1,
+    color = NA) +
+  scale_fill_stepsn(
+    name = "Number of Observations", 
+    breaks = c(1, 2, 3, 4),
+    labels = c("10", "100", "1,000", "10,000"),
+    trans = "log10", # log-transform
+    colours = custom_pal,
+    na.value = "#121714",
+    guide = guide_colorsteps( 
+      direction = "horizontal", 
+      label.position = "bottom",
+      title.position = "top",
+      lineheight = 0.1,
+      title.hjust = 0.5,
+      title.vjust = -4,
+      label.vjust = 7,
+      fill = guide_legend(override.aes = list(alpha = 0.7))
+    )
+  ) +
+  geom_sf(data = aus,
+          colour = "#ECF0E9",
+          fill = NA) + 
+  geom_line(data = all_coords,
+            aes(x = x_coord, y = y_coord, group = NAME),
+            colour = "#ECF0E9") +
+  geom_point(data = centres,
+             aes(x = x_coord, y = y_coord),
+             colour = "#ECF0E9",
+             fill = "black",
+             shape = 21,
+             size = 3) +
+  geom_richtext(
+        aes(x = label_coords$x_coord,
+        y = label_coords$y_coord,
+        label =  state_labels),
+        color = "#ECF0E9",
+        fill = "#121714",
+        family = "Roboto",
+        lineheight = 0.3,
+        hjust = 0,
+        size = 12) +
+  coord_sf(xlim = c(100, 180),
+           ylim = c(-50, 0)) +
+  labs(title = "Top 3 bats recorded in each state/territory",
+       caption = image_credits) +
+  theme(
+    legend.background = element_rect(fill = NA, colour = NA),
+    legend.text = element_text(colour = "white", size = 38, lineheight = 0.3, family = "Roboto"),
+    legend.title = element_text(colour = "white", size = 48, lineheight = 0.3, family = "Roboto"),
+    legend.key.width = unit(28, 'mm'),
+    legend.position = "bottom",
+    panel.background = element_rect(fill = "#121714", color = NA),
+    plot.background = element_rect(fill = "#121714", colour = NA),
+    panel.grid = element_blank(), #remove labels, ticks etc.
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_blank(),
+    plot.margin = unit(c(1,0,0,3),"cm"),
+    panel.spacing = unit(c(0,0,0,0), "cm"),
+    plot.title = element_text(hjust = 0.5, size = 57, colour = "white", family = "Roboto"),
+    plot.caption = ggtext::element_textbox_simple(colour = "white",
+                                                  size = 29,
+                                                  halign = 1,
+                                                  lineheight = 0.25,
+                                                  margin = margin(t = 0.5,
+                                                                  r = 0.25, 
+                                                                  unit = "cm")),
+    complete = TRUE
+  )
+```
+
+
+# Final plot
+
+```{r}
+bubbles/map +
+  plot_layout(heights = c(1, 2), widths = c(1, 1)) & 
+  theme(plot.background = element_rect(fill = "#121714", colour = NA),
+        text = element_text(lineheight = 0.7),
+        legend.text = element_text(margin = margin(t = 0, b = 0)),
+        legend.spacing = unit(0, "cm"))
+```
+
+Save using {camcorder}
+
+```{r}
+library(camcorder)
+
+gg_record(
+  dir = here("comms", "2023-04-14_bat-appreciation-day", "bats"), # where to save the recording
+  device = "png",
+  dpi = 350
+)
+```
+
