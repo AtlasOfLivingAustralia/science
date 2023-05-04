@@ -1,0 +1,28 @@
+---
+title: "{arrow} workflows for big biodiversity data"
+author: "Fonti Kar, Shandiya Balasubramanium"
+date: "2023-05-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+pacman::p_load(here, arrow, galah, tidyverse)
+```
+
+<!-- The data folder is currently in the `.gitignore` - feel free to adjust this! -->
+Download the dataset [here](https://data.csiro.au/collection/csiro:56679)
+
+1. Click on "Files" tab, then check the box next to "invertebrate.data.03.2023.csv"  
+2. Click on "Download" on the left side of the screen. 
+3. Leave the "select a method" at the default option (Download selected files as Zip archive) 
+4. Click Request file and accept the license agreement. 
+5. Move the downloaded .zip to the `data/` folder and unzip there!
+
+```{r preview}
+invertebrates <- open_dataset(here("data/Curated_Plant_and_Invertebrate_Data_for_Bushfire_Modelling/invertebrate.data.03.2023.csv"), format = "csv")
+```
+
