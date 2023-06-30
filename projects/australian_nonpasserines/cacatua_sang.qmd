@@ -1,0 +1,143 @@
+---
+title: "cacatua_sang"
+format: html
+editor: visual
+---
+
+```{r}
+library(dplyr)
+
+df <- read.csv("C:/Users/adele/Documents/non_passerine/data_in/cacatua_sanguinea_adele_complete.csv")
+
+#add place column as required by some geocoder functions
+df$place <- paste(df$location, df$state, df$country, sep = ", ")
+```
+
+Test different geocoders for accuracy/number of results
+
+```{r}
+#install pkgs, load libraries
+#install.packages("tidygeocoder")
+#install.packages('tmaptools')
+library(tidygeocoder)
+library(tmaptools)
+
+#tidygeocoder produces 46 results out of 100
+result <- tidygeocoder::geocode(df[1:100, ], city = "location", state = "state", country = "country")
+
+sum(complete.cases(result$lat)) #46
+
+#tmaptools produces 64 results out of 100
+result1 <- geocode_OSM(df$place[1:100], keep.unfound = TRUE) #64
+
+
+
+```
+
+Lots of errors for the entries that include distance and directions eg. "100km N Morawa" for obvious reasons. To geocode these seperately 1. Split the distance, direction, and location
+
+```{r}
+#id entries with 'km ' within it, subset into different df
+has_km <- grepl("km ", df$location)
+km_df <- subset(df, has_km)
+
+#make new columns splitting distance, direction, and location 
+km_df$distance <- sub("km .*", "", km_df$place)
+km_df$direction <- sub(".*km ([A-Za-z]+).*", "\\1", km_df$place)
+km_df$loc <- sub(".*km [A-Za-z]+ (.*)", "\\1", km_df$place)
+```
+
+2.  Geocode based on this info + base location provided
+
+```{r}
+
+for (row in 1:nrow(km_df)) {
+  base_location <- km_df[row, "loc"]
+  distance_km <- as.numeric(sub("km", "", km_df[row, "distance"]))
+  direction <- km_df[row, "direction"]
+  
+  # Geocode the base location
+  base_coordinates <- geocode_OSM(base_location)
+  if (is.null(base_coordinates) || length(base_coordinates) == 0) {
+    # Skip iteration if geocoding result is empty
+    next
+  }
+  
+  # Calculate the new coordinates based on direction and distance
+  if (direction == "N") {
+    new_latitude <- base_coordinates$coords[2] + (distance_km / 111)
+    new_longitude <- base_coordinates$coords[1]
+  } else if (direction == "S") {
+    new_latitude <- base_coordinates$coords[2] - (distance_km / 111)
+    new_longitude <- base_coordinates$coords[1]
+  } else if (direction == "E") {
+    new_latitude <- base_coordinates$coords[2]
+    new_longitude <- base_coordinates$coords[1] + (distance_km / (111 * cos(base_coordinates$coords[2] * pi / 180)))
+  } else if (direction == "W") {
+    new_latitude <- base_coordinates$coords[2]
+    new_longitude <- base_coordinates$coords[1] - (distance_km / (111 * cos(base_coordinates$coords[2] * pi / 180)))
+  } else if (direction == "NE") {
+    new_latitude <- base_coordinates$coords[2] + (distance_km / 111)
+    new_longitude <- base_coordinates$coords[1] + (distance_km / (111 * cos(base_coordinates$coords[2] * pi / 180)))
+  } else if (direction == "NW") {
+    new_latitude <- base_coordinates$coords[2] + (distance_km / 111)
+    new_longitude <- base_coordinates$coords[1] - (distance_km / (111 * cos(base_coordinates$coords[2] * pi / 180)))
+  } else if (direction == "SE") {
+    new_latitude <- base_coordinates$coords[2] - (distance_km / 111)
+    new_longitude <- base_coordinates$coords[1] + (distance_km / (111 * cos(base_coordinates$coords[2] * pi / 180)))
+  } else if (direction == "SW") {
+    new_latitude <- base_coordinates$coords[2] - (distance_km / 111)
+    new_longitude <- base_coordinates$coords[1] - (distance_km / (111 * cos(base_coordinates$coords[2] * pi / 180)))
+  } else {
+    # Handle any other direction values here (if needed)
+    new_latitude <- NA
+    new_longitude <- NA
+  }
+  
+  # Assign the new latitude and longitude to the dataframe
+  km_df[row, "lat"] <- new_latitude
+  km_df[row, "lon"] <- new_longitude
+}
+```
+
+adding result1 lat lon (from tmaptools) to result (from tidygeocodr) to see if there are any lat lons that tidygeocodr got that tmaptools didnt (to 'fill in the blanks')
+
+```{r}
+result$lon_t <- result1$lon
+
+result$lat_t <- result1$lat
+
+#alas no success, so we can just use result1, but for all entries in df 
+
+result1 <- geocode_OSM(df$place, keep.unfound = TRUE)
+```
+
+now merge the lat lon from result1 and km_df back to df
+
+```{r}
+
+df$lat <- NA
+df$lon <- NA
+
+
+#apply x, y from tmaptools
+df$lat <- result1$lat
+df$lon <- result1$lon
+
+#apply x, y from km function (matching row numbers)
+km_rows <- match(row.names(km_df), row.names(df)) #wip
+
+
+df$lat[km_rows] <- km_df$lat
+
+df$lon[km_rows] <- km_df$lon
+
+sum(is.na(df$lat)) #67 still un-coded due to remoteness
+
+write.csv(df, file="C:/Users/adele/Documents/non_passerine/data_out/cacatua_sanguinea_points.csv")
+
+```
+
+```{r}
+
+```
