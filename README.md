@@ -3,12 +3,12 @@ This is a working repository for R code produced by the ALA Science & Decision S
 
 - Martin Westgate (Team Lead)
 - Dax Kellie
-- Jess Fenker
 - Olivia Torresan
 - Shandiya Balasubramaniam
 - Amanda Buyan (c/o EcoCommons)
-- Margot Schneider
-- Fonti Kar
+- Juliet Seers
+- Callum Waite
+- Andrew Schwenke
 
 ## Folder structure
 The repo stores two main types of outputs:
