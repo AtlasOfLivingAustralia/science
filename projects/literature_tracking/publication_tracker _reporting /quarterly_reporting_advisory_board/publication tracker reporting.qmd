@@ -15,7 +15,6 @@ The quarterly review is generally updated [here](https://csiroau.sharepoint.com/
 
 > The last report looked at publications added between 2023-03-09 (9th of March 2023) and 2023-07-04 (4th of July 2023) with a publication date within 2023. Therefore, the next quarterly review will start from the **5th of July 2023**.
 
-
 # Step 1: Data cleaning
 
 1.  Load required packages
@@ -131,7 +130,7 @@ ALA_used
 
 ## Publications
 
-a) All publications citing the ALA:
+a)  All publications citing the ALA:
 
 ```{r, eval = FALSE}
 ALA_cited <- ALA_tags |>
@@ -139,7 +138,7 @@ ALA_cited <- ALA_tags |>
 ALA_cited
 ```
 
-b) All publications using the ALA:
+b)  All publications using the ALA:
 
 ```{r, eval = FALSE}
 usedjournals <- ALA_tags |>
@@ -151,7 +150,7 @@ usedjournals
 
 Publications that are journal articles:
 
-c) Citing the ALA
+c)  Citing the ALA
 
 ```{r, eval = FALSE}
 citedjournals <- ALA_tags %>%
@@ -160,7 +159,7 @@ citedjournals <- ALA_tags %>%
 usedjournals
 ```
 
-d) Using the ALA
+d)  Using the ALA
 
 ```{r, eval = FALSE}
 citedjournals <- ALA_tags %>%
@@ -187,42 +186,40 @@ ALA_tags |>
 write_csv(here("21mar2023reports.csv"))
 ```
 
-
 # Summary example:
 
 **Research Impact**
- 
-From March – June 2023, the ALA has been referenced or mentioned in 134 published articles, with 91 of these articles directly using or citing hosted data in their analyses. All articles that cite the ALA are available on our website and are also now available on ALA Labs (including highlight summaries). The three main research foci for publications using the ALA this quarter were biosecurity, conservation, and citizen science. 
 
-Biosecurity was the largest focus, with ALA data used to illustrate invasion histories of several non-native species (McCulloch et al 2023). Introduction pathways, successful interventions, and overall pest impact on select species (such as the widespread forestry species Pinus radiata) are analysed at global scales (Brockerhoff et al., El Housni et al., Kachigunda et al., 2023; Ollivier et al., 2023). Steinrucken et al. (2023) also use ALA data to analyse the potential of fungal biocontrol agents against Sporobolus grasses in Australia, while, similarly, Yonow et al. (2023) use ALA data to model the potential of a parasite in reducing invasive snail populations. 
+From March -- June 2023, the ALA has been referenced or mentioned in 134 published articles, with 91 of these articles directly using or citing hosted data in their analyses. All articles that cite the ALA are available on our website and are also now available on ALA Labs (including highlight summaries). The three main research foci for publications using the ALA this quarter were biosecurity, conservation, and citizen science.
 
-Conservation research mostly analysed historical distributions, inferencing habitat preferences of currently at-risk species. Occurrence data contributed to constructions and reconstructions of the endangered Golden-shouldered Parrot in its range of the Cape York Peninsula (Crowley et al., 2023), as well as the greater bilby across eastern Australia (Silcock et al., 2023). Stock et al. (2023) find small inbreeding populations of the threatened orange-bellied tree frog; which are analysed further for their potential relationship to climate and environmental variables hosted by the Atlas. 
+Biosecurity was the largest focus, with ALA data used to illustrate invasion histories of several non-native species (McCulloch et al 2023). Introduction pathways, successful interventions, and overall pest impact on select species (such as the widespread forestry species Pinus radiata) are analysed at global scales (Brockerhoff et al., El Housni et al., Kachigunda et al., 2023; Ollivier et al., 2023). Steinrucken et al. (2023) also use ALA data to analyse the potential of fungal biocontrol agents against Sporobolus grasses in Australia, while, similarly, Yonow et al. (2023) use ALA data to model the potential of a parasite in reducing invasive snail populations.
 
-Lastly, the capabilities of citizen science are emphasised in Djokic et al. (2023), who use DigiVol (hosted by the ALA) to allow volunteers to help identify species in images of historical fossils. Similarly, including analysis of image data in the ALA, Mesaglio et al. (2023) work to understand Australian regions with less photographed plant species' data and highlight the potential of citizen science to fill this gap for increased data richness and verifiability. 
+Conservation research mostly analysed historical distributions, inferencing habitat preferences of currently at-risk species. Occurrence data contributed to constructions and reconstructions of the endangered Golden-shouldered Parrot in its range of the Cape York Peninsula (Crowley et al., 2023), as well as the greater bilby across eastern Australia (Silcock et al., 2023). Stock et al. (2023) find small inbreeding populations of the threatened orange-bellied tree frog; which are analysed further for their potential relationship to climate and environmental variables hosted by the Atlas.
+
+Lastly, the capabilities of citizen science are emphasised in Djokic et al. (2023), who use DigiVol (hosted by the ALA) to allow volunteers to help identify species in images of historical fossils. Similarly, including analysis of image data in the ALA, Mesaglio et al. (2023) work to understand Australian regions with less photographed plant species' data and highlight the potential of citizen science to fill this gap for increased data richness and verifiability.
 
 **Recent notable publications using the ALA:**
 
-Brockerhoff, E. G., Gresham, B. A., Meurisse, N., Nahrung, H. F., Perret-Gentil, A., Pugh, A. R., Sopow, S. L., & Turner, R. M. (2023). Pining away and at home: Global utilisation of Pinus radiata by native and non-native insects. NeoBiota, 84, 137–167. https://doi.org/10.3897/neobiota.84.95864 
+Brockerhoff, E. G., Gresham, B. A., Meurisse, N., Nahrung, H. F., Perret-Gentil, A., Pugh, A. R., Sopow, S. L., & Turner, R. M. (2023). Pining away and at home: Global utilisation of Pinus radiata by native and non-native insects. NeoBiota, 84, 137--167. https://doi.org/10.3897/neobiota.84.95864
 
-Crowley, G. M., & Garnett, S. T. (2023). Distribution and decline of the Golden-shouldered Parrot Psephotellus chrysopterygius 1845–1990. North Queensland Naturalist, 53, 22–68. 
+Crowley, G. M., & Garnett, S. T. (2023). Distribution and decline of the Golden-shouldered Parrot Psephotellus chrysopterygius 1845--1990. North Queensland Naturalist, 53, 22--68.
 
-Djokic, T., Frese, M., Woods, A., Dettmann, M., Flemons, P., Brink, F., & McCurry, M. R. (2023). Inferring the age and environmental characteristics of fossil sites using citizen science. PLOS ONE, 18(4), e0284388. https://doi.org/10.1371/journal.pone.0284388 
+Djokic, T., Frese, M., Woods, A., Dettmann, M., Flemons, P., Brink, F., & McCurry, M. R. (2023). Inferring the age and environmental characteristics of fossil sites using citizen science. PLOS ONE, 18(4), e0284388. https://doi.org/10.1371/journal.pone.0284388
 
-EL Housni, Z., Abdessalem, T., Radouane, N., Ezrari, S., Zegoumou, A., & Ouijja, A. (2023). Overview of sugar beet leaf spot disease caused by Cercospora beticola Sacc. Archives of Phytopathology and Plant Protection, 56(7), 503–528. https://doi.org/10.1080/03235408.2023.2216356 
+EL Housni, Z., Abdessalem, T., Radouane, N., Ezrari, S., Zegoumou, A., & Ouijja, A. (2023). Overview of sugar beet leaf spot disease caused by Cercospora beticola Sacc. Archives of Phytopathology and Plant Protection, 56(7), 503--528. https://doi.org/10.1080/03235408.2023.2216356
 
-Kachigunda, B., Coupland, G. T., Mengersen, K., Perera, D. I., van der Merwe, J., & McKirdy, S. (2023). A systems approach to biosecurity pays off: A case study investigating introduction pathways and interceptions of non-indigenous species at a biosecurity border. Biological Invasions. https://doi.org/10.1007/s10530-023-03077-5 
+Kachigunda, B., Coupland, G. T., Mengersen, K., Perera, D. I., van der Merwe, J., & McKirdy, S. (2023). A systems approach to biosecurity pays off: A case study investigating introduction pathways and interceptions of non-indigenous species at a biosecurity border. Biological Invasions. https://doi.org/10.1007/s10530-023-03077-5
 
-McCulloch, G. A., Gurdasani, K., Hereward, J. P., Morin, L., Walter, G. H., & Raghu, S. (2023). Invasion history of Lycium ferocissimum in Australia: The impact of admixture on genetic diversity and differentiation. Diversity and Distributions, 1–13. https://doi.org/10.1111/ddi.13702 
+McCulloch, G. A., Gurdasani, K., Hereward, J. P., Morin, L., Walter, G. H., & Raghu, S. (2023). Invasion history of Lycium ferocissimum in Australia: The impact of admixture on genetic diversity and differentiation. Diversity and Distributions, 1--13. https://doi.org/10.1111/ddi.13702
 
-Mesaglio, T., Sauquet, H., Coleman, D., Wenk, E., & Cornwell, W. K. (2023). Photographs as an essential biodiversity resource: Drivers of gaps in the vascular plant photographic record. New Phytologist. https://doi.org/10.1111/nph.18813 
+Mesaglio, T., Sauquet, H., Coleman, D., Wenk, E., & Cornwell, W. K. (2023). Photographs as an essential biodiversity resource: Drivers of gaps in the vascular plant photographic record. New Phytologist. https://doi.org/10.1111/nph.18813
 
-Ollivier, M., Labouyrie, M., Raghu, S., Tavoillot, J., Tixier, M.-S., & Lesieur, V. (2023). Characterising the herbivore community and its impact on Sonchus oleraceus (Asterales: Asteraceae) in its invaded range in Australia. Austral Entomology, 1–15. https://doi.org/10.1111/aen.12640 
+Ollivier, M., Labouyrie, M., Raghu, S., Tavoillot, J., Tixier, M.-S., & Lesieur, V. (2023). Characterising the herbivore community and its impact on Sonchus oleraceus (Asterales: Asteraceae) in its invaded range in Australia. Austral Entomology, 1--15. https://doi.org/10.1111/aen.12640
 
-Silcock, J. L., McRae, P. D., Laidlaw, M. J., & Southgate, R. I. (2023). Historical record shows broad habitat use and rapid decline of the greater bilby Macrotis lagotis in eastern Australia. Wildlife Research. https://doi.org/10.1071/WR22043 
+Silcock, J. L., McRae, P. D., Laidlaw, M. J., & Southgate, R. I. (2023). Historical record shows broad habitat use and rapid decline of the greater bilby Macrotis lagotis in eastern Australia. Wildlife Research. https://doi.org/10.1071/WR22043
 
-Steinrucken, T. V., & Vitelli, J. S. (2023). Biocontrol of weedy Sporobolus grasses in Australia using fungal pathogens. BioControl. https://doi.org/10.1007/s10526-023-10195-5 
+Steinrucken, T. V., & Vitelli, J. S. (2023). Biocontrol of weedy Sporobolus grasses in Australia using fungal pathogens. BioControl. https://doi.org/10.1007/s10526-023-10195-5
 
-Stock, S. E., Klop-Toker, K., Wallace, S., Kelly, O., Callen, A., Seeto, R., Mahony, S. V., Hayward, M. W., & Mahony, M. J. (2023). Uncovering inbreeding, small populations, and strong genetic isolation in an Australian threatened frog, Litoria littlejohni. Conservation Genetics. https://doi.org/10.1007/s10592-023-01522-5 
+Stock, S. E., Klop-Toker, K., Wallace, S., Kelly, O., Callen, A., Seeto, R., Mahony, S. V., Hayward, M. W., & Mahony, M. J. (2023). Uncovering inbreeding, small populations, and strong genetic isolation in an Australian threatened frog, Litoria littlejohni. Conservation Genetics. https://doi.org/10.1007/s10592-023-01522-5
 
-Yonow, T., Kriticos, D. J., Zalucki, M. P., Mc Donnell, R. J., & Caron, V. (2023). Population modelling for pest management: A case study using a pest land snail and its fly parasitoid in Australia. Ecological Modelling, 482, 110413. https://doi.org/10.1016/j.ecolmodel.2023.110413 
-
+Yonow, T., Kriticos, D. J., Zalucki, M. P., Mc Donnell, R. J., & Caron, V. (2023). Population modelling for pest management: A case study using a pest land snail and its fly parasitoid in Australia. Ecological Modelling, 482, 110413. https://doi.org/10.1016/j.ecolmodel.2023.110413
