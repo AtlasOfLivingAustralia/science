@@ -97,28 +97,41 @@ grandtop10$publication_title[1:10]
 To find out how many different journal articles the ALA was cited in **the 2022-23 financial year**, run the same code but filter across the financial year dates (30 June - 30 June) and further restrict to papers published in that year (sometimes old papers are added as they become released online, which aren't relevant to our analysis).\
 \
 Be sure to remove the NA category using `drop_na()` as well.\
+\
+
+```{r}
+dataclean2 %>%
+  select(publication_year, title, publication_title, item_type) %>%
+  filter(publication_year == 2021) |> 
+  filter(item_type == "journalArticle") |>
+  group_by(publication_title) %>%
+  count()
+```
 
 ```{r}
 top10currentyear <- dataclean2 |>
   filter(item_type == "journalArticle") |>
-  filter(date_added_clean >= ymd("2022-06-30")) |>
-  filter(date_added_clean <= ymd("2023-06-30")) |>
-  filter(publication_year == c("2022", "2023")) |>
+  #filter(date_added_clean >= ymd("2021-06-30")) |>
+  #filter(date_added_clean <= ymd("2022-06-30")) |>
+  filter(publication_year == "2021") |>
   group_by(publication_title) |>
-  count() |>
-  drop_na() |>
-  arrange(desc(n)) 
+  count() 
+  #drop_na() |>
+  #ungroup() |>
+  #slice_max(n = 10, order_by = n)
+  #arrange(desc(n)) 
 top10currentyear
 ```
 
+\
+\
 Here, there are 110 rows: meaning 110 unique journal articles that have cited the ALA across this financial year. **This number is included in the report.**
 
-The top journals for this financial year listed were: 
+The top journals for this financial year listed were:
 
 ```{r}
 top10currentyear$publication_title[1:10]
 ```
-
 
 ## Top research domains
 
