@@ -1,0 +1,186 @@
+---
+title: "Publication tracker reporting"
+toc: true
+toc-location: left
+---
+
+**Year in Review**
+
+Once a year, the ALA produces a "Year in Review" report which encompasses our achievements over the last twelve months. This includes a section providing key summaries of the publication tracker, which differ from the quarterly report.\
+\
+They are:
+
+1.  The annual number of **journal articles** citing the ALA, up until the earliest article in 2007
+2.  Top 10 journal articles (grand total + yearly)
+3.  Research domains or categories citing the ALA
+
+> This code was last updated on 2023-07-19.
+
+# Step 1: Data cleaning
+
+1.  Load required packages
+
+```{r}
+#| message: false
+library(here)
+library(tidyverse)
+library(janitor)
+library(lubridate)
+```
+
+2.  Load in exported .csv from Zotero
+
+First you will need to export the latest encompassing .csv from Zotero and save it on your local system. You can do this by selecting **File \> Export library** in the desktop application.
+
+```{r}
+#| message: false
+#| warning: false
+data <- read_csv(here("projects", "literature-tracking", "data", "19july23.csv"))
+```
+
+3.  Clean column names - it will make it easier to process and interpret the data.
+
+```{r}
+dataclean <- janitor ::clean_names(data) 
+```
+
+4.  We also want to make sure the date is the same across every entry so that it processes correctly when we filter it. `as_date` standardises all date data to `yyyy-mm-dd`. We also add a new column that extracts just the month and year for the month by month analysis below.
+
+```{r}
+dataclean2 <- dataclean |>
+  mutate(
+    complete_date = ymd(case_when(
+      nchar(date) == 7 ~ paste(date, "-01", sep = ""),
+      nchar(date) == 4 ~ paste(date, "-01-01", sep =""),
+      TRUE ~ date)),
+    date_added_clean = as_date(date_added),
+    date_added_month = month(date_added_clean),
+    date_added_year = year(date_added_clean),
+    date_published_clean = as_date(complete_date),
+    date_published_month = month(date_published_clean),
+    date_published_year = year(date_published_clean)) |>
+   select(title, date, place, publication_year, publication_title, item_type, url, manual_tags, date_added, date_added_clean, date_added_month, date_added_year, date_published_clean, date_published_month, date_published_year)
+dataclean2
+```
+
+\
+
+```{r}
+dataclean2 <- dataclean |>
+  mutate(
+    date_added_clean = as_date(date_added),
+    date_added_month = month(date_added_clean),
+    date_added_year = year(date_added_clean)) |>
+   select(title, date, place, publication_year, item_type, url, manual_tags, date_added, date_added_clean, date_added_month, date_added_year)
+dataclean2
+```
+
+\
+\
+
+# Summaries:
+
+## Annual journal article numbers
+
+In this section we collate the number of **journal articles** mentioning, citing, using, acknowledging etc. (...) the ALA in their given publication year (not constrained by date_added, as is done in the quarterly report).
+
+> **Note that**: in the past we included the GBIF DOI tag in analyses.
+>
+> In 2022, it was decided to exclude this tag from the library (held on file) as GBIF's direct downloads are not always related to the ALA's own research impact.
+
+```{r}
+publicationbyyear <- dataclean2 |>
+  filter(item_type == "journalArticle") |>
+  group_by(publication_year) |>
+  count() 
+publicationbyyear
+```
+
+## Top journal articles
+
+This section analyses the ten most common journal articles mentioning, citing, using, acknowledging etc. the ALA **across all time**. It is worth checking that these journals are not preprint repositories (e.g. BioXriv), as, occasionally Zotero auto categorises them as journal articles instead.\
+\
+These numbers might change subtly over time due to ongoing data cleaning, but will likely remain similar. **They are included in the report**.
+
+```{r}
+grandtop10 <- dataclean2 |>
+  filter(item_type == "journalArticle") |>
+  group_by(publication_title) |>
+  count() |>
+   drop_na() |>
+  arrange(desc(n)) 
+grandtop10
+```
+
+```{r}
+grandtop10$publication_title[1:10]
+```
+
+To find out how many different journal articles the ALA was cited in **the 2022-23 financial year**, run the same code but filter across the financial year dates (30 June - 30 June) and further restrict to papers published in that year (sometimes old papers are added as they become released online, which aren't relevant to our analysis).\
+\
+Be sure to remove the NA category using `drop_na()` as well.\
+\
+\
+\> For the 2021-2022 Annual Report/ Year in review, our numbers were retrieved with the code (expandable below) using a .csv that *still contained GBIF DOI tag papers* (on file as `30thjune21.csv`). We also did not restrict the year to papers within the '21-'22 financial year specifically -
+
+```{r}
+dataclean2 %>%
+  select(publication_year, title, publication_title, item_type) %>%
+  filter(publication_year == 2021) |> 
+  filter(item_type == "journalArticle") |>
+  group_by(publication_title) %>%
+  count()
+```
+
+```{r}
+top10currentyear <- dataclean2 |>
+  filter(item_type == "journalArticle") |>
+  filter(date_published_clean >= ymd("2022-06-30") | 
+        date_published_clean == ymd("2022", truncated = 2L)) |>
+  filter(date_published_clean <= ymd("2023-06-30") | 
+        date_published_clean == ymd("2023", truncated = 2L)) |>
+  group_by(publication_title) |>
+  count() |>
+  drop_na() |>
+  arrange(desc(n)) 
+ #slice_max(n = 10, order_by = n)
+top10currentyear
+```
+
+```{r}
+top10currentyear2 <- dataclean2 |>
+  filter(item_type == "journalArticle") |>
+  filter(date_added_clean >= ymd("2022-06-30")) |>
+  filter(date_added_clean <= ymd("2023-06-30")) |>
+  filter(publication_year == "2022" | publication_year == "2023") |>
+  group_by(publication_title) |>
+  count() |>
+  drop_na() |>
+  arrange(desc(n)) 
+ #slice_max(n = 10, order_by = n)
+top10currentyear
+```
+
+```{r}
+top10currentyear |>
+  filter(!column_name %in% top10currentyear2$column_name)
+```
+
+\
+\
+\
+\
+\
+\
+Here, there are 110 rows: meaning 110 unique journal articles that have cited the ALA across this financial year. **This number is included in the report.**
+
+The top journals for this financial year listed were:
+
+```{r}
+top10currentyear$publication_title[1:10]
+```
+
+## Top research domains
+
+We also include a research domain section that quantifies the the top 10 different fields of research the ALA has been utilized across. This involves text mining, and is a little more complex than the last analyses.\
+\
