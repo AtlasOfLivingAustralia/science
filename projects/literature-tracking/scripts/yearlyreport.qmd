@@ -4,19 +4,21 @@ toc: true
 toc-location: left
 ---
 
-**Year in Review**
+**Year in Review / Annual Report**
 
 Once a year, the ALA produces a "Year in Review" report which encompasses our achievements over the last twelve months. This includes a section providing key summaries of the publication tracker, which differ from the quarterly report.\
 \
 They are:
 
-1.  The annual number of **journal articles** citing the ALA, up until the earliest article in 2007
-2.  Top 10 journal articles (grand total + yearly)
-3.  Research domains or categories citing the ALA
+1.  **The annual number of *journal articles* citing the ALA, up until the earliest article in 2007**
+2.  **Top 10 journal articles (grand total + yearly)**
+3.  **Research domains or categories citing the ALA**
 
-> This code was last updated on 2023-07-19.
+> This code was last updated on 2023-07-25.
+>
+> Data to run this code can be found [here](https://csiroau.sharepoint.com/:f:/r/sites/AtlasofLivingAustralia/Shared%20Documents/Science%20and%20Decision%20Support/Data/science/projects/literature-tracking/data?csf=1&web=1&e=M5hBEt), and within this repo: science - projects - literature-tracking - data (set to .gitignore).
 
-# Step 1: Data cleaning
+# Step 1 - Data cleaning:
 
 1.  Load required packages
 
@@ -49,40 +51,18 @@ dataclean <- janitor ::clean_names(data)
 ```{r}
 dataclean2 <- dataclean |>
   mutate(
-    complete_date = ymd(case_when(
-      nchar(date) == 7 ~ paste(date, "-01", sep = ""),
-      nchar(date) == 4 ~ paste(date, "-01-01", sep =""),
-      TRUE ~ date)),
-    date_added_clean = as_date(date_added),
-    date_added_month = month(date_added_clean),
-    date_added_year = year(date_added_clean),
-    date_published_clean = as_date(complete_date),
-    date_published_month = month(date_published_clean),
-    date_published_year = year(date_published_clean)) |>
-   select(title, date, place, publication_year, publication_title, item_type, url, manual_tags, date_added, date_added_clean, date_added_month, date_added_year, date_published_clean, date_published_month, date_published_year)
-dataclean2
-```
-
-\
-
-```{r}
-dataclean2 <- dataclean |>
-  mutate(
     date_added_clean = as_date(date_added),
     date_added_month = month(date_added_clean),
     date_added_year = year(date_added_clean)) |>
-   select(title, date, place, publication_year, item_type, url, manual_tags, date_added, date_added_clean, date_added_month, date_added_year)
+   select(title, date, place, publication_year, publication_title, item_type, url, manual_tags, date_added, date_added_clean, date_added_month, date_added_year)
 dataclean2
 ```
 
-\
-\
-
-# Summaries:
+# Step 2 - Summaries:
 
 ## Annual journal article numbers
 
-In this section we collate the number of **journal articles** mentioning, citing, using, acknowledging etc. (...) the ALA in their given publication year (not constrained by date_added, as is done in the quarterly report).
+In this section we collate the number of **journal articles** mentioning, citing, using, acknowledging etc. (...) the ALA in their given publication year.
 
 > **Note that**: in the past we included the GBIF DOI tag in analyses.
 >
@@ -116,36 +96,9 @@ grandtop10
 grandtop10$publication_title[1:10]
 ```
 
-To find out how many different journal articles the ALA was cited in **the 2022-23 financial year**, run the same code but filter across the financial year dates (30 June - 30 June) and further restrict to papers published in that year (sometimes old papers are added as they become released online, which aren't relevant to our analysis).\
+To find out how many different journal articles the ALA was cited in **the 2022-23 financial year**, run the same code but filter across the financial year dates via date_added (30 June - 30 June) and further restrict to papers published in that year (sometimes old papers are added as they become released online, which aren't relevant to our analysis).\
 \
-Be sure to remove the NA category using `drop_na()` as well.\
-\
-\
-\> For the 2021-2022 Annual Report/ Year in review, our numbers were retrieved with the code (expandable below) using a .csv that *still contained GBIF DOI tag papers* (on file as `30thjune21.csv`). We also did not restrict the year to papers within the '21-'22 financial year specifically -
-
-```{r}
-dataclean2 %>%
-  select(publication_year, title, publication_title, item_type) %>%
-  filter(publication_year == 2021) |> 
-  filter(item_type == "journalArticle") |>
-  group_by(publication_title) %>%
-  count()
-```
-
-```{r}
-top10currentyear <- dataclean2 |>
-  filter(item_type == "journalArticle") |>
-  filter(date_published_clean >= ymd("2022-06-30") | 
-        date_published_clean == ymd("2022", truncated = 2L)) |>
-  filter(date_published_clean <= ymd("2023-06-30") | 
-        date_published_clean == ymd("2023", truncated = 2L)) |>
-  group_by(publication_title) |>
-  count() |>
-  drop_na() |>
-  arrange(desc(n)) 
- #slice_max(n = 10, order_by = n)
-top10currentyear
-```
+Be sure to remove the NA category (journal articles without an available name in the tracker) using `drop_na()` as well. This might be a chance to work on investigating these entries and see if there is missing data.
 
 ```{r}
 top10currentyear2 <- dataclean2 |>
@@ -157,27 +110,39 @@ top10currentyear2 <- dataclean2 |>
   count() |>
   drop_na() |>
   arrange(desc(n)) 
- #slice_max(n = 10, order_by = n)
-top10currentyear
+top10currentyear2
 ```
 
-```{r}
-top10currentyear |>
-  filter(!column_name %in% top10currentyear2$column_name)
-```
-
+**\
 \
-\
-\
-\
-\
-\
-Here, there are 110 rows: meaning 110 unique journal articles that have cited the ALA across this financial year. **This number is included in the report.**
+**Here, there are 189 rows: meaning 189 unique journal articles that have cited the ALA across this financial year. **This number is included in the report.**
 
 The top journals for this financial year listed were:
 
 ```{r}
-top10currentyear$publication_title[1:10]
+top10currentyear2$publication_title[1:10]
+```
+
+**\
+We chose to filter by `date_added` and *then* restrict to `publication_year` instead of filtering by `date` (date of publication). Note that there are degrees of error in both methods for a few reasons:**
+
+-   If filtered by `publication_year` and then restricted to the financial year dates `dd/mm/yyyy`, there is a risk of excluding papers that only have a *year* `yyyy` of publication listed (which is common). It is preferred to get the publication `date` of papers entered into the tracker closest to `dd/mm/yyyy` as possible.
+
+-   Similarly, a paper may be published online but the listed publication `date` can be some months in advance as it reflects when the physical copy is released. While a paper may have been added and accessible online, it may be excluded from the financial year report if the physical release is outside of this date.
+
+-   Using `date_added` and restricting to the relevant `publication_year`s, on the other hand, may exclude papers that were added outside of the financial year period but have a publication `date` within it. This seems to be the less likely occurrence and the more logical choice between the two.
+
+For the 2021-2022 Annual Report/ Year in review, our numbers were retrieved with the code (expandable below) using a .csv that *still contained GBIF DOI tag papers* (on file as `30thjune21.csv`). We also did not restrict the year to papers within the '21-'22 financial year specifically. As such, we edited and documented the code in this document for consistency.
+
+```{r}
+#| code-fold: true
+#| eval: false
+dataclean2 %>%
+  select(publication_year, title, publication_title, item_type) %>%
+  filter(publication_year == 2021) |> 
+  filter(item_type == "journalArticle") |>
+  group_by(publication_title) %>%
+  count()
 ```
 
 ## Top research domains
