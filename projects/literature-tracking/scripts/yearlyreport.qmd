@@ -15,7 +15,7 @@ They are:
 3.  **Top 10 journal articles (grand total + yearly)**
 4.  **Research domains or categories citing the ALA**
 
-> This code was last updated on 2023-07-25.
+> This code was last updated on 2023-08-9.
 >
 > Data to run this code can be found [here](https://csiroau.sharepoint.com/:f:/r/sites/AtlasofLivingAustralia/Shared%20Documents/Science%20and%20Decision%20Support/Data/science/projects/literature-tracking/data?csf=1&web=1&e=M5hBEt), and within this repo: science - projects - literature-tracking - data (set to .gitignore).
 
@@ -79,8 +79,7 @@ publicationbyyear
 
 ## Total to journal article ratio
 
-
-Total publications within the calendar year: 
+Total publications within the calendar year:
 
 ```{r}
 totalpubsbyyear <- dataclean2 |>
@@ -92,7 +91,7 @@ totalpubsbyyear <- dataclean2 |>
 totalpubsbyyear
 ```
 
-No. of those publications that are journal articles within the calendar year: 
+No. of those publications that are journal articles within the calendar year:
 
 ```{r}
 journalratio <- dataclean2 |>
@@ -143,7 +142,6 @@ top10currentyear2
 ```
 
 **\
-\
 **Here, there are 189 rows: meaning 189 unique journal articles that have cited the ALA across this financial year. **This number is included in the report.**
 
 The top journals for this financial year listed were:
