@@ -1,0 +1,62 @@
+---
+title: "19/23 DOI"
+format: html
+editor: visual
+---
+
+# Step 1 - Data cleaning:
+
+1.  Load required packages
+
+```{r}
+#| message: false
+library(here)
+library(tidyverse)
+library(janitor)
+library(lubridate)
+```
+
+2.  Load in exported .csv from Zotero
+
+First you will need to export the latest encompassing .csv from Zotero and save it on your local system. You can do this by selecting **File \> Export library** in the desktop application.
+
+```{r}
+#| message: false
+#| warning: false
+data <- read_csv(here("projects", "literature-tracking", "data", "7aug23.csv"))
+```
+
+3.  Clean column names - it will make it easier to process and interpret the data.
+
+```{r}
+dataclean <- janitor ::clean_names(data) 
+```
+
+4.  We also want to make sure the date is the same across every entry so that it processes correctly when we filter it. `as_date` standardises all date data to `yyyy-mm-dd`. We also add a new column that extracts just the month and year for the month by month analysis below.
+
+```{r}
+dataclean2 <- dataclean |>
+  mutate(
+    date_added_clean = as_date(date_added),
+    date_added_month = month(date_added_clean),
+    date_added_year = year(date_added_clean)) 
+dataclean2
+```
+
+#  Step 2 - Filter 
+
+```{r}
+publicationbyyear <- dataclean2 |>
+  filter(item_type == "journalArticle") |>
+  filter(publication_year == c("2019", "2020", "2021", "2022")) |>
+  select(date, publication_year, author, title, publication_title, doi, url) |>
+  arrange(date)
+  
+```
+
+#  Step 3 - Save .csv 
+
+```{r}
+publicationbyyear |>
+write_csv(here("1922DOIs.csv"))
+```

@@ -11,8 +11,9 @@ Once a year, the ALA produces a "Year in Review" report which encompasses our ac
 They are:
 
 1.  **The annual number of *journal articles* citing the ALA, up until the earliest article in 2007**
-2.  **Top 10 journal articles (grand total + yearly)**
-3.  **Research domains or categories citing the ALA**
+2.  Annual total publications (all) to journal article ratio
+3.  **Top 10 journal articles (grand total + yearly)**
+4.  **Research domains or categories citing the ALA**
 
 > This code was last updated on 2023-07-25.
 >
@@ -74,6 +75,34 @@ publicationbyyear <- dataclean2 |>
   group_by(publication_year) |>
   count() 
 publicationbyyear
+```
+
+## Total to journal article ratio
+
+
+Total publications within the calendar year: 
+
+```{r}
+totalpubsbyyear <- dataclean2 |>
+  filter(date_added_clean >= ymd("2022-06-30")) |>
+  filter(date_added_clean <= ymd("2023-06-30")) |>
+  filter(publication_year == "2022" | publication_year == "2023") |>
+  count() |>
+  drop_na() 
+totalpubsbyyear
+```
+
+No. of those publications that are journal articles within the calendar year: 
+
+```{r}
+journalratio <- dataclean2 |>
+  filter(item_type == "journalArticle") |>
+  filter(date_added_clean >= ymd("2022-06-30")) |>
+  filter(date_added_clean <= ymd("2023-06-30")) |>
+  filter(publication_year == "2022" | publication_year == "2023") |>
+  count() |>
+  drop_na() 
+journalratio
 ```
 
 ## Top journal articles
