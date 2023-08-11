@@ -5,9 +5,20 @@ library(rmapshaper)
 library(ozmaps)
 library(showtext)
 library(magick)
+library(here)
 
-ibra_sf <- readRDS("data/ibra_sf.rds")
-events <- open_dataset("large-data/monitoring.csv", format = "csv")
+ibra_sf <- readRDS(here("comms", 
+                        "2023-08-11_national-science-week", 
+                        "data", 
+                        "ibra_sf.rds"))
+
+# NOTE: This is the monitoring dataset from EcoAssets
+# Download the dataset here: 
+# https://ecoassets.org.au/data/aggregated-data-environmental-monitoring-and-observations-effort/
+events <- open_dataset(here("comms", 
+                            "2023-08-11_national-science-week", 
+                            "large-data", 
+                            "monitoring.csv"), format = "csv")
 
 plot_choropleth <- function(df) {
   

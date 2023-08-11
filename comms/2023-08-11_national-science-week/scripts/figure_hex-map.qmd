@@ -1,7 +1,7 @@
 ---
 title: "Figure - Hex map distributions"
 author: "Dax Kellie"
-date: '2023-06-29'
+date: '2023-08-11'
 format: html
 editor_options: 
   chunk_output_type: console
@@ -97,11 +97,14 @@ hex_counts_df <- map_dfr(hex_counts_list, rbind)
 
 
 
-## Attach Citizen Science categories
+## Load Citizen Science categories
 
 ```{r}
 # Load data
-cs_datasets <- read_csv(here("data", "ALA-CS-datasets.csv"))
+cs_datasets <- read_csv(here("comms", 
+                             "2023-08-11_national-science-week", 
+                             "data", 
+                             "ALA-CS-datasets.csv"))
 glimpse(cs_datasets)
 
 # Wrangle
@@ -124,6 +127,8 @@ cs_categories <- cs_datasets %>%
     )
   )
 ```
+
+## Attach Citizen Science categories
 
 Merge CS categories to map
 
@@ -321,32 +326,6 @@ hex_counts_df <- map_dfr(hex_counts_list, rbind)
 
 ## Attach Citizen Science categories
 
-```{r}
-# Load data
-cs_datasets <- read_csv(here("data", "ALA-CS-datasets.csv"))
-glimpse(cs_datasets)
-
-# Wrangle
-cs_datasets <- cs_datasets %>%
-  clean_names(.) %>%
-  filter(!is.na(data_resource_name)) %>%
-  filter(!is.na(citizen_science))
-
-# Group categories of citizen science projects
-cs_categories <- cs_datasets %>%
-  select(data_resource_name, citizen_science, non_cs, data_biocache) %>%
-  mutate(
-    cs = case_when(
-      citizen_science == "N" & non_cs == "N" ~ "Non-citizen Science",
-      citizen_science == "Y" & non_cs == "Y" ~ "Citizen Science",
-      citizen_science == "Y" & non_cs == "N" ~ "Citizen Science",
-      citizen_science == "N" & non_cs == "Y" ~ "Non-citizen Science",
-      TRUE ~ "Unidentified"
-
-    )
-  )
-```
-
 Merge CS categories to map
 
 ```{r}
@@ -542,32 +521,6 @@ hex_counts_df <- map_dfr(hex_counts_list, rbind)
 
 ## Attach Citizen Science categories
 
-```{r}
-# Load data
-cs_datasets <- read_csv(here("data", "ALA-CS-datasets.csv"))
-glimpse(cs_datasets)
-
-# Wrangle
-cs_datasets <- cs_datasets %>%
-  clean_names(.) %>%
-  filter(!is.na(data_resource_name)) %>%
-  filter(!is.na(citizen_science))
-
-# Group categories of citizen science projects
-cs_categories <- cs_datasets %>%
-  select(data_resource_name, citizen_science, non_cs, data_biocache) %>%
-  mutate(
-    cs = case_when(
-      citizen_science == "N" & non_cs == "N" ~ "Non-citizen Science",
-      citizen_science == "Y" & non_cs == "Y" ~ "Citizen Science",
-      citizen_science == "Y" & non_cs == "N" ~ "Citizen Science",
-      citizen_science == "N" & non_cs == "Y" ~ "Non-citizen Science",
-      TRUE ~ "Unidentified"
-
-    )
-  )
-```
-
 Merge CS categories to map
 
 ```{r}
@@ -716,6 +669,9 @@ hex_map_finch <- hex_map_labelled +
 ```{r, eval = FALSE}
 showtext_opts(dpi = 300) # Fixes text for saving in 300 dpi
 
-ggsave(here::here("plots", "fig3c_hexmap_finch.png"),
+ggsave(here::here("comms", 
+                  "2023-08-11_national-science-week",
+                  "plots", 
+                  "fig3c_hexmap_finch.png"),
        height = 10, width = 12, units = "in", device='png', dpi = 300)
 ```
