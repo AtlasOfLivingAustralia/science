@@ -1,0 +1,721 @@
+---
+title: "Figure - Hex map distributions"
+author: "Dax Kellie"
+date: '2023-06-29'
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+Figure: Distribution of *Tiliqua rugosa*, *Litoria peronii* & *Neochmia temporalis* based on ALA species observation records, showing areas where majority records are from citizen science vs non-citizen science projects
+
+
+
+# Start
+
+```{r}
+# packages
+
+library(ozmaps)
+library(sf)
+library(galah)
+library(ggnewscale)
+library(viridis)
+library(scales)
+library(showtext)
+library(here)
+library(tidyverse)
+library(janitor)
+library(rphylopic)
+```
+
+
+## Create hex map grid
+
+Create grid of polygons to match map of Australia
+
+```{r}
+# get a map and project to WGS84
+oz_wgs84 <- ozmap_data(data = "country") |>
+  st_transform(crs = st_crs("WGS84"))
+
+## check map
+ggplot(oz_wgs84) + geom_sf()
+
+# create grid
+oz_grid <- st_make_grid(oz_wgs84,
+  what = "polygons",
+  cellsize = 1.0,
+  square = FALSE,
+  flat_topped = TRUE)
+
+# subset to grid cells that are within land
+keep_hexes <- st_intersects(oz_grid, oz_wgs84)
+keep_hexes <- as.data.frame(keep_hexes)$row.id
+oz_grid <- oz_grid[keep_hexes]
+
+## check
+ggplot() +
+  geom_sf(data = oz_wgs84) +
+  geom_sf(data = oz_grid, fill = NA, color = "red")
+```
+
+# a) Tiliqua rugosa
+
+## Wrangling
+
+Get record counts
+
+```{r}
+# calculate counts for every hex
+hex_counts_list <- lapply(
+  seq_along(oz_grid), function(a){
+    # convert to wkt
+    wkt_string <- st_as_text(oz_grid[[a]])
+    
+    # get counts
+    result <- galah_call() |>
+      galah_geolocate(wkt_string) |>
+      galah_filter(profile = "ALA") |>
+      galah_identify("Tiliqua rugosa") |>
+      galah_group_by(dataResourceName) |>
+      atlas_counts(limit = NULL)
+    # light formatting to catch errors
+    if(is.null(result)){
+      tibble(count = NA, id = a)
+    }else{
+      result$id <- a
+      result
+    }
+  }
+)
+
+
+# bind lists to data frame
+hex_counts_df <- map_dfr(hex_counts_list, rbind)
+```
+
+
+
+## Attach Citizen Science categories
+
+```{r}
+# Load data
+cs_datasets <- read_csv(here("data", "ALA-CS-datasets.csv"))
+glimpse(cs_datasets)
+
+# Wrangle
+cs_datasets <- cs_datasets %>%
+  clean_names(.) %>%
+  filter(!is.na(data_resource_name)) %>%
+  filter(!is.na(citizen_science))
+
+# Group categories of citizen science projects
+cs_categories <- cs_datasets %>%
+  select(data_resource_name, citizen_science, non_cs, data_biocache) %>%
+  mutate(
+    cs = case_when(
+      citizen_science == "N" & non_cs == "N" ~ "Non-citizen Science",
+      citizen_science == "Y" & non_cs == "Y" ~ "Citizen Science",
+      citizen_science == "Y" & non_cs == "N" ~ "Citizen Science",
+      citizen_science == "N" & non_cs == "Y" ~ "Non-citizen Science",
+      TRUE ~ "Unidentified"
+
+    )
+  )
+```
+
+Merge CS categories to map
+
+```{r}
+# add CS categories and pivot wider
+cs_df <- hex_counts_df %>%
+  left_join(cs_categories, by = c("dataResourceName" = "data_resource_name")) %>%
+  select(count, id, dataResourceName, cs) %>%
+  group_by(id, cs) %>%
+  drop_na(cs) %>%
+  summarise(count = sum(count)) %>%
+  pivot_wider(names_from = "cs", values_from = "count")
+
+# change NAs to 0s and calculate difference in CS vs non-CS record count
+cs_df_diff <- cs_df %>%
+  replace_na(list(`Citizen Science` = 0)) %>%
+  replace_na(list(`Non-citizen Science` = 0)) %>%
+  mutate(count_difference = `Citizen Science` - `Non-citizen Science`)
+```
+
+
+```{r}
+# view regions with greatest differences
+cs_df_diff %>%
+  arrange(-desc(count_difference))
+
+# view regions with greatest differences
+cs_df_diff %>%
+  arrange(desc(count_difference))
+
+# view no difference regions
+cs_df_diff %>%
+  filter(is.na(count_difference==0))
+```
+
+
+```{r}
+# citizen science majority hexagons
+cs_df_diff |>
+  filter(count_difference > 0) |>
+  nrow()
+
+# bluetongue = 56/312
+
+# neutral hexagons
+cs_df_diff |>
+  filter(count_difference == 0) |>
+  nrow()
+
+# non-citizen science majority hexagons
+cs_df_diff |>
+  filter(count_difference < 0) |>
+  nrow()
+```
+
+Convert grid of polygons to sf object and merge `count_difference`
+
+```{r}
+# convert to tibble, attach counts
+oz_df <- st_as_sf(oz_grid)
+oz_df$count <- NA
+oz_df$count[cs_df_diff$id] <- cs_df_diff$count_difference
+```
+
+## Plot
+
+```{r}
+# prepare text
+# fonts to make it look nice
+font_add_google("Lato", "lato")
+showtext_auto(enable = TRUE)
+
+# Set text family
+pilot::set_pilot_family(family = "lato")
+```
+
+
+```{r}
+hex_map <- ggplot() +
+  geom_sf(
+    data = oz_df,
+    mapping = aes(fill = count),
+    alpha = 1,
+    color = NA) +
+  scale_fill_distiller(name = "Difference in record count",
+                       type = "div",
+                       palette = "PRGn",
+                       trans = pseudo_log_trans(0.001, 10), # NOTE: This scale is pseudo log-transformed
+                       direction = 1,
+                       na.value = "grey70",
+                       breaks = c(-1000, -100, -10, 0, 10, 100),
+                       guide = guide_colorsteps(direction = "horizontal",
+                                                label.position = "top",
+                                                title.position = "bottom",
+                                                title.hjust = 0.5)) +
+  new_scale_color() +
+  geom_sf(data = oz_wgs84,
+    color = "white",
+    fill = NA)  +
+  coord_sf(xlim = c(110, 155), 
+           ylim = c(-45, -10)) +
+  theme_void() +
+  labs(title = "a)") +
+  theme(text = element_text(family = "lato"),
+        title = element_text(face = "bold"),
+        legend.title = element_text(size = 19, family = "lato"),
+        legend.position = "bottom",
+        legend.key.width = unit(25, 'mm'),
+        plot.title = element_text(size = 20),
+        legend.text = element_text(size = 17, family = "lato"),
+        plot.background = element_rect(fill = 'white', colour = 'white'),
+        panel.background = element_rect(fill = 'white', colour = 'white'))
+
+
+# Add legend labels
+hex_map_labelled <- hex_map +
+  pilot::annotate_pilot(x = 120, y = -45.7,
+                        label = "More \nnon-citizen science records",
+                        size = 5,
+                        fontface = "bold") +
+  pilot::annotate_pilot(x = 145, y = -45.7,
+                        label = "More \ncitizen science records",
+                        size = 5,
+                        fontface = "bold")
+```
+
+Add phylopic silhouette
+
+```{r}
+# Get silhouette image
+uuid <- get_uuid(name = "Tiliqua rugosa", n = 6)[4] # blue tongue
+img <- get_phylopic(uuid = uuid)
+
+# add image to plot
+hex_map_bluetongue <- hex_map_labelled +
+  add_phylopic(img = img, alpha = .9, x = 115, y = -12, ysize = 6) +
+  pilot::annotate_pilot(x = 115, y = -14.7,
+                        label = "Tiliqua rugosa",
+                        size = 4.5,
+                        fontface = "italic")
+```
+
+
+## Save
+
+```{r, eval = FALSE}
+showtext_opts(dpi = 300) # Fixes text for saving in 300 dpi
+
+ggsave(here::here("plots", "fig3a_hexmap_bluetongue.png"),
+       height = 10, width = 12, units = "in", device='png', dpi = 300)
+```
+
+
+
+
+
+
+
+# b) Litoria peronii
+
+## Wrangling
+
+Get record counts
+
+```{r}
+# calculate counts for every hex
+hex_counts_list <- lapply(
+  seq_along(oz_grid), function(a){
+    # convert to wkt
+    wkt_string <- st_as_text(oz_grid[[a]])
+    
+    # get counts
+    result <- galah_call() |>
+      galah_geolocate(wkt_string) |>
+      galah_filter(profile = "ALA") |>
+      galah_identify("Litoria peronii") |>
+      galah_group_by(dataResourceName) |>
+      atlas_counts(limit = NULL)
+    # light formatting to catch errors
+    if(is.null(result)){
+      tibble(count = NA, id = a)
+    }else{
+      result$id <- a
+      result
+    }
+  }
+)
+
+
+# bind lists to data frame
+hex_counts_df <- map_dfr(hex_counts_list, rbind)
+```
+
+
+
+## Attach Citizen Science categories
+
+```{r}
+# Load data
+cs_datasets <- read_csv(here("data", "ALA-CS-datasets.csv"))
+glimpse(cs_datasets)
+
+# Wrangle
+cs_datasets <- cs_datasets %>%
+  clean_names(.) %>%
+  filter(!is.na(data_resource_name)) %>%
+  filter(!is.na(citizen_science))
+
+# Group categories of citizen science projects
+cs_categories <- cs_datasets %>%
+  select(data_resource_name, citizen_science, non_cs, data_biocache) %>%
+  mutate(
+    cs = case_when(
+      citizen_science == "N" & non_cs == "N" ~ "Non-citizen Science",
+      citizen_science == "Y" & non_cs == "Y" ~ "Citizen Science",
+      citizen_science == "Y" & non_cs == "N" ~ "Citizen Science",
+      citizen_science == "N" & non_cs == "Y" ~ "Non-citizen Science",
+      TRUE ~ "Unidentified"
+
+    )
+  )
+```
+
+Merge CS categories to map
+
+```{r}
+# add CS categories and pivot wider
+cs_df <- hex_counts_df %>%
+  left_join(cs_categories, by = c("dataResourceName" = "data_resource_name")) %>%
+  select(count, id, dataResourceName, cs) %>%
+  group_by(id, cs) %>%
+  drop_na(cs) %>%
+  summarise(count = sum(count)) %>%
+  pivot_wider(names_from = "cs", values_from = "count")
+
+# change NAs to 0s and calculate difference in CS vs non-CS record count
+cs_df_diff <- cs_df %>%
+  replace_na(list(`Citizen Science` = 0)) %>%
+  replace_na(list(`Non-citizen Science` = 0)) %>%
+  mutate(count_difference = `Citizen Science` - `Non-citizen Science`)
+```
+
+
+```{r}
+# view regions with greatest differences
+cs_df_diff %>%
+  arrange(-desc(count_difference))
+
+# view regions with greatest differences
+cs_df_diff %>%
+  arrange(desc(count_difference))
+
+# view no difference regions
+cs_df_diff %>%
+  filter(is.na(count_difference==0))
+```
+
+
+```{r}
+# citizen science majority hexagons
+cs_df_diff |>
+  filter(count_difference > 0) |>
+  nrow()
+
+# litoria = 62/185
+
+# neutral hexagons
+cs_df_diff |>
+  filter(count_difference == 0) |>
+  nrow()
+
+# non-citizen science majority hexagons
+cs_df_diff |>
+  filter(count_difference < 0) |>
+  nrow()
+```
+
+Convert grid of polygons to sf object and merge `count_difference`
+
+```{r}
+# convert to tibble, attach counts
+oz_df <- st_as_sf(oz_grid)
+oz_df$count <- NA
+oz_df$count[cs_df_diff$id] <- cs_df_diff$count_difference
+```
+
+## Plot
+
+```{r}
+# prepare text
+# fonts to make it look nice
+font_add_google("Lato", "lato")
+showtext_auto(enable = TRUE)
+
+# Set text family
+pilot::set_pilot_family(family = "lato")
+```
+
+
+```{r}
+hex_map <- ggplot() +
+  geom_sf(
+    data = oz_df,
+    mapping = aes(fill = count),
+    alpha = 1,
+    color = NA) +
+  scale_fill_distiller(name = "Difference in record count",
+                       type = "div",
+                       palette = "PRGn",
+                       trans = pseudo_log_trans(0.001, 10), # NOTE: This scale is pseudo log-transformed
+                       direction = 1,
+                       na.value = "grey70",
+                       breaks = c(-1000, -100, -10, 0, 10, 100),
+                       guide = guide_colorsteps(direction = "horizontal",
+                                                label.position = "top",
+                                                title.position = "bottom",
+                                                title.hjust = 0.5)) +
+  new_scale_color() +
+  geom_sf(data = oz_wgs84,
+    color = "white",
+    fill = NA)  +
+  coord_sf(xlim = c(110, 155), 
+           ylim = c(-45, -10)) +
+  theme_void() +
+  labs(title = "b)") +
+  theme(text = element_text(family = "lato"),
+        title = element_text(face = "bold"),
+        legend.title = element_text(size = 19, family = "lato"),
+        legend.position = "bottom",
+        legend.key.width = unit(25, 'mm'),
+        plot.title = element_text(size = 20),
+        legend.text = element_text(size = 17, family = "lato"),
+        plot.background = element_rect(fill = 'white', colour = 'white'),
+        panel.background = element_rect(fill = 'white', colour = 'white'))
+
+
+# Add legend labels
+hex_map_labelled <- hex_map +
+  pilot::annotate_pilot(x = 120, y = -45.7,
+                        label = "More \nnon-citizen science records",
+                        size = 5,
+                        fontface = "bold") +
+  pilot::annotate_pilot(x = 145, y = -45.7,
+                        label = "More \ncitizen science records",
+                        size = 5,
+                        fontface = "bold")
+```
+
+Add phylopic silhouette
+
+```{r}
+# Get silhouette image
+uuid <- get_uuid(name = "litoria", n = 2)[2] # peron's tree frog
+img <- get_phylopic(uuid = uuid)
+
+# add image to plot
+hex_map_frog <- hex_map_labelled +
+  add_phylopic(img = img, alpha = .9, x = 115, y = -12, ysize = 6) +
+  pilot::annotate_pilot(x = 115, y = -14.7,
+                        label = "Litoria peronii",
+                        size = 4.5,
+                        fontface = "italic")
+```
+
+
+## Save
+
+```{r, eval = FALSE}
+showtext_opts(dpi = 300) # Fixes text for saving in 300 dpi
+
+ggsave(here::here("plots", "fig3b_hexmap_frog.png"),
+       height = 10, width = 12, units = "in", device='png', dpi = 300)
+```
+
+
+
+
+
+
+# c) Neochmia temporalis
+
+## Wrangling
+
+Get record counts
+
+```{r}
+# calculate counts for every hex
+hex_counts_list <- lapply(
+  seq_along(oz_grid), function(a){
+    # convert to wkt
+    wkt_string <- st_as_text(oz_grid[[a]])
+    
+    # get counts
+    result <- galah_call() |>
+      galah_geolocate(wkt_string) |>
+      galah_filter(profile = "ALA") |>
+      galah_identify("Neochmia temporalis") |>
+      galah_group_by(dataResourceName) |>
+      atlas_counts(limit = NULL)
+    # light formatting to catch errors
+    if(is.null(result)){
+      tibble(count = NA, id = a)
+    }else{
+      result$id <- a
+      result
+    }
+  }
+)
+
+
+# bind lists to data frame
+hex_counts_df <- map_dfr(hex_counts_list, rbind)
+```
+
+
+
+## Attach Citizen Science categories
+
+```{r}
+# Load data
+cs_datasets <- read_csv(here("data", "ALA-CS-datasets.csv"))
+glimpse(cs_datasets)
+
+# Wrangle
+cs_datasets <- cs_datasets %>%
+  clean_names(.) %>%
+  filter(!is.na(data_resource_name)) %>%
+  filter(!is.na(citizen_science))
+
+# Group categories of citizen science projects
+cs_categories <- cs_datasets %>%
+  select(data_resource_name, citizen_science, non_cs, data_biocache) %>%
+  mutate(
+    cs = case_when(
+      citizen_science == "N" & non_cs == "N" ~ "Non-citizen Science",
+      citizen_science == "Y" & non_cs == "Y" ~ "Citizen Science",
+      citizen_science == "Y" & non_cs == "N" ~ "Citizen Science",
+      citizen_science == "N" & non_cs == "Y" ~ "Non-citizen Science",
+      TRUE ~ "Unidentified"
+
+    )
+  )
+```
+
+Merge CS categories to map
+
+```{r}
+# add CS categories and pivot wider
+cs_df <- hex_counts_df %>%
+  left_join(cs_categories, by = c("dataResourceName" = "data_resource_name")) %>%
+  select(count, id, dataResourceName, cs) %>%
+  group_by(id, cs) %>%
+  drop_na(cs) %>%
+  summarise(count = sum(count)) %>%
+  pivot_wider(names_from = "cs", values_from = "count")
+
+# change NAs to 0s and calculate difference in CS vs non-CS record count
+cs_df_diff <- cs_df %>%
+  replace_na(list(`Citizen Science` = 0)) %>%
+  replace_na(list(`Non-citizen Science` = 0)) %>%
+  mutate(count_difference = `Citizen Science` - `Non-citizen Science`)
+```
+
+
+```{r}
+# view regions with greatest differences
+cs_df_diff %>%
+  arrange(-desc(count_difference))
+
+cs_df_diff %>%
+  arrange(desc(count_difference))
+
+# view no difference regions
+cs_df_diff %>%
+  filter(is.na(count_difference==0))
+```
+
+
+```{r}
+# citizen science majority hexagons
+cs_df_diff |>
+  filter(count_difference > 0) |>
+  nrow()
+
+# finch = 167/192
+
+# neutral hexagons
+cs_df_diff |>
+  filter(count_difference == 0) |>
+  nrow()
+
+# non-citizen science majority hexagons
+cs_df_diff |>
+  filter(count_difference < 0) |>
+  nrow()
+```
+
+Convert grid of polygons to sf object and merge `count_difference`
+
+```{r}
+# convert to tibble, attach counts
+oz_df <- st_as_sf(oz_grid)
+oz_df$count <- NA
+oz_df$count[cs_df_diff$id] <- cs_df_diff$count_difference
+```
+
+## Plot
+
+```{r}
+# prepare text
+# fonts to make it look nice
+font_add_google("Lato", "lato")
+showtext_auto(enable = TRUE)
+
+# Set text family
+pilot::set_pilot_family(family = "lato")
+```
+
+
+```{r}
+hex_map <- ggplot() +
+  geom_sf(
+    data = oz_df,
+    mapping = aes(fill = count),
+    alpha = 1,
+    color = NA) +
+  scale_fill_distiller(name = "Difference in record count",
+                       type = "div",
+                       palette = "PRGn",
+                       trans = pseudo_log_trans(0.001, 10), # NOTE: This scale is pseudo log-transformed
+                       direction = 1,
+                       na.value = "grey70",
+                       breaks = c(-1000, -100, -10, 0, 10, 100),
+                       # labels = c("1000", "100", "10", "0"),
+                       guide = guide_colorsteps(direction = "horizontal",
+                                                label.position = "top",
+                                                title.position = "bottom",
+                                                title.hjust = 0.5)) +
+  new_scale_color() +
+  geom_sf(data = oz_wgs84,
+    color = "white",
+    fill = NA)  +
+  coord_sf(xlim = c(110, 155), 
+           ylim = c(-45, -10)) +
+  theme_void() +
+  labs(title = "c)") +
+  theme(text = element_text(family = "lato"),
+        title = element_text(face = "bold"),
+        legend.title = element_text(size = 19, family = "lato"),
+        legend.position = "bottom",
+        legend.key.width = unit(25, 'mm'),
+        plot.title = element_text(size = 20),
+        legend.text = element_text(size = 17, family = "lato"),
+        plot.background = element_rect(fill = 'white', colour = 'white'),
+        panel.background = element_rect(fill = 'white', colour = 'white'))
+
+
+# Add legend labels
+hex_map_labelled <- hex_map +
+  pilot::annotate_pilot(x = 120, y = -45.7,
+                        label = "More \nnon-citizen science records",
+                        size = 5,
+                        fontface = "bold") +
+  pilot::annotate_pilot(x = 145, y = -45.7,
+                        label = "More \ncitizen science records",
+                        size = 5,
+                        fontface = "bold")
+```
+
+Add phylopic silhouette
+
+```{r}
+# Get silhouette image
+uuid <- get_uuid(name = "Estrildidae", n = 1) # red browed finch
+img <- get_phylopic(uuid = uuid)
+
+# add image to plot
+hex_map_finch <- hex_map_labelled +
+  add_phylopic(img = img, alpha = .9, x = 115, y = -12, ysize = 6) +
+  pilot::annotate_pilot(x = 115, y = -14.7,
+                        label = "Neochmia temporalis",
+                        size = 4.5,
+                        fontface = "italic")
+```
+
+
+
+## Save
+
+```{r, eval = FALSE}
+showtext_opts(dpi = 300) # Fixes text for saving in 300 dpi
+
+ggsave(here::here("plots", "fig3c_hexmap_finch.png"),
+       height = 10, width = 12, units = "in", device='png', dpi = 300)
+```
