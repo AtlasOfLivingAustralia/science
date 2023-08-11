@@ -1,0 +1,331 @@
+---
+title: "data-viz"
+author: "Margot Schneider"
+date: "30 May, 2023"
+format: html
+---
+
+Radial plot & point map of gum trees in the ALA. Final dataviz updated by Dax Kellie on 20 July, 2023
+
+## Load packages
+
+```{r}
+library(galah) #v1.5.3
+library(ozmaps)
+library(tidyverse)
+library(sf)
+library(spiralize)
+library(lubridate)
+library(ggpattern)
+library(RColorBrewer)
+library(viridis)
+library(ggpointdensity)
+library(cowplot)
+library(patchwork)
+library(ggmagnify) # remotes::install_github("hughjonesd/ggmagnify")
+library(ggimage)
+library(grid)
+library(glue)
+library(ggtext)
+library(showtext)
+library(png)
+```
+
+
+```{r}
+## configure
+font_add_google("Roboto")
+showtext_auto(enable = TRUE)
+
+galah_config(email = "sch609@csiro.au")
+```
+
+## Download Data
+
+```{r}
+## Eucalyptus 
+eucAus <- galah_call() |>
+  galah_identify("Eucalyptus") |>
+  galah_filter(year > 1899, 
+               profile = "ALA") |>
+  atlas_occurrences() |> 
+  separate(eventDate,  
+           sep= "-", 
+           into = c("year", "month", "day"), 
+           remove = FALSE)
+
+eucAus1900 <- eucAus %>% 
+  count(year) %>% 
+  filter(!is.na(year)) %>% 
+  rename(Eucalyptus = n)
+
+eucAus1900$year <- as.numeric(eucAus1900$year)
+eucAus1900$Eucalyptus <- as.numeric(eucAus1900$Eucalyptus)
+```
+
+
+```{r}
+## Angophora 
+angAus<-galah_call() |>
+  galah_identify("Angophora") |>
+  galah_filter(year > 1899, 
+               profile = "ALA") |>
+  atlas_occurrences() |> 
+  separate(eventDate,  
+           sep= "-", 
+           into = c("year", "month", "day"), 
+           remove = FALSE)
+
+angAus1900 <- angAus %>% 
+  count(year) %>% 
+  filter(!is.na(year)) %>% 
+  rename(Angophora = n)
+
+angAus1900$year <- as.numeric(angAus1900$year)
+angAus1900$Angophora <- as.numeric(angAus1900$Angophora)
+```
+
+
+```{r}
+## Corymbia 
+search_taxa("Corymbia Hill")
+
+corAus <- galah_call() |>
+  galah_identify("Corymbia Hill") |>
+  galah_filter(year > 1899, 
+               profile = "ALA") |>
+  atlas_occurrences() %>% 
+  separate(eventDate, 
+           sep= "-", 
+           into = c("year", "month", "day"), 
+           remove = FALSE)
+
+corAus1900 <- corAus %>% 
+  count(year) %>% 
+  filter(!is.na(year)) %>% 
+  rename(Corymbia = n)
+
+corAus1900$year <- as.numeric(corAus1900$year)
+corAus1900$Corymbia <- as.numeric(corAus1900$Corymbia)
+```
+
+## Wrangling
+
+```{r}
+## tidy and merge dataframe 
+eucang <- merge(eucAus1900, angAus1900,  by = 'year')
+eucangcor<- merge(eucang, corAus1900, by = 'year')
+treelong <- tidyr::gather(eucangcor, key = "genus", value = "value", -year)
+
+treelong$value <- as.numeric(treelong$value) 
+treelong$genus <- as.character(treelong$genus) 
+
+# Add blank rows to give space to add radial scale to bar plot
+blank_years <- tibble(year = 1890:1899)
+blank_trees <- tibble(genus = c("Eucalyptus", "Angophora", "Corymbia"))
+blank_value <- tibble(value = 0)
+
+blanks <- crossing(blank_years, blank_trees, blank_value)
+
+treelong <- treelong |>
+  bind_rows(blanks)
+```
+
+## Radial Bar Plot
+
+```{r}
+# plot 
+colors <- c("#DB9065", "#CAE090", "#5F8575")
+max_radius <- 100
+
+treelong$angle <- seq(0, 2 * pi, length.out = nrow(treelong) + 1)[-1]
+treelong$radius <- max_radius * treelong$value / max(treelong$value)
+
+max_radius * 750 / max(treelong$value)
+
+
+circtree <- 
+  ggplot(treelong, aes(x = year, y = radius, fill = genus)) +
+  geom_hline(yintercept = c(1.653293, 33.06587 , 66.13173), 
+             color = "gray75", 
+             linewidth = 0.3) +
+  geom_bar(stat = "identity", 
+           position = "stack", 
+           width = 75 * pi / nrow(treelong)) + 
+  coord_polar(start = 0/pi) +
+  ylim(-120,120) +
+  scale_fill_manual(values = colors) +
+  theme_void() +  
+  theme(legend.position = "none")
+
+circtree
+```
+
+
+Add scale
+
+```{r}
+### adding a label 
+treelongeuc <- treelong[c(1:123),]
+
+circulartreelab <- circtree + 
+  geom_text(data=treelongeuc, 
+            aes(label = ifelse(year %% 10 == 0, year, ""), 
+                y = radius + 20,), 
+            color = "black", 
+            size = 3, 
+            fontface = "bold", 
+            hjust = 0.5, 
+            angle = 10) +
+   geom_label(inherit.aes = FALSE, 
+              aes(x = 1895, y = 1.653293, label = "750"), 
+              color = "gray12", fill = "white", 
+              hjust = 0.5, size = 2.5, 
+              label.padding = unit(0.1, "lines"), 
+              label.size = NA) +
+  geom_label(inherit.aes = FALSE, 
+             aes(x = 1895, y = 33.06587, label = "15000"), 
+             color = "gray12", 
+             fill = "white", 
+             hjust = 0.5, 
+             size = 2.5, 
+             label.padding = unit(0.1, "lines"), 
+             label.size = NA) +
+  geom_label(inherit.aes = FALSE, 
+             aes(x = 1895, y = 66.13173, label = "30000"), 
+             color = "gray12", 
+             fill = "white", 
+             hjust = 0.5, 
+             size = 2.5, 
+             label.padding = unit(0.1, "lines"), 
+             label.size = NA)
+
+
+circulartreelab
+```
+
+## Map
+
+```{r}
+## clean data 
+
+eucAusmap <- eucAus %>%
+  filter(!duplicated(decimalLongitude) & !duplicated(decimalLatitude)) |> 
+  filter(!is.na(decimalLongitude) & !is.na(decimalLatitude) )
+
+corAusmap <- corAus %>%
+  filter(!duplicated(decimalLongitude) & !duplicated(decimalLatitude)) |> 
+  filter(!is.na(decimalLongitude) & !is.na(decimalLatitude) )
+
+angAusmap <- angAus %>%
+  filter(!duplicated(decimalLongitude) & !duplicated(decimalLatitude)) |> 
+  filter(!is.na(decimalLongitude) & !is.na(decimalLatitude) )
+
+## map of Australia 
+aus <- st_transform(ozmaps::ozmap_country, 4326)
+
+
+## make map 
+pointtree <- ggplot() +
+  geom_point(data = eucAusmap,
+             mapping = aes(x = decimalLongitude,
+                           y = decimalLatitude, 
+                           color = "Eucalyptus"), 
+             alpha = 1.5/10) +
+  geom_point(data = corAusmap,
+             mapping = aes(x = decimalLongitude,
+                           y = decimalLatitude, 
+                           color = "Corymbia"), 
+             alpha = 1/15) +
+  geom_point(data = angAusmap,
+             mapping = aes(x = decimalLongitude,
+                           y = decimalLatitude, 
+                           color = "Angophora"), 
+             alpha = 1/10) +
+  scale_color_manual(name = "Maps", 
+                     values = c("Angophora" ="#DB9065", 
+                                "Corymbia" = "#CAE090", 
+                                "Eucalyptus" = "#5F8575")) +
+  geom_sf(data = aus, 
+          colour = "#002626", 
+          fill = NA) +  
+  coord_sf(xlim = c(113, 155),
+           ylim=c(-10,-44)) +
+  theme_void() +
+  guides(color = FALSE)
+
+pointtree
+```
+
+
+```{r}
+ggsave(pointtree,
+       here::here("comms", "2023-07-14_national-tree-day", "plots", "map.png"), 
+       dpi = 350)
+```
+
+## Combined plot
+
+```{r}
+# Add map to radial plot
+image <- readPNG(here::here("comms", "2023-07-14_national-tree-day", "plots", "map.png"))
+
+circulartreelab3 <- ggdraw(circulartreelab) +
+  draw_image(image, x = 0.32, y = 0.31, width = 0.36, height = 0.36)
+
+circulartreelab3
+
+tree_palette<- list("ang" = "#DB9065",
+                    "cor" = "#CAE090",
+                    "euc" = "#5F8575")
+
+caption <- glue("
+                **The three genera that make up 'eucalypts' in Australia** <br>
+                Dataviz by Margot Schneider
+                   ")
+
+showtext_opts(dpi = 350)
+```
+
+
+```{r}
+final_tree <- circulartreelab3 +
+  ggnewscale::new_scale_color() +
+  scale_colour_manual(values = tree_palette) +
+  labs(
+    subtitle = glue( 
+      "<span style='color:{tree_palette$ang}'>**Angophora**</span> , 
+      <span style='color:{tree_palette$cor}'>**Corymbia**</span>, and
+      <span style='color:{tree_palette$euc}'>**Eucalyptus**</span>"),
+    title = "Number of gum tree records added over time to the Atlas of Living Australia",
+    caption = caption) +
+  theme(plot.title = element_markdown(family = "Roboto", 
+                                      face = "bold", 
+                                      size = 16, 
+                                      hjust = 0.5, 
+                                      vjust = 0.1, 
+                                      margin = margin(50, 0, 0, 0)),
+        plot.subtitle = element_markdown(family= "Roboto", 
+                                         hjust = 0.5, 
+                                         vjust = 0.1, 
+                                         size = 15), 
+        plot.caption = ggtext::element_textbox_simple(family = "Roboto",
+                                                      colour = "#3d3c45",
+                                                      halign = 1,
+                                                      size = 10,
+                                                      margin = margin(t = 0,
+                                                                      b = 0.5,
+                                                                      r = 0.5, unit = "cm")),
+        plot.margin = unit(c(0,0,0,0), "cm")
+        )
+
+# final_tree
+
+ggsave(plot = final_tree,
+       here::here("comms", 
+                  "2023-07-14_national-tree-day", 
+                  "plots", 
+                  "final_tree.png"), 
+       width = 8, height = 8, 
+       units = "in", dpi = 350, bg = "white")
+```
