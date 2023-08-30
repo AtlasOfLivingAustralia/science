@@ -1,0 +1,212 @@
+---
+title: "geocoding_records"
+format: html
+editor: visual
+---
+
+## GEOCODING SPECIMEN LOCATIONS
+
+This document is for geocoding of specimen locations which have a place name but not geographic coordinates, so that data can be given locational attributes for spatial analysis and data visualisation. Cacatua Sanguina locations are used in this example but can be swapped out for any file.
+
+```{r}
+#load libraries
+library(tidyverse)
+library(tmaptools)
+```
+
+Read CSV file into dataframe, and melt it so that each observation is granted its own row, and make a new place column for use by tmaptools::geocode_OSM
+
+```{r}
+#df <- read.csv("your/file/path/here.csv")
+df <- read.csv("data_in/cacatua_sanguinea_adele_complete.csv")
+
+df <- uncount(df, weights = n_records) 
+
+#add place column as required by some geocoder functions
+df$place <- paste(df$location, df$state, df$country, sep = ", ")
+```
+
+Some locations may include distances, for example '100km north of sydney' - remove these into a different df and run geocoder on remaining records
+
+```{r}
+#id entries with 'km ' within it, subset into different df
+has_km <- grepl("km ", df$location)
+
+#new df for entries that include distances
+km_df <- subset(df, has_km)
+
+#geocode locations - excluding those which include 'km' in record
+result <- geocode_OSM(df[!has_km, ]$place, keep.unfound = TRUE)
+
+```
+
+For entries including kilometers, split distance, direction, and base location and geocode
+
+```{r}
+#make new columns splitting distance, direction, and location 
+km_df$distance <- sub("km .*", "", km_df$place)
+km_df$direction <- sub(".*km ([A-Za-z]+).*", "\\1", km_df$place)
+km_df$loc <- sub(".*km [A-Za-z]+ (.*)", "\\1", km_df$place)
+
+for (row in 1:nrow(km_df)) {
+  base_location <- km_df[row, "loc"]
+  distance_km <- as.numeric(sub("km", "", km_df[row, "distance"]))
+  direction <- km_df[row, "direction"]
+  
+  # Geocode the base location
+  base_coordinates <- geocode_OSM(base_location)
+  if (is.null(base_coordinates) || length(base_coordinates) == 0) {
+    # Skip iteration if geocoding result is empty
+    next
+  }
+  
+  # Calculate the new coordinates based on direction and distance
+  if (direction == "N") {
+    new_latitude <- base_coordinates$coords[2] + (distance_km / 111)
+    new_longitude <- base_coordinates$coords[1]
+  } else if (direction == "S") {
+    new_latitude <- base_coordinates$coords[2] - (distance_km / 111)
+    new_longitude <- base_coordinates$coords[1]
+  } else if (direction == "E") {
+    new_latitude <- base_coordinates$coords[2]
+    new_longitude <- base_coordinates$coords[1] + (distance_km / (111 * cos(base_coordinates$coords[2] * pi / 180)))
+  } else if (direction == "W") {
+    new_latitude <- base_coordinates$coords[2]
+    new_longitude <- base_coordinates$coords[1] - (distance_km / (111 * cos(base_coordinates$coords[2] * pi / 180)))
+  } else if (direction == "NE") {
+    new_latitude <- base_coordinates$coords[2] + (distance_km / 111)
+    new_longitude <- base_coordinates$coords[1] + (distance_km / (111 * cos(base_coordinates$coords[2] * pi / 180)))
+  } else if (direction == "NW") {
+    new_latitude <- base_coordinates$coords[2] + (distance_km / 111)
+    new_longitude <- base_coordinates$coords[1] - (distance_km / (111 * cos(base_coordinates$coords[2] * pi / 180)))
+  } else if (direction == "SE") {
+    new_latitude <- base_coordinates$coords[2] - (distance_km / 111)
+    new_longitude <- base_coordinates$coords[1] + (distance_km / (111 * cos(base_coordinates$coords[2] * pi / 180)))
+  } else if (direction == "SW") {
+    new_latitude <- base_coordinates$coords[2] - (distance_km / 111)
+    new_longitude <- base_coordinates$coords[1] - (distance_km / (111 * cos(base_coordinates$coords[2] * pi / 180)))
+  } else {
+    # Handle any other direction values here (if needed)
+    new_latitude <- NA
+    new_longitude <- NA
+  }
+  
+  # Assign the new latitude and longitude to the dataframe
+  km_df[row, "lat"] <- new_latitude
+  km_df[row, "lon"] <- new_longitude
+}
+```
+
+Adding longitude latitude values into df & write csv
+
+```{r}
+#creat lat lon columns in df
+df$lat <- NA
+df$lon <- NA
+
+
+#apply lat lon from geocoder to non-km rows
+df[!has_km, ]$lat <- result$lat
+df[!has_km, ]$lon <- result$lon
+
+#apply lat lon from geocoder for km-rows
+df[has_km, ]$lat <- km_df$lat
+df[has_km, ]$lon <- km_df$lon
+
+#see how many NAs - need to go back and find solution for these (ie enter more findable location for geocoder)
+sum(is.na(df$lat)) #122 still un-coded due to remoteness
+
+#write csv
+write.csv(df, file="C:/Users/adele/Documents/non_passerine/data_out/cacatua_sanguinea_points.csv")
+
+```
+
+## DISTRIBUTION VISUALISATION
+
+```{r}
+#Concave hull visuation - based off code from https://labs.ala.org.au/posts/2023-04-11_quantifying-species-range/post.html
+
+#packages
+library(rnaturalearth)
+library(tidyverse) 
+library(here)
+library(rmapshaper)
+library(ggpointdensity) 
+library(concaveman) 
+library(cowplot)
+library(patchwork) 
+library(sf) 
+
+#load in natural earth high res map
+filename <- ne_download(scale = 10, 
+                        type = "admin_1_states_provinces",
+                        returnclass = "sf",
+                        destdir = "shapefiles",
+                        load = FALSE)
+
+# import downloaded shapefile
+shapefile <- paste0("shapefiles/", filename, ".shp") |>
+  st_read()
+
+#read in points file
+df1 <- read.csv("data_out/cacatua_sanguinea_points.csv")
+
+#remove NA values
+df1 <- na.omit(df1)
+
+#delete unneccessary columns - must do this for CH to work 
+df1 <- df1[ , c(2,7,11,12)]
+
+#nest coordinates
+df_nest <- df1 |> 
+  nest(coords = c(lon, lat))
+
+#make concave hull
+subset_concave1 <- df_nest |>
+    mutate(points_sf = map(.x = coords,
+                           ~ st_as_sf(.x, coords = c("lon", "lat"),
+                                      crs = 4326)), 
+           concave_sf = map(points_sf,
+                            ~ concaveman(.x)))
+
+subset_concave1 <- subset_concave1 |> 
+  select(species_name, concave_sf) |> 
+  unnest(cols = c(concave_sf)) |> 
+  ungroup() |> 
+  st_sf(crs = 4326) 
+
+
+df_concave1 <- ggplot() + 
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +
+  geom_sf(data = subset_concave1, fill = "#609966", alpha = 0.2, lwd = 0) +
+  coord_sf(xlim = c(110, 155), ylim = c(-45, 0)) +
+  theme_void() 
+
+
+#points map
+df_points_map <- ggplot() +
+  geom_pointdensity(data = df1,
+                    mapping = aes(x = lon,
+                                  y = lat)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+ scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 155), ylim = c(-45, 0)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Number of \noverlapping points")) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+df_concave1  + df_points_map + plot_annotation(title = "Cacatua Sanguinea Locations") 
+
+```
+
+```{r}
+#saving plot
+cacatua_sanguina_mappage <- df_concave1  + df_points_map + plot_annotation(title = "Cacatua Sanguinea Locations") 
+
+ggsave('data_out/cacatua_sanguina_mappage.png', cacatua_sanguina_mappage)
+```
