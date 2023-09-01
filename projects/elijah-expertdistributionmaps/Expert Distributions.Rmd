@@ -17,7 +17,7 @@ Here, we show how expert distribution maps can be obtained from the ALA, how to 
 
 Firstly, we must get our occurrence data from the ALA. To do this, we must have the `galah` package loaded. We also need to use the packages `tidyverse`, `httr`, `jsonlite`, `sf`, and `leaflet` later on, so we will load them now.
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 library(galah)
 library(tidyr)
 library(dplyr)
@@ -30,11 +30,11 @@ library(leaflet)
 To use galah, we must add our email used to register for our ALA account.
 
 ```{r, include=FALSE}
-galah_config(email = "elijah.magi28@gmail.com")
+galah_config(email = "elijah.magi28@gmail.com", verbose = FALSE)
 ```
 
 ```{r, eval = FALSE}
-galah_config(email = "hungry_wombat@email.com")
+galah_config(email = "your-email-here")
 ```
 
 We must first pick a species to visualise. Currently, the ALA has expert distribution maps for many different taxa. However, not all species have an associated distribution map. To check if a species has an expert distribution map in the ALA, we can search the species in the ALA website and see if there is a `Compiled distribution map` present on its species page.
