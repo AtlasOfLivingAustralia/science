@@ -98,6 +98,9 @@ ggplot() +
 
 ## Bioclimate data
 
+Note: This data exists in the Science & Decision Support folder on Microsoft Teams
+* ./Data/science/projects/sdm-workflows/data
+
 ```{r}
 # Download world climate data
 worldclim <- geodata::worldclim_country(
@@ -106,7 +109,10 @@ worldclim <- geodata::worldclim_country(
     res = 5,
     path = here::here("projects", "sdm-workflows", "data")
   )
+```
 
+
+```{r}
 # get states bbox
 states <- c("New South Wales", "Victoria", "Tasmania")
 states_sf <- ozmaps::ozmap_states |>
