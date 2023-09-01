@@ -1,0 +1,71 @@
+---
+title: "{galah} cheatsheet images"
+author: "Dax Kellie"
+date: "06 June, 2023"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+Images for galah cheatsheet (R)
+
+```{r}
+# packages
+library(galah)
+library(tidyverse)
+library(sf)
+library(ozmaps)
+
+# australia
+aus <- ozmap_country |>
+  st_transform(crs = st_crs("WGS84"))
+
+# choose bounding box
+bbox <- tibble(xmin = 145, xmax = 151,
+               ymin = -34, ymax = -30)
+
+
+# download records
+galah_config(email = "dax.kellie@csiro.au")
+bandicoots <- galah_call() |>
+  identify("Cercartetus nanus") |>
+  # filter(year == 2014) |>
+  galah_geolocate(bbox, type = "bbox") |>
+  atlas_occurrences()
+
+ggplot() +
+  geom_sf(data = aus,
+          fill = "white",
+          colour = "grey30",
+          linewidth = 1) + 
+  geom_rect(data = bbox,
+            aes(xmin = xmin, xmax = xmax,
+                ymin = ymin, ymax = ymax),
+            fill = NA,
+            colour = "grey10",
+            linewidth = 2) + 
+  geom_point(data = bandicoots,
+             aes(x = decimalLongitude,
+                 y = decimalLatitude),
+             colour = "#43B1B1",
+             shape = 16,
+             alpha = 0.4,
+             size = 4) + 
+  coord_sf(xlim = c(110, 155), ylim = c(-45, -10)) +
+  theme_void()
+  
+ggsave(here::here("projects", "galah_cheatsheet", "images", "galah_geolocate.png"),
+       height = 8, width = 8, units = "in") 
+galah_config(email = "dax.kellie@csiro.au")
+x <- galah_call() |> 
+  galah_identify("protista") |> 
+  # filter(year == 2021 | year == 2020) |>
+  atlas_species()
+
+x %>%
+  filter(stringr::str_detect(species, "x"))
+
+galah_filter(stateProvince == "Victoria" | stateProvince == "New South Wales")
+galah_filter(eventDate != "")
+```
+
