@@ -1,0 +1,761 @@
+---
+title: "SDM test"
+author: "Dax"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+NOTE: As of 1 September, 2023 the **Making Predictions** section of this script does not work. This is due to an issue in the {spatialsample} package that does not allow tidymodels to handle spatial folds.
+
+# Start
+
+```{r}
+# packages
+library(galah)
+library(terra)
+library(tidyterra)
+library(geodata)
+library(flexsdm) # devtools::install_github('sjevelazco/flexsdm')
+library(dismo)
+library(here)
+library(sf)
+library(tidymodels)
+library(tidyverse)
+library(ggdensity)
+
+```
+
+# Download data
+
+## Species observations
+
+Identify bounding box
+
+```{r bounding-box}
+# specify bounding box
+custom_bbox <- tibble(ymin = -37, ymax = -35, xmin = 147, xmax = 149)
+
+# See it on a map
+oz <- ozmaps::ozmap_country |>
+  st_transform(crs = st_crs("WGS84"))
+
+ggplot() +
+  geom_sf(data = ozmaps::ozmap_country) + 
+  geom_rect(data = custom_bbox,
+          mapping = aes(xmin = xmin, ymin = ymin, xmax = xmax, ymax = ymax))
+```
+
+```{r}
+nsw <- ozmaps::ozmap_states |>
+  filter(NAME == "New South Wales") |>
+  st_transform(crs = st_crs("WGS84"))
+
+ggplot() +
+  geom_sf(data = nsw)
+```
+
+
+```{r}
+#| eval: false
+nsw_records <- galah_call() |>
+  galah_identify("perameles") |>
+  galah_filter(year > 2015,
+               cl22 == "New South Wales") |>
+  galah_apply_profile("ALA") |>
+  atlas_occurrences()
+
+nsw_records <- nsw_records |> drop_na()
+
+nsw_box <- c(right = 153.62986, left = 140.99927 , top = -28.15703, bottom = -37.50503)
+```
+
+```{r}
+galah_config(email = "dax.kellie@csiro.au")
+
+search_all(fields, "elevation")
+search_all(fields, "australian states")
+
+pyg_pos <- galah_call() |>
+  identify("Cercartetus nanus") |>
+  group_by(species) |>
+  galah_apply_profile(ALA) |>
+  galah_select(el674, group = "basic") |>
+  galah::filter(cl22 == c("New South Wales", "Victoria", "Tasmania")) |>
+  atlas_occurrences() |> 
+  dplyr::filter(!is.na(el674)) # remove obs with missing elevation
+
+pyg_pos <- pyg_pos |>
+  rename("elevation" = "el674")
+
+ggplot() +
+  geom_sf(data = ozmaps::ozmap_country) +
+  geom_point(data = pyg_pos,
+             aes(x = decimalLongitude, y = decimalLatitude, colour = scientificName))
+```
+
+
+
+## Bioclimate data
+
+```{r}
+# Download world climate data
+worldclim <- geodata::worldclim_country(
+    country = "Australia", 
+    var = "bio",
+    res = 5,
+    path = here::here("projects", "sdm-workflows", "data")
+  )
+
+# get states bbox
+states <- c("New South Wales", "Victoria", "Tasmania")
+states_sf <- ozmaps::ozmap_states |>
+  filter(NAME %in% states)
+states_bbox <- sf::st_bbox(states_sf)
+
+# Crop to NSW, VIC, TAS
+bbox <- ext(c(states_bbox["xmin"], states_bbox["xmax"], 
+              states_bbox["ymin"], states_bbox["ymax"]))
+aus <- crop(worldclim, bbox)
+```
+
+```{r}
+# tidyterra plotting
+first_map <- ggplot() +
+  geom_spatraster(data = aus,
+                  mapping = aes(fill = wc2.1_30s_bio_1)) + 
+  geom_point(data = pyg_pos,
+          mapping = aes(decimalLongitude,decimalLatitude),
+          colour = "#762a83",
+          size = 2) +
+  scale_fill_whitebox_c(palette = "atlas",
+                        na.value = NA) +
+  theme_void() + 
+  geom_sf(data = nsw,
+          fill = NA,
+          colour = "grey20")
+
+first_map
+```
+
+```{r}
+#| eval: false
+
+# terra/base equivalent
+plot(aus[[1]])
+points(pyg_pos[, c("decimalLongitude", "decimalLatitude")], col = "black", pch = 16)
+```
+
+
+
+# Prepare for modelling
+
+## Generate pseudo-absences
+
+Define the model's calibration area. In other words, define the area that the model might expect to have samples from. We used a 20-km buffer radius
+
+```{r}
+# Calibrate area of samples
+calibration_area <- calib_area(
+  data = pyg_pos,
+  x = "decimalLongitude",
+  y = "decimalLatitude",
+  method = c("buffer", width = 20000),
+  crs = crs(aus)
+)
+
+# Visualise the calibration area & species occurrences
+ggplot() +
+  geom_spatraster(data = aus,
+                  mapping = aes(fill = wc2.1_30s_bio_1)) + 
+  geom_spatvector(data = calibration_area, 
+                  fill = NA) + 
+  geom_point(data = pyg_pos,
+             mapping = aes(decimalLongitude,decimalLatitude),
+             colour = "#762a83",
+             size = 2) +
+  scale_fill_whitebox_c(palette = "atlas",
+                        na.value = NA) +
+  geom_sf(data = nsw,
+          fill = NA,
+          colour = "grey20") +
+  theme_void()
+```
+
+```{r}
+#| eval: false
+
+# terra/base equivalent
+plot(
+  aus[[1]],
+  legend = FALSE
+)
+plot(calibration_area, add = TRUE)
+points(pyg_pos[, c("decimalLongitude", "decimalLatitude")], col = "black", pch = 16)
+```
+
+
+
+Create pseudo-absence data
+
+```{r}
+set.seed(234)
+p_absences <- sample_pseudoabs(
+  data = pyg_pos,
+  x = "decimalLongitude",
+  y = "decimalLatitude",
+  n = nrow(pyg_pos), # get n p-absence point equal to number of presences
+  method = "random",
+  rlayer = aus,
+  calibarea = calibration_area
+)
+
+# Visualise pseudo-absence points
+ggplot() +
+  geom_spatraster(data = aus,
+                  mapping = aes(fill = wc2.1_30s_bio_1)) + 
+  geom_spatvector(data = calibration_area, fill = NA) + 
+  geom_point(data = pyg_pos,
+          mapping = aes(decimalLongitude,decimalLatitude),
+          colour = "#762a83",
+          size = 1) +
+  geom_point(data = p_absences,
+             mapping = aes(decimalLongitude, decimalLatitude),
+             colour = "grey30",
+             size = 0.8) +
+  scale_fill_whitebox_c(palette = "atlas",
+                        na.value = NA) +
+  labs(subtitle = glue::glue("
+                             Presence = Purple
+                             Pseudo-absence = Grey
+                             ")) +
+  theme_void()
+```
+
+```{r}
+#| eval: false
+
+# terra/base equivalent
+plot(
+  aus[[1]],
+  main = "Presence = black, Pseudo-absence = pink"
+)
+plot(calibration_area, add = TRUE)
+points(p_absences[, c("decimalLongitude", "decimalLatitude")], cex = 0.8, pch = 16, col = "grey50") # pseudo-absences
+points(pyg_pos[, c("decimalLongitude", "decimalLatitude")], cex = 0.8, pch = 16, col = "black")
+```
+
+
+Merge psedo-absences & presences into a single data.frame
+
+```{r}
+records_pa <- bind_rows(pyg_pos, p_absences)
+
+# convert all NAs to "present"
+records_pa <- records_pa %>%
+  dplyr::select(decimalLatitude, decimalLongitude, elevation, pr_ab) %>%
+  mutate(pr_ab = if_else(is.na(pr_ab), 1, 0)) # %>%
+  # mutate(pr_ab = dplyr::case_when(pr_ab == 1 ~ "present",
+  #                                 pr_ab == 0 ~ "absent"))
+```
+
+
+## Get environmental factors
+
+Extract environmental factors for our points
+
+```{r}
+# extract environmental values for each point
+bio_point_data <- terra::extract(aus, records_pa[, c("decimalLongitude", "decimalLatitude")])
+
+# merge info to presence-absence data.frame
+# now this bioclim info is listed for each record
+# also drop NAs and rename some long-winded columns
+merged_records_pa <- bind_cols(records_pa, bio_point_data) |>
+  drop_na() %>%
+  rename_with(~ stringr::str_replace(., 'wc2.1_30s_', '')) %>%
+  mutate_if(is.character, as.factor) %>% # remove beginning of bioclim col names
+  dplyr::select(decimalLatitude, decimalLongitude, pr_ab, ID,
+                elevation,
+                bio_1, # annual mean temperature
+                bio_7, # temperature annual range
+                bio_12, # annual precipitation
+                ) 
+
+# convert to sf object
+pyg_train_sf <- st_as_sf(merged_records_pa,
+                                 coords = c("decimalLongitude",
+                                            "decimalLatitude"),
+                                 crs = 4326)
+
+pyg_train_sf
+```
+
+
+# Create a Training Model
+
+## Split data
+
+Designate how you will spend your "data budget". Split data into training and testing datasets.
+
+```{r}
+# Split data into training & testing data
+set.seed(456)
+pyg_split <- initial_split(merged_records_pa)
+pyg_train <- training(pyg_split)
+pyg_test <- testing(pyg_split)
+```
+
+
+## Spatial folds
+
+Spatial data isn't just random, and so we use the {spatialsample} package to create resampling folds. These folds are different breakdowns of our training data that are used to predict other parts. 
+
+```{r}
+# Create resampling folds
+set.seed(567)
+
+## Spatial
+# see what's happening with spatial_clustering_cv
+library(spatialsample)
+pyg_folds <- spatial_clustering_cv(pyg_train_sf, v = 10)
+autoplot(pyg_folds)
+
+pyg_folds$splits[[1]] |> st_drop_geometry()
+```
+
+
+## Build model workflow
+
+```{r}
+# choose model type
+glm_model <- logistic_reg() %>%
+  set_engine("glm")
+
+# formula
+recipe_steps <- recipe(pr_ab ~ elevation + bio_1 + bio_7 + bio_12, data = st_drop_geometry(pyg_train_sf)) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_interact(~ elevation:bio_1 + elevation:bio_7 + elevation:bio_12)
+
+wf_basic <- workflow(recipe_steps, glm_model)
+```
+
+
+## Fit model
+
+Someone noticed that {recipes} can't handle {spatialsample}
+https://github.com/tidymodels/spatialsample/issues/140
+
+```{r}
+
+
+rs_basic <- workflow(recipe_steps, glm_model) |> 
+  # but keep it when assigning resamples
+  tune::fit_resamples(spatial_clustering_cv(pyg_train_sf),
+                      control = control_resamples(save_pred = TRUE))
+
+
+# doParallel::registerDoParallel()
+rs_basic <- fit_resamples(object = workflow, 
+                          resamples = pyg_folds, 
+                          control = control_resamples(save_pred = TRUE))
+
+show_notes(.Last.tune.result)
+?fit_resamples
+# Get results
+collect_metrics(rs_basic)
+```
+
+```{r}
+augment(rs_basic) %>%
+  roc_curve(pr_ab, .pred_absent) %>%
+  autoplot()
+```
+
+
+```{r}
+bandicoot_fit <- fit(wf_basic, merged_records_pa)
+
+# model results
+tidy(bandicoot_fit)
+```
+
+
+## Evaluate model
+
+Using test data
+
+Get class & numeric predictions
+
+```{r}
+# predict presence/absence class
+bandicoot_pred_class <- 
+  predict(bandicoot_fit, bandicoot_test, type = "class")
+
+# prediction probabilities
+bandicoot_pred_probs <- 
+  predict(bandicoot_fit, bandicoot_test, type = "prob")
+```
+
+Merge those results together to the actual 'true' result
+
+```{r}
+# merge predictions to actual results
+bandicoot_presence_results <- 
+  bandicoot_test %>%
+  dplyr::select(pr_ab) %>%
+  bind_cols(bandicoot_pred_class, bandicoot_pred_probs)
+```
+
+**Confusion matrix**
+
+```{r}
+conf_mat(bandicoot_presence_results, 
+         truth = pr_ab,
+         estimate = .pred_class)
+```
+
+This shows that our model interpreted 124 absences and 83 presences correctly. It interpreted 43 absences and 83 presences incorrectly (I think).
+
+**Accuracy** 
+
+```{r}
+accuracy(bandicoot_presence_results, 
+         truth = pr_ab,
+         estimate = .pred_class)
+```
+
+The model classification accuracy on our test data is ~ 62%
+
+
+**Sensitivity**
+
+Sensitivity refers to the ratio between how many classifications were correctly identified as presences *vs* how many were actually presences.
+
+```{r}
+sens(bandicoot_presence_results, 
+     truth = pr_ab,
+     estimate = .pred_class)
+```
+
+The sensitivity value is 0.743, indicating fairly decent detection of presences in the test dataset
+
+**Specificity**
+
+Specificity refers to the ratio between how many classifications were correctly identified as absences *vs* how many were actually absences.
+
+```{r}
+spec(bandicoot_presence_results,
+     truth = pr_ab,
+     estimate = .pred_class)
+```
+
+The specificity value is 0.5, indicating fairly poor detection of absences in the test dataset
+
+**Precision**
+
+How many were correctly classified as presences out of all presences?
+
+```{r}
+precision(bandicoot_presence_results,
+          truth = pr_ab,
+          estimate = .pred_class)
+```
+
+The precision value is 0.599, which is fairly poor
+
+**F-measure**
+
+F-measure is a weighted harmonic mean of precision and sensitivity (sometime also called Recall), between 0 and 1 (with 1 being perfect classification).
+
+```{r}
+f_meas(bandicoot_presence_results,
+       truth = pr_ab,
+       estimate = .pred_class)
+```
+
+The F1 score is ~0.663, indicating the trained model has a classification strength of 66.3%
+
+**Kappa**
+
+Cohen's Kappa gives information of how much better a model is over a random classifier, ranging from -1 to 1, with anything less than 0 meaning the model isn't better than random
+
+```{r}
+kap(bandicoot_presence_results,
+    truth = pr_ab,
+    estimate = .pred_class)
+```
+
+The Kappa statistic is 0.243, indicating it's better than a random classifier, but not by that much.
+
+### Complete table
+
+Apparently you can put all of this in one big table (which makes sense)
+
+```{r}
+custom_metrics <- metric_set(accuracy, sens, precision, recall, f_meas, kap)
+custom_metrics(bandicoot_presence_results,
+               truth = pr_ab,
+               estimate = .pred_class)
+```
+
+### ROC-AUC
+
+ROC-AUC is a performance measurement for how well the model classifies at various threshold settings. ROC_AUC tells how much the model is capable of distinguishing between classes.
+
+```{r}
+roc_auc(bandicoot_presence_results,
+        truth = pr_ab,
+        .pred_absent)
+```
+
+```{r}
+bandicoot_presence_results %>%
+  roc_curve(truth = pr_ab,
+            estimate = .pred_present) %>%
+  autoplot()
+```
+
+Our model isn't amazing
+
+
+-------------------------------------------------------------------------------
+
+# Make predictions
+
+## Spatial folds
+
+```{r}
+# Create resampling folds
+set.seed(567)
+
+## Spatial
+library(spatialsample)
+bandicoot_spatial_folds <- spatial_clustering_cv(merged_records_pa, coords = c("decimalLongitude", "decimalLatitude"), v = 10)
+
+# autoplot(bandicoot_spatial_folds)
+```
+
+## Model with full dataset
+
+```{r}
+# choose model type
+glm_model <- logistic_reg() %>%
+  set_engine("glm")
+
+# create formula and modelling steps
+recipe_steps <- 
+  recipe(formula = pr_ab ~ bio_1 + bio_2 + bio_3, 
+         data = merged_records_pa) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_interact(~ bio_1:bio_2 + bio_1:bio_3 + bio_2:bio_3 + bio_1:bio_2:bio_3)
+
+wf_basic <- workflow(recipe_steps, glm_model)
+```
+
+Join predictions to data
+
+```{r}
+bandicoot_res <- 
+  wf_basic %>%
+  fit_resamples(bandicoot_spatial_folds, control = control_resamples(save_pred = TRUE))
+
+collect_metrics(bandicoot_res)
+collect_predictions(bandicoot_res)
+
+# join predictions to records
+records_predicted <- 
+  records_pa %>%
+  mutate(.row = row_number()) %>%
+  left_join(collect_predictions(bandicoot_res))
+```
+
+## Sample new points
+
+Extract environmental factors for our points
+
+
+```{r}
+# create blank space
+raster_blank <- rast(ext(aus), resolution = 0.01, crs = sf::st_crs(aus)$wkt)
+
+# sample points
+sample_points <- terra::spatSample(
+  raster_blank,
+  method = "regular",
+  size = 40000,
+  as.points = TRUE
+  # as.df = TRUE
+)
+
+plot(sample_points)
+
+sample_coords <- geom(sample_points) %>% 
+  as_tibble() %>% 
+  dplyr::select(geom, x, y) %>%
+  rename(decimalLongitude = x,
+         decimalLatitude = y,
+         .row = geom) %>%
+  mutate(pr_ab = rep(NA))
+
+# extract environmental values for each point
+bio_sample_point_data <- terra::extract(aus, sample_coords[, c("decimalLongitude", "decimalLatitude")])
+
+# merge info to presence-absence data.frame
+# now this bioclim info is listed for each record
+# also drop NAs and rename some long-winded columns
+merged_sample_coords <- bind_cols(sample_coords, bio_sample_point_data) |>
+  # drop_na() %>%
+  rename_with(~ stringr::str_replace(., 'wc2.1_30s_', '')) %>%
+  mutate_if(is.character, as.factor) %>% # remove beginning of bioclim col names
+  dplyr::select(decimalLatitude, decimalLongitude, pr_ab, ID, bio_1, bio_2, bio_3)
+
+bandi_grid_preds <- 
+  augment(bandicoot_fit, merged_sample_coords) %>%
+  dplyr::select(-.pred_class, -.pred_absent, -.pred_present) %>%
+  bind_cols(
+    predict(bandicoot_fit, merged_sample_coords, type = "prob")
+  )
+```
+
+
+```{r}
+#| eval=FALSE
+
+# replace NAs with 0s
+records_predicted <- records_predicted %>%
+  drop_na() %>%
+  replace_na(list(.pred_present = 0, .pred_absent = 0))
+
+records_predicted %>%
+  filter(is.na(.pred_present))
+```
+
+
+## Hex map
+
+```{r}
+p1 <- ggplot() +
+  geom_spatraster(data = aus,
+  mapping = aes(fill = wc2.1_30s_bio_1)) +
+  geom_spatvector(data = calibration_area, fill = NA) +
+  geom_point(data = records,
+          mapping = aes(decimalLongitude,decimalLatitude),
+          colour = "red",
+          size = 2) +
+  geom_point(data = p_absences,
+             mapping = aes(decimalLongitude, decimalLatitude),
+             colour = "blue") +
+  scale_fill_whitebox_c(palette = "atlas",
+                        na.value = NA) +
+  labs(subtitle = glue::glue("
+                             Presence = Red
+                             Pseudo-absence = Orange
+                             "))
+
+ggplot() +
+  stat_summary_hex(data = bandi_grid_preds,
+                   aes(x = decimalLongitude, 
+                       y = decimalLatitude,
+                       z = .pred_present),
+                   alpha = 0.6,
+                   bins = 70) + 
+  scale_fill_viridis_c(direction = -1, option = "G") +
+  guides(fill=guide_legend(title="Probability"))
+  
+
+p1 + 
+  ggnewscale::new_scale_fill() +
+  stat_summary_hex(data = bandi_grid_preds,
+                   aes(x = decimalLongitude, 
+                       y = decimalLatitude,
+                       z = .pred_present),
+                   alpha = 0.6,
+                   bins = 70) + 
+  scale_fill_viridis_c(direction = -1, option = "G") +
+  guides(fill=guide_legend(title="Probability"))
+```
+
+
+## rasterize
+
+```{r}
+# convert coords to sf geometry
+preds_spatial <- 
+  bandi_grid_preds %>%
+  as.data.frame() %>%
+  st_as_sf(coords = c("decimalLongitude", "decimalLatitude"), crs = 4327)
+
+# play nice with terra and make sf object a spatVector object
+preds_spatial_vect <- vect(preds_spatial)
+
+# create blank template area
+raster_template <- rast(ext(preds_spatial), 
+                        resolution = 0.02, 
+                        crs = st_crs(preds_spatial)$wkt)
+
+# Create raster layer filled by presence predictions
+raster_layer <- terra::rasterize(preds_spatial_vect, raster_template, 
+                                 field = ".pred_present", touches = FALSE)
+
+plot(raster_layer)
+
+?terra::rasterize
+```
+
+
+```{r rasterize-example}
+#| eval: false
+
+library(spData)
+cycle_hire_osm <- spData::cycle_hire_osm
+cycle_hire_osm_projected = st_transform(cycle_hire_osm, "EPSG:27700")
+raster_template = rast(ext(cycle_hire_osm_projected), resolution = 1000,
+                       crs = st_crs(cycle_hire_osm_projected)$wkt)
+
+ch_raster1 = rasterize(cycle_hire_osm_projected, raster_template,
+                       field = "capacity")
+plot(ch_raster1)
+```
+
+
+```{r}
+p1 +
+  ggnewscale::new_scale_fill() +
+  geom_spatraster(data = raster_layer,
+                  aes(fill = lyr.1)) +
+  # geom_spatvector(data = calibration_area, fill = NA) +
+  # geom_point(data = records,
+  #         mapping = aes(decimalLongitude,decimalLatitude),
+  #         colour = "red") +
+  # geom_point(data = p_absences,
+  #            mapping = aes(decimalLongitude, decimalLatitude),
+  #            colour = "orange") +
+  scale_fill_whitebox_c(palette = "bl_yl_rd",
+                        na.value = NA)
+  # labs(subtitle = glue::glue("
+  #                            Presence = Red
+  #                            Pseudo-absence = Orange
+  #                            "))
+```
+
+
+# Other stuff
+
+```{r}
+data("spp")
+
+single_spp <- spp %>%
+  dplyr::filter(species == "sp1") %>%
+  dplyr::filter(pr_ab == 1) %>%
+  dplyr::select(-pr_ab)
+
+points(single_spp[-1], col="red")
+```
+
+```{r}
+data("hespero")
+
+hespero
+```
+
