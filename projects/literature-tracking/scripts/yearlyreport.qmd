@@ -13,14 +13,14 @@ Once a year, the ALA produces a "Year in Review" report which encompasses our ac
 \
 They are:
 
-1.  **The annual (calandar year) numbers of *journal articles* citing the ALA, up until the earliest article in 2007**
+1.  **The annual (calendar year) numbers of *journal articles* citing the ALA, up until the earliest article in 2007**
 2.  **Annual (financial year) total publications (all) to journal article ratio**
 3.  **Top 10 journal articles (grand total + yearly)**
 4.  **Research domains or categories citing the ALA**
 
-> This code was last updated on 2023-08-9.
+> This code was last updated on 2023-10-23 (yyyy/mm/dd). 
 >
-> Data to run this code can be found [here](https://csiroau.sharepoint.com/:f:/r/sites/AtlasofLivingAustralia/Shared%20Documents/Science%20and%20Decision%20Support/Data/science/projects/literature-tracking/data?csf=1&web=1&e=M5hBEt), and within this repo: science - projects - literature-tracking - data (set to .gitignore).
+> Data to run this code can be found [here](https://csiroau.sharepoint.com/:f:/r/sites/AtlasofLivingAustralia/Shared%20Documents/Science%20and%20Decision%20Support/Data/science/projects/literature-tracking/data?csf=1&web=1&e=M5hBEt), and within this repo: science - projects - literature-tracking - data (set to .gitignore). You can export the current literature tracking repository by accessing Zotero ([how here](https://confluence.csiro.au/display/ALASD/Using+Zotero)) and choosing File > Export library (as .csv).
 
 # Step 1 - Data cleaning:
 
@@ -44,7 +44,7 @@ First you will need to export the latest encompassing .csv from Zotero and save 
 data <- read_csv(here("projects", 
                       "literature-tracking", 
                       "data", 
-                      "26 sept zotero 2023.csv"))
+                      "20 oct 23.csv"))
 ```
 
 3.  Clean column names - it will make it easier to process and interpret the data.
@@ -58,12 +58,11 @@ dataclean <- janitor ::clean_names(data)
 ```{r}
 dataclean2 <- dataclean |>
   mutate(
-    date_added_clean = as_date(date_added),
-    date_added_month = month(date_added_clean),
-    date_added_year = year(date_added_clean)) |>
-   select(title, date, place, publication_year, publication_title, 
-          item_type, url, manual_tags, date_added, date_added_clean, 
-          date_added_month, date_added_year)
+    date_added_clean = as_date(date_added), #date_added clean (remove time stamp)
+    publication_date = (date)) |> #rename date to publication_date
+  drop_na(publication_date) |> #drop records w. a n/a publication date
+   select(title, date, publication_date, place, publication_year, publication_title, 
+          item_type, url, manual_tags, date_added, date_added_clean) #select relevant columns
 dataclean2
 ```
 
@@ -77,40 +76,178 @@ In this section we collate the number of **journal articles** mentioning, citing
 >
 > In 2022, it was decided to exclude this tag from the library (held on file) as GBIF's direct downloads are not always related to the ALA's own research impact.
 
+###Calender year:
+
 ```{r}
-publicationbyyear <- dataclean2 |>
+# Annual calendar  (not financial year) journal numbers. Note the current year will show 6 months of data Jan-June or up until the date these numbers are reproduced (generally June)
+apublicationbyyear <- dataclean2 |>
   filter(item_type == "journalArticle") |>
   group_by(publication_year) |>
   count() 
-publicationbyyear
+apublicationbyyear
+```
+
+```{r}
+apublicationbyyear$publication_year <- as.character(apublicationbyyear$publication_year)
+
+# Create a horizontal bar plot
+ggplot(apublicationbyyear, aes(x = n, y = publication_year)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  geom_text(aes(label = n), hjust = 1.2, vjust = 0.5) + # Add number annotations
+  labs(x = "", y = "") +
+  ggtitle("Annual number of journal articles citing the ALA (calendar years)") +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    axis.line.y = element_blank(),  # Remove y-axis line
+    axis.ticks = element_blank()) + scale_x_continuous(expand = c(0, 2))
+```
+
+###Financial year:
+
+```{r}
+library(dplyr)
+library(lubridate)
+# Financial year journal numbers 
+# Note: we used publication_date here instead of date_added as a large proportion of articles published in earlier years were added years in advance. Also note that for this analysis, it is important that articles are listed as having a m/yyyy publication date as a yyyy only date will be excluded. 
+dataclean2$publication_date <- ymd(dataclean2$publication_date)
+
+# Create an empty data frame to store the results
+result_df <- data.frame()
+
+# Iterate through each financial year from 2006-2007 to 2022-2023
+for (year in 2006:2022) {
+  # Calculate the start and end dates for the financial year
+  start_date <- if (year == 2006) {
+    ymd(paste(year, "-06-30", sep = ""))
+  } else {
+    ymd(paste(year, "-07-01", sep = ""))
+  }
+  
+  end_date <- ymd(paste(year + 1, "-06-30", sep = ""))
+  
+  # Create a date range string for the current year
+  date_range <- paste(start_date, "to", end_date)
+  
+  # Modify your code to filter data for the current financial year using tidyverse
+  current_year_data <- dataclean2 %>%
+    filter(item_type == "journalArticle") %>%
+    filter(publication_date >= start_date, publication_date <= end_date) %>%
+    filter(publication_year %in% as.character(year:(year+1))) %>%
+    count() %>%
+    drop_na() %>%
+    mutate(Financial_Year = paste(substr(as.character(year), 3, 4), '-', substr(as.character(year + 1), 3, 4), "'", sep = ""), Date_Range = date_range)
+  
+  
+  # Add the data for the current year to the result data frame
+  result_df <- bind_rows(result_df, current_year_data)
+}
+
+# View the result data frame
+result_df
+```
+
+
+
+```{r}
+# Load the ggplot2 library if it's not already loaded
+library(ggplot2)
+library(ggthemes)
+
+# Assuming you have a data frame named 'result_df' with columns 'n' and 'Financial_Year'
+
+# Create a horizontal bar plot
+ggplot(result_df, aes(x = n, y = Financial_Year)) +
+  geom_bar(stat = "identity", fill = "orange") +
+  geom_text(aes(label = n), hjust = 1.2, vjust = 0.5) + # Add number annotations
+  labs(x = "", y = "") +
+  ggtitle("Annual number of journal articles citing the ALA (financial years)") +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    axis.line.y = element_blank(),  # Remove y-axis line
+    axis.ticks = element_blank()) + scale_x_continuous(expand = c(0, 2))
 ```
 
 ## Total to journal article ratio
 
-*Total* publications within the financial year:
+*Total* to *journal only* publications within the current financial year: \
+\
+NOTE: Publications that are *not* journal articles rarely list a publication `date` in a dd/mm/yyyy format, and there is no streamlined method to correct mass records if they have been missed in the past to this format without a DOI (for journal articles, I have used ZotMeta). For a financial year analysis, data needs to be in a dd/mm/yyyy format. Therefore, for publications other than `journal_article`s we have substituted `date_added` (dd/mm/yyyy format), restricted by the current `publication_year` under the justification that publications are (*most* of the time) added within a similar range of them being published. We use `publication_date` for `journal_article`s.
+
+1. Updated code (2023-10-23)
 
 ```{r}
-totalpubsbyyear <- dataclean2 |>
+#non-journal ratio
+nonjournalstotalfy <- dataclean2 |>
+  filter(item_type != "journalArticle") |>
   filter(date_added_clean >= ymd("2022-06-30")) |>
   filter(date_added_clean <= ymd("2023-06-30")) |>
   filter(publication_year == "2022" | publication_year == "2023") |>
   count() |>
   drop_na() 
-totalpubsbyyear
+nonjournalstotalfy
 ```
 
-No. of those publications that are *journal articles* within the financial year:
+```{r}
+# journal ratio *
+journalstotalfy <- dataclean2 |>
+  filter(item_type == "journalArticle") |>
+  filter(publication_date >= ymd("2022-06-30")) |>
+  filter(publication_date <= ymd("2023-06-30")) |>
+  filter(publication_year == "2022" | publication_year == "2023") |>
+  count() |>
+  drop_na() 
+journalstotalfy
+```
 
 ```{r}
-journalratio <- dataclean2 |>
+#total pubs *
+totalpubsbyfy <- nonjournalstotalfy + journalstotalfy
+totalpubsbyfy
+```
+
+2. Previous code (expandable) (before publication date to (dd/mm/yyyy) data cleaning - see filtering justifications below)
+
+2022 (prior to cleaning, for '23 report): 
+
+```{r}
+#| code-fold: true
+#| eval: false
+#total
+dataclean2 |>
+  filter(date_added_clean >= ymd("2022-06-30")) |>
+  filter(date_added_clean <= ymd("2023-06-30")) |>
+  filter(publication_year == "2022" | publication_year == "2023") |>
+  count() |>
+  drop_na() 
+```
+
+```{r}
+#| code-fold: true
+#| eval: false
+#journals only
+dataclean2 |>
   filter(item_type == "journalArticle") |>
   filter(date_added_clean >= ymd("2022-06-30")) |>
   filter(date_added_clean <= ymd("2023-06-30")) |>
   filter(publication_year == "2022" | publication_year == "2023") |>
   count() |>
   drop_na() 
-journalratio
 ```
+
+2021: 
+```{r}
+#| code-fold: true
+#| eval: false
+dataclean2 |>
+  select(publication_year, title, publication_title, item_type) |>
+  filter(publication_year == 2021) |> 
+  filter(item_type == "journalArticle") |> #remove this line with a # to see total publications against journal articles only 
+  group_by(publication_title) |>
+  count()
+```
+
 
 ## Top journal articles
 
@@ -132,71 +269,72 @@ grandtop10
 grandtop10$publication_title[1:10]
 ```
 
-To find out how many different journal articles the ALA was cited in **the 2022-23 financial year**, run the same code but filter across the financial year dates via date_added (30 June - 30 June) and further restrict to papers published in that year (sometimes old papers are added as they become released online, which aren't relevant to our analysis).\
+To find out how many different journal articles the ALA were cited in **the 2022-23 financial year**, run the same code but filter across the financial year dates via date_added (30 June - 30 June) and further restrict to papers published in that year (sometimes old papers are added as they become released online, which aren't relevant to our analysis).
+
 \
 Be sure to remove the NA category (journal articles without an available name in the tracker) using `drop_na()` as well. This might be a chance to work on investigating these entries and see if there is missing data.
 
 ```{r}
-top10currentyear2 <- dataclean2 |>
+top10currentyear <- dataclean2 |>
   filter(item_type == "journalArticle") |>
-  filter(date_added_clean >= ymd("2022-06-30")) |>
-  filter(date_added_clean <= ymd("2023-06-30")) |>
-  filter(publication_year == "2022" | publication_year == "2023") |>
+  filter(publication_date >= ymd("2022-06-30")) |>
+  filter(publication_date <= ymd("2023-06-30")) |>
   group_by(publication_title) |>
   count() |>
   drop_na() |>
   arrange(desc(n)) 
-top10currentyear2
+top10currentyear
 ```
 
 **\
-**Here, there are 189 rows: meaning 189 unique journal articles that have cited the ALA across this financial year. **This number is included in the report.**
+**Here, there are 134 rows: meaning 134 unique journal articles that have cited the ALA across this financial year. **This number is included in the report. (p. 189 w date_added)**
 
 The top journals for this financial year listed were:
 
 ```{r}
-top10currentyear2$publication_title[1:10]
+top10currentyear$publication_title[1:10]
 ```
 
 ## Important filtering justifications
 
 **We chose to filter by `date_added` and *then* restrict to `publication_year` instead of filtering by `date` (date of publication). Note that there are degrees of error in both methods for a few reasons:**
 
--   If filtered by `publication_year` and then restricted to the financial year dates `dd/mm/yyyy`, there is a risk of excluding papers that only have a *year* `yyyy` of publication listed (which is common). It is preferred to get the publication `date` of papers entered into the tracker closest to `dd/mm/yyyy` as possible.
+-   If filtered by `publication_year` and restricted to the financial year dates `dd/mm/yyyy`, there is a risk of excluding papers that only have a *year* `yyyy` of publication listed (which is common). It is preferred to get the publication `date` of papers entered into the tracker closest to `dd/mm/yyyy` as possible.
 
--   Similarly, a paper may be published online but the listed publication `date` can be some months in advance as it reflects when the physical copy is released. While a paper may have been added and accessible online, it may be excluded from the financial year report if the physical release is outside of this date.
+-   Similarly, a paper may be published online but the listed publication `date` can be some months in advance as it reflects when the physical copy is released. While a paper may have been added and accessible online, it may be excluded from the financial year report if the physical release is outside of this date. As we have done before data cleaning (see below), using `date_added` and restricting to the relevant `publication_year`s, on the other hand, may exclude papers that were added outside of the financial year period but have a publication `date` within it. This seems to be the less likely occurrence and the more logical choice between the two.
 
--   Using `date_added` and restricting to the relevant `publication_year`s, on the other hand, may exclude papers that were added outside of the financial year period but have a publication `date` within it. This seems to be the less likely occurrence and the more logical choice between the two.
+- On the 19/10/2023, data were cleaned so that `publication_date` for all records are listed as close to dd/mm/yyyy instead of predominately yyyy. This means a holistic analysis by year (financial year) analysis of literature tracking is now possible. 2006-2016 data were cleaned manually, and 2017-2023 were cleaned using the ZotMeta add-on. Online publication dates were preferred and used over original/physical publication dates, but in cases where the online publication date only listed year, the original dd/mm/yyyy publication date was used. If neither were available - note that the date was listed as January of the available year (e.g 01/yyyy).
+
 
 ### 2021 YiR error
 
-1. GBIF papers
+1.  GBIF papers
 
-Note that for the 2021-2022 Annual Report/ Year in review (and those before) our numbers were retrieved with data that *still contained GBIF DOI tag papers* (on file as `30thjune21.csv`). Therefore, the number of publications in the '21-22 report are substantially larger across the entire dataset. 
+Note that for the 2021-2022 Annual Report/ Year in review (and those before) our numbers were retrieved with data that *still contained GBIF DOI tag papers* (on file as `30thjune21.csv`). Therefore, the number of publications in the '21-22 report are substantially larger across the entire dataset.
 
 GBIF DOI tagged papers are publications that have retrieved Australian biodiversity data from GBIF (our larger global node) but not the ALA. Technically this data is held in the ALA but as authors have retrieved it from the GBIF interface we decided that this is not a good metric of the ALA being 'used'.
 
-You can find the GBIF papers removed from Zotero on file [here](https://csiroau.sharepoint.com/sites/AtlasofLivingAustralia/Shared%20Documents/Forms/AllItems.aspx?csf=1&web=1&e=M5hBEt&cid=7e5dbd4a%2D94f3%2D4356%2Dabe8%2D28c560fc0d3a&FolderCTID=0x01200060180DC552F0A64084CF983A43CEDF34&id=%2Fsites%2FAtlasofLivingAustralia%2FShared%20Documents%2FScience%20and%20Decision%20Support%2FData%2Fscience%2Fprojects%2Fliterature%2Dtracking%2Fdata%2Fremoved%20GBIF%20doi%20publications&viewid=669b2a1d%2Db1b9%2D4f7a%2D9a0f%2Db972843a2de4). 
+You can find the GBIF papers removed from Zotero on file [here](https://csiroau.sharepoint.com/sites/AtlasofLivingAustralia/Shared%20Documents/Forms/AllItems.aspx?csf=1&web=1&e=M5hBEt&cid=7e5dbd4a%2D94f3%2D4356%2Dabe8%2D28c560fc0d3a&FolderCTID=0x01200060180DC552F0A64084CF983A43CEDF34&id=%2Fsites%2FAtlasofLivingAustralia%2FShared%20Documents%2FScience%20and%20Decision%20Support%2FData%2Fscience%2Fprojects%2Fliterature%2Dtracking%2Fdata%2Fremoved%20GBIF%20doi%20publications&viewid=669b2a1d%2Db1b9%2D4f7a%2D9a0f%2Db972843a2de4).
 
-2. Financial vs. calandar year
+2.  Financial vs. calendar year
 
-In addition to this, we *also* did not restrict the year to papers within the '21-'22 **financial year** specifically for the 21-22' report. We only presented **total to journal article ratios** in the full data **calendar year** of **2021**. The code below is what was used (using the `30thjune21.csv`). It is unclear whether this has always been the method of reporting during YiR as no documentation has been provided for these metrics. From '23 onwards we have decided to change this to the financial year due to it being a more recent metric. 
+In addition to this, we *also* did not restrict the year to papers within the '21-'22 **financial year** specifically for the 21-22' report. We only presented **total to journal article ratios** in the full data **calendar year** of the earlier year (**2021**). The code below is what was used (using the `30thjune21.csv`). It is unclear whether this has always been the method of reporting during YiR as no documentation has been provided for these metrics. From '23 onwards, we have decided to change this to the *financial year* due to it being a more recent metric and allows the more recent year to be equally compared to the others. 
 
 ```{r}
 #| code-fold: true
 #| eval: false
+# 2021 code 
 dataclean2 |>
   select(publication_year, title, publication_title, item_type) |>
   filter(publication_year == 2021) |> 
-  filter(item_type == "journalArticle") |>
+  filter(item_type == "journalArticle") |> #remove this line to see total publications against journal articles only 
   group_by(publication_title) |>
   count()
 ```
 
 ### Conclusion
 
-Thinking about best practice for reporting in the data filtering points above, as well as financial year metrics being a more recent view of publications than the previous full available calendar year (as above, only '21 was provided for the '21-22 report as '21 at that point in time had a full year of publication data), we have made changes to how tracking data is filtered and reported. Additionally, having experienced issues replicating numbers from previous years we also decided to document all of our code for producing literature tracking metrics so that it can be easily reproduced and our justifications are clearly recorded for future decisions.
-
+Thinking about best practice for reporting in the data filtering points above, as well as financial year metrics being a more recent view of publications than the previous full available calendar year (as above, only '21 was provided for the '21-22 report as '21 at that point in time had a full year of publication data), we have made some changes to how tracking data is filtered and reported. Additionally, having experienced issues replicating numbers from previous years we also decided to document all of our code for producing literature tracking metrics so that it can be easily reproduced and our justifications are clearly recorded for future decisions.
 
 ## Top research domains
 
