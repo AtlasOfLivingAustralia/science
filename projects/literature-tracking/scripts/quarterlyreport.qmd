@@ -23,10 +23,10 @@ The quarterly review is generally updated [here](https://csiroau.sharepoint.com/
 
 ```{r}
 #| message: false
-library("here")
-library("tidyverse")
-library("janitor")
-library("lubridate")
+library(here)
+library(tidyverse)
+library(janitor)
+library(lubridate)
 ```
 
 2.  Load in exported .csv from Zotero
@@ -36,13 +36,13 @@ First you will need to export the latest encompassing .csv from Zotero and save 
 ```{r}
 #| message: false
 #| warning: false
-data <- read_csv(here("projects", "literature-tracking", "data", "30thjune21.csv"))
+data <- read_csv(here("projects", "literature-tracking", "data", "1nov23.csv"))
 ```
 
 3.  Clean column names - it will make it easier to process and interpret the data.
 
 ```{r}
-dataclean <- janitor ::clean_names(data) 
+dataclean <- janitor::clean_names(data) 
 dataclean
 ```
 
@@ -66,31 +66,31 @@ dataclean2
 
 1.  Here, we filter all publications added after a set date (dd/mm/yyyy) to a select date (dd/mm/yyyy). We also restrict to only those that are published in 2022+23 (sometimes old papers come in later in the tracker, we aren't really interested in these as they aren't recent).\
 
-    ```{r}
-    publicationbymonth <- dataclean2 %>%
-      filter(date_added_clean >= ymd("2023-03-09")) |>
-      filter(date_added_clean <= ymd("2023-07-04")) |>
-      filter(publication_year == c("2023")) |>
-      group_by(date_added_month, date_added_year) %>%
-      count() 
-    publicationbymonth
-    ```
+```{r}
+publicationbymonth <- dataclean2 |>
+  filter(date_added_clean >= ymd("2023-07-04")) |>
+  filter(date_added_clean <= ymd("2023-11-01")) |>
+  filter(publication_year == c("2023")) |>
+  group_by(date_added_month, date_added_year) |>
+  count() 
+publicationbymonth
+```
 
 2.  Sum all publications by month
 
 ```{r}
 total_sum <- sum(publicationbymonth$n) |>
-print()
+  print()
 ```
 
 ## Tags
 
-1.  Now let's analyse this by tags (1- ALA used and 2 - ALA cited are the most important here). We'll use the above \`dataclean2\` dataset.
+1.  Now let's analyse this by tags (1- ALA used and 2 - ALA cited are the most important here). We'll use the above `dataclean2` dataset.
 
 ```{r}
 dataclean3 <- dataclean2 |> 
-  filter(date_added_clean >= ymd("2023-03-09")) |>
-  filter(date_added_clean <= ymd("2023-07-04")) |>
+  filter(date_added_clean >= ymd("2023-07-04")) |>
+  filter(date_added_clean <= ymd("2023-11-01")) |>
   filter(publication_year == c("2023")) 
 ```
 
@@ -143,6 +143,14 @@ usedjournals <- ALA_tags |>
   filter(tags == "ALA used")
 usedjournals
 ```
+
+c) Total Cited + Used
+
+```{r}
+nrow(ALA_cited) + nrow(usedjournals)
+```
+
+
 
 ## Journal articles citing/using ALA
 
