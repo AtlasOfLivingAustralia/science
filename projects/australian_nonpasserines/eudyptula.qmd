@@ -1,0 +1,710 @@
+---
+title: "eudyptula"
+format: html
+editor: visual
+editor_options: 
+  chunk_output_type: inline
+---
+
+added subspecies into the csv file where they had been listed in notes
+
+```{r}
+#load libraries 
+library(tidyverse) 
+library(tmaptools)
+```
+
+Read CSV file into dataframe, and melt it so that each observation is granted its own row, and make a new place column for use by tmaptools::geocode_OSM
+
+```{r}
+#df <- read.csv("your/file/path/here.csv")
+df <- read.csv("data_in/eudyptula_minor_azlin_adele_complete.csv")
+
+#add place column as required by some geocoder functions
+df$place <- paste(df$location, df$state, df$country, sep = ", ")
+```
+
+```{r}
+#geocode locations
+result <- geocode_OSM(df$place, keep.unfound = TRUE)
+```
+
+Adding longitude latitude values into df & write csv
+
+```{r}
+#creat lat lon columns in df
+df$lat <- NA
+df$lon <- NA
+
+
+#apply lat lon from geocoder to non-km rows
+df$lat <- result$lat
+df$lon <- result$lon
+
+#see how many NAs - need to go back and find solution for these (ie enter more findable location for geocoder)
+sum(is.na(df$lat)) 
+
+#33 missing:
+No results found for "Taiaroa Heads, , New Zealand".
+No results found for "Aby Rocks, , ".
+No results found for "Porarari Mouth, , New Zealand".
+No results found for "Punakatiki, , New Zealand".
+No results found for "Chalky Sound, , New Zealand".
+No results found for "Wakala, , New Zealand".
+No results found for "N2 Seas 525623, , New Zealand".
+No results found for "Kaipara Waitemata, , New Zealand".
+No results found for "Sandy Hook Island, Western Australia, Australia".
+No results found for "Arch Island, Tasmania, Australia".
+No results found for "Five Island, New South Wales, Australia".
+No results found for "Motonau Island, , New Zealand".
+No results found for "Montague Island, Tasmania, Australia".
+No results found for "Little Shoal Bay, Auckland, , Australia".
+No results found for "St Vincents Bay, , Australia".
+No results found for "Seacliffe, South Australia, Australia".
+No results found for "Rabbit Island, KG Sound, , Australia".
+No results found for "South Tollgates, New South Wales, Australia".
+No results found for "South Neptune Island, South Australia, Australia".
+No results found for "Seacliffe, South Australia, Australia".
+No results found for "Five Island, New South Wales, Australia".
+No results found for ", , ".
+No results found for "Wikanae, , New Zealand".
+
+df <- uncount(df, weights = n_records)
+
+#write csv
+write.csv(df, file="data_out/eudyptula_points.csv")
+```
+
+## Mapping
+
+```{r}
+library(rnaturalearth)
+library(tidyverse) #needed
+library(here)
+library(rmapshaper)
+library(ggpointdensity)
+library(viridis)
+library(concaveman) #needed
+library(cowplot)
+library(patchwork)
+library(sf) #needed
+
+filename <- ne_download(scale = 10, 
+                        type = "countries",
+                        returnclass = "sf",
+                        destdir = "shapefiles",
+                        load = FALSE)
+
+# import downloaded shapefile
+shapefile <- paste0("shapefiles/", filename, ".shp") |>
+  st_read()
+
+#import points
+df <- read.csv("data_out/eudyptula_points.csv")
+
+#plot - success!
+ggplot() + 
+  geom_sf(data = shapefile, colour = "black", fill = NA) + 
+  geom_point(data = df, mapping = aes(x = lon, y = lat), colour = "red") + 
+  coord_sf()
+```
+
+### Filtering
+
+```{r}
+df <- df[complete.cases(df$lat, df$lon), ]
+
+table(df$subspecies)
+table(df$species_name)
+
+albo <- filter(df, subspecies == "albosignata")
+hybrid_sub <- filter(df, subspecies == "hybrid sub")
+hybrid_albo <- filter (df, subspecies == "hybrid with Albosignata")
+ire <- filter(df, subspecies == "iredalei")
+minor <- filter(df, subspecies == "minor")
+minor_albo <- filter(df, subspecies == "minor x albosignata")
+nom_minor <- filter(df, subspecies == "nominate minor")
+novae <- filter(df, subspecies == "novaehollandiae")
+siq <- filter(df, subspecies == "siquata")
+vari <- filter(df, subspecies == "variabilis")
+none <- filter(df, subspecies == "")
+```
+
+```{r}
+#Subspecies
+
+nosubplot <- ggplot() +
+  geom_pointdensity(data = none,
+                    mapping = aes(x = lon,
+                                  y = lat)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (Schodde):", nrow(none))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+alboplot <- ggplot() +
+  geom_pointdensity(data = albo,
+                    mapping = aes(x = lon,
+                                  y = lat)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (Schodde):", nrow(albo))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+hybrid_alboplot <- ggplot() +
+  geom_pointdensity(data = hybrid_albo,
+                    mapping = aes(x = lon,
+                                  y = lat)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (Schodde):", nrow(hybrid_albo))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+hybrid_subplot <- ggplot() +
+  geom_pointdensity(data = hybrid_sub,
+                    mapping = aes(x = lon,
+                                  y = lat)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (Schodde):", nrow(hybrid_sub))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+ireplot <- ggplot() +
+  geom_pointdensity(data = ire,
+                    mapping = aes(x = lon,
+                                  y = lat)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (Schodde):", nrow(ire))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+minorplot <- ggplot() +
+  geom_pointdensity(data = minor,
+                    mapping = aes(x = lon,
+                                  y = lat)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (Schodde):", nrow(minor))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+minor_alboplot <- ggplot() +
+  geom_pointdensity(data = minor_albo,
+                    mapping = aes(x = lon,
+                                  y = lat)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (Schodde):", nrow(minor_albo))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+nomplot <- ggplot() +
+  geom_pointdensity(data = nom_minor,
+                    mapping = aes(x = lon,
+                                  y = lat)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (Schodde):", nrow(nom_minor))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+novaeplot <- ggplot() +
+  geom_pointdensity(data = novae,
+                    mapping = aes(x = lon,
+                                  y = lat)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (Schodde):", nrow(novae))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+siqplot <- ggplot() +
+  geom_pointdensity(data = siq,
+                    mapping = aes(x = lon,
+                                  y = lat)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (Schodde):", nrow(siq))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+variplot <- ggplot() +
+  geom_pointdensity(data = vari,
+                    mapping = aes(x = lon,
+                                  y = lat)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (Schodde):", nrow(vari))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+```
+
+### All Points
+
+```{r}
+#all points map
+df_points_map <- ggplot() +
+  geom_pointdensity(data = df,
+                    mapping = aes(x = lon,
+                                  y = lat)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Number of \noverlapping points")) +
+    labs(subtitle = paste("Number of observations (Schodde):", nrow(df))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+df_points_map1 <- ggplot() +
+  geom_pointdensity(data = df,
+                    mapping = aes(x = lon,
+                                  y = lat,
+                                  shape = subspecies)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  scale_shape_manual(values=c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)) +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Number of \noverlapping points")) +
+    labs(subtitle = paste("Number of observations: ", nrow(df)), title = "Eudyptula minor (transcribed)") +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+ggsave('eudyptula_subsp_plots/points_plot.png', df_points_map)
+ggsave('eudyptula_subsp_plots/points_plotshapes.png', df_points_map1)
+```
+
+### Mapping contours
+
+```{r}
+library(ggplot2)
+library(rnaturalearth)
+library(sf)
+library(viridis)
+library(scales)
+```
+
+```{r}
+contour_plot <- ggplot() + 
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) + 
+  lims(x = c(110, 185), y = c(-50, -10)) +
+  geom_density_2d(df, mapping = aes(x = lon, y = lat, color = ..level..)) +
+  scale_color_viridis() +
+ labs(subtitle = paste("Number of observations: ", nrow(df)), title = "Eudyptula minor (transcribed)", colour = "Density") +
+  theme_void() +
+theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left")
+  
+ggsave('eudyptula_subsp_plots/contour_plot.png', contour_plot)
+```
+
+### Mapping Concave Hulls
+
+```{r}
+
+#packages
+library(rnaturalearth)
+library(tidyverse) 
+library(here)
+library(rmapshaper)
+library(ggpointdensity) 
+library(concaveman) 
+library(cowplot)
+library(patchwork) 
+library(sf) 
+
+#remove NA values
+df1 <- df[complete.cases(df$lat, df$lon), ]
+
+#delete unneccessary columns - must do this for CH to work 
+df1 <- df1[ , c(2,7,11,12)]
+
+#nest coordinates
+df_nest <- df1 |> 
+  nest(coords = c(lon, lat))
+
+#make concave hull
+subset_concave1 <- df_nest |>
+    mutate(points_sf = map(.x = coords,
+                           ~ st_as_sf(.x, coords = c("lon", "lat"),
+                                      crs = 4326)), 
+           concave_sf = map(points_sf,
+                            ~ concaveman(.x)))
+
+subset_concave1 <- subset_concave1 |> 
+  select(species_name, concave_sf) |> 
+  unnest(cols = c(concave_sf)) |> 
+  ungroup() |> 
+  st_sf(crs = 4326) 
+
+#concave map
+df_concave1 <- ggplot() + 
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +
+  geom_sf(data = subset_concave1, fill = "#609966", alpha = 0.2, lwd = 0) +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+ labs(subtitle = paste("Number of observations: ", nrow(df)), title = "Eudyptula minor (transcribed)") +
+  theme_void() +
+theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+  
+ggsave('eudyptula_subsp_plots/concave_plot.png', df_concave1)
+```
+
+### Inset Attempt
+
+<https://patchwork.data-imaginist.com/reference/inset_element.html>
+
+```{r}
+areafull <- ggplot() + 
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) + 
+  geom_point(data = df, mapping = aes(x = lon, y = lat, shape = subspecies))  + 
+  scale_shape_manual(values=c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)) +
+  scale_color_manual(values=c('#999999','#E69F00', '#56B4E9')) +
+  lims(x = c(110, 185), y = c(-50, -5)) +
+  coord_sf() +
+  theme_void()
+
+areazealand <- ggplot() + 
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) + 
+  geom_point(data = df, mapping = aes(x = lon, y = lat, shape = subspecies))  + 
+  scale_shape_manual(values=c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)) +
+  scale_color_manual(values=c('#999999','#E69F00', '#56B4E9')) +
+  lims(x = c(160, 185), y = c(-50, -30)) +
+  coord_sf() +
+  theme_void()
+
+areafull + inset_element(areazealand, 0.6, 0.6, 1, 1)
+
+sum(is.na(df$lat)) 
+```
+
+possible alternative: <https://upgo.lab.mcgill.ca/2019/12/13/making-beautiful-maps/>:
+
+### CRS projection attempt
+
+```{r}
+# 
+ggplot() + 
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +
+  geom_sf(data = subset_concave1, fill = "#609966", alpha = 0.2, lwd = 0) +
+  coord_sf(crs = "+init=epsg:3035") +
+  lims(x = c(100, 185), y = c(-50, -5)) +
+  theme_void()
+```
+
+```{r}
+ggplot(data = shapefile) +
+    geom_sf() +
+    coord_sf(crs = "+init=epsg:3035")
+
+ggplot(data = shapefile) +
+    geom_sf() +
+    coord_sf(crs = st_crs(3035))
+```
+
+## GBIF Mapping
+
+```{r}
+gbifeud <- read.delim("GBIF/gbif_eudyptula_minor_preserved/eudyptula_minor_gbif_preserved.csv")
+
+write.csv(gbifeud, file="eudyptula_gbif.csv")
+
+gbifeud <- gbifeud[complete.cases(gbifeud$decimalLatitude, gbifeud$decimalLongitude), ]
+
+gbif_points_map <- ggplot() +
+  geom_pointdensity(data = gbifeud,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Number of \noverlapping points")) +
+    labs(subtitle = paste("Number of observations (GBIF):", nrow(gbifeud))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+
+ggsave('eudyptula_subsp_plots/allcombined.png', df_points_map + gbif_points_map + plot_annotation(title = "Eudyptula minor (all)"))
+
+table(gbifeud$species)
+table(gbifeud$infraspecificEpithet)
+
+albo_gbif <- filter(gbifeud, infraspecificEpithet == "albosignata")
+ire_gbif <- filter(gbifeud, infraspecificEpithet == "iredalei")
+minor_gbif <- filter(gbifeud, infraspecificEpithet == "minor")
+novae_gbif <- filter(gbifeud, infraspecificEpithet == "novaehollandiae")
+vari_gbif <- filter(gbifeud, infraspecificEpithet == "varibilis")
+nosub_gbif <- filter(gbifeud, infraspecificEpithet == "")
+
+
+nosubplotgbif <- ggplot() +
+  geom_pointdensity(data = nosub_gbif,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (GBIF):", nrow(nosub_gbif))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+alboplotgbif <- ggplot() +
+  geom_pointdensity(data = albo_gbif,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (GBIF):", nrow(albo_gbif))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+ireplotgbif <- ggplot() +
+  geom_pointdensity(data = ire_gbif,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (GBIF):", nrow(ire_gbif))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+minorplotgbif <- ggplot() +
+  geom_pointdensity(data = minor_gbif,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (GBIF):", nrow(minor_gbif))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+novaelotgbif <- ggplot() +
+  geom_pointdensity(data = novae_gbif,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (GBIF):", nrow(novae_gbif))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+variplotgbif <- ggplot() +
+  geom_pointdensity(data = vari_gbif,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (GBIF):", nrow(vari_gbif))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+```
+
+```{r}
+nonecombined <- nosubplot + nosubplotgbif + plot_annotation(title = "Eudyptula minor (unspecified)")
+ggsave('eudyptula_subsp_plots/noncombined.png', nonecombined)
+
+albocombined <- alboplot + alboplotgbif + plot_annotation(title = "Eudyptula minor albosignata")
+ggsave('eudyptula_subsp_plots/albocombined.png', albocombined)
+
+hybrid_alboplot <- hybrid_alboplot + plot_annotation(title = "Eudyptula minor hybrid albosignata")
+ggsave('eudyptula_subsp_plots/hybrid_albo.png', hybrid_alboplot)
+
+hybrid_subplot <- hybrid_subplot + plot_annotation(title = "Eudyptula minor hybrid sub")
+ggsave('eudyptula_subsp_plots/hybrid_sub.png', hybrid_subplot)
+
+irecombined <- ireplot + ireplotgbif + plot_annotation(title = "Eudyptula minor iredalai")
+ggsave('eudyptula_subsp_plots/irecombined.png', irecombined)
+
+minorcombined <- minorplot + minorplotgbif + plot_annotation(title = "Eudyptula minor minor")
+ggsave('eudyptula_subsp_plots/minorcombined.png', minorcombined)
+
+nomplot <- nomplot + plot_annotation(title = "Eudyptula minor nominate minor")
+ggsave('eudyptula_subsp_plots/nominate.png', nomplot)
+
+novaecombined <- novaeplot + novaelotgbif + plot_annotation(title = "Eudyptula minor novaehollandiae")
+ggsave('eudyptula_subsp_plots/novaecombined.png', novaecombined)
+
+siqplot <- siqplot + plot_annotation(title = "Eudyptula minor siquata")
+ggsave('eudyptula_subsp_plots/siq.png', siqplot)
+
+varicombined <- variplot + variplotgbif + plot_annotation(title = "Eudyptula minor variabilis")
+ggsave('eudyptula_subsp_plots/varicombined.png', varicombined)
+```
+
+## GBIF all, for species with humans observations or no preserved specimens or otherwise not covered by Schodde
+
+```{r}
+eud_all <- read.delim("GBIF/gbif_eudyptula_minor_all/eudyptula_minor_gbif_all.csv")
+
+eud_all <- eud_all[complete.cases(eud_all$decimalLatitude, eud_all$decimalLongitude), ]
+
+table(eud_all$infraspecificEpithet)
+
+table(eud_all$species)
+
+chat <- filter(eud_all, infraspecificEpithet == "chathamensis")
+
+chatplot <- ggplot() +
+  geom_pointdensity(data = chat,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(-200, -140), ylim = c(-70, -20)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (GBIF):", nrow(chat))) +
+  theme(panel.border = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+        legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
+ggsave('eudyptula_subsp_plots/chat.png', chatplot + plot_annotation(title = "Eudyptula minor chathamensis"))
+```
