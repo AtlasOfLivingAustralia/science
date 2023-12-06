@@ -260,6 +260,8 @@ ggplot() +
 
 ```{r}
 #all points map
+df <- df[complete.cases(df$lat, df$lon), ]
+
 df_points_map <- ggplot() +
   geom_pointdensity(data = df,
                     mapping = aes(x = lon,
@@ -268,7 +270,7 @@ df_points_map <- ggplot() +
   scale_color_gradient(low = "orange", high = "blue") +
   coord_sf(xlim = c(90, 185), ylim = c(-45, 10)) +
   guides(alpha = "none",
-         colour = guide_colorbar(title = "Number of \noverlapping points")) +
+         colour = guide_colorbar(title = "Density")) +
     labs(subtitle = paste("Number of observations (Schodde):", nrow(df))) +
   theme_void() +
   theme(legend.position = "bottom",
@@ -806,6 +808,8 @@ spwebplot <- ggplot() +
 ```{r}
 gbiftri <- read.delim("GBIF/gbif_trichoglossus_haematodus_preserved/trichoglossus_haematodus_gbif_preserved.csv")
 
+sum(is.na(gbiftri$decimalLatitude))
+
 gbiftri <- gbiftri[complete.cases(gbiftri$decimalLatitude, gbiftri$decimalLongitude), ]
 
 write.csv(gbiftri, file="trichoglossus_gbif.csv")
@@ -818,7 +822,7 @@ gbif_points_map <- ggplot() +
   scale_color_gradient(low = "orange", high = "blue") +
   coord_sf(xlim = c(90, 185), ylim = c(-45, 10)) +
   guides(alpha = "none",
-         colour = guide_colorbar(title = "Number of \noverlapping points")) +
+         colour = guide_colorbar(title = "Density")) +
     labs(subtitle = paste("Number of observations (GBIF):", nrow(gbiftri))) +
   theme_void() +
   theme(legend.position = "bottom",
@@ -832,6 +836,7 @@ ggsave('trichoglossus_plots/allcombined.png', df_points_map + gbif_points_map + 
 
 table(gbiftri$infraspecificEpithet)
 
+gbif_none <- filter(gbiftri, infraspecificEpithet == "")
 gbif_cap <- filter(gbiftri, infraspecificEpithet == "capistratus")
 gbif_dep <- filter(gbiftri, infraspecificEpithet == "deplanchii")
 gbif_djam <- filter(gbiftri, infraspecificEpithet == "djampeanus")
@@ -856,6 +861,23 @@ gbif_web <- filter(gbiftri, infraspecificEpithet == "weberi")
 ### Mapping
 
 ```{r}
+noneplotgbif <- ggplot() +
+  geom_pointdensity(data = gbif_none,
+                    mapping = aes(x = decimalLongitude,
+                                  y = decimalLatitude)) +
+  geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
+  scale_color_gradient(low = "orange", high = "blue") +
+  coord_sf(xlim = c(90, 185), ylim = c(-45, 10)) +
+  guides(alpha = "none",
+         colour = guide_colorbar(title = "Density")) +
+    labs(subtitle = paste("Number of observations (GBIF):", nrow(gbif_none))) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(0, 0, 0, 0),
+        legend.justification = "left"
+        )
+
 capplotgbif <- ggplot() +
   geom_pointdensity(data = gbif_cap,
                     mapping = aes(x = decimalLongitude,
@@ -1184,6 +1206,8 @@ webplotgbif <- ggplot() +
 
 ```{r}
 #combined
+ggsave('trichoglossus_plots/nonecombined.png', noneplot + noneplotgbif + plot_annotation(title = "Trichoglossus haematodus (unspecified)"))
+
 capcombined <- caplot + capplotgbif + plot_annotation(title = "Trichoglossus haematodus capistratus")
 ggsave('trichoglossus_plots/capcombined.png', capcombined)
 
@@ -1198,9 +1222,6 @@ ggsave('trichoglossus_plots/fortcombined.png', fortcombined)
 
 haemcombined <- haemplot + haemplotgbif + plot_annotation(title = "Trichoglossus haematodus haematodus")
 ggsave('trichoglossus_plots/haemcombined.png', haemcombined)
-
-nonehaemcombined <- noneplot + haemplotgbif + plot_annotation(title = "T. haematodus, T.h. haematodus")
-ggsave('trichoglossus_plots/nonehaemcombined.png', haemcombined)
 
 intcombined <- intplot + intplotgbif + plot_annotation(title = "Trichoglossus haematodus intermedius")
 ggsave('trichoglossus_plots/intcombined.png', intcombined)

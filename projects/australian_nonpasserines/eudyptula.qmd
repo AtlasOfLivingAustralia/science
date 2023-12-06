@@ -139,7 +139,7 @@ nosubplot <- ggplot() +
                                   y = lat)) +
   geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
   scale_color_gradient(low = "orange", high = "blue") +
-  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+
   guides(alpha = "none",
          colour = guide_colorbar(title = "Density")) +
     labs(subtitle = paste("Number of observations (Schodde):", nrow(none))) +
@@ -331,9 +331,8 @@ df_points_map <- ggplot() +
                                   y = lat)) +
   geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
   scale_color_gradient(low = "orange", high = "blue") +
-  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
   guides(alpha = "none",
-         colour = guide_colorbar(title = "Number of \noverlapping points")) +
+         colour = guide_colorbar(title = "Density")) +
     labs(subtitle = paste("Number of observations (Schodde):", nrow(df))) +
   theme_void() +
   theme(legend.position = "bottom",
@@ -503,6 +502,8 @@ ggplot(data = shapefile) +
 ```{r}
 gbifeud <- read.delim("GBIF/gbif_eudyptula_minor_preserved/eudyptula_minor_gbif_preserved.csv")
 
+sum(is.na(gbifeud$decimalLatitude)) 
+
 write.csv(gbifeud, file="eudyptula_gbif.csv")
 
 gbifeud <- gbifeud[complete.cases(gbifeud$decimalLatitude, gbifeud$decimalLongitude), ]
@@ -513,9 +514,9 @@ gbif_points_map <- ggplot() +
                                   y = decimalLatitude)) +
   geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
   scale_color_gradient(low = "orange", high = "blue") +
-  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+
   guides(alpha = "none",
-         colour = guide_colorbar(title = "Number of \noverlapping points")) +
+         colour = guide_colorbar(title = "Density")) +
     labs(subtitle = paste("Number of observations (GBIF):", nrow(gbifeud))) +
   theme_void() +
   theme(legend.position = "bottom",
@@ -525,7 +526,7 @@ gbif_points_map <- ggplot() +
         )
 
 
-ggsave('eudyptula_subsp_plots/allcombined.png', df_points_map + gbif_points_map + plot_annotation(title = "Eudyptula minor (all)"))
+ggsave('eudyptula_subsp_plots/allcombinednolims.png', df_points_map + gbif_points_map + plot_annotation(title = "Eudyptula minor (all)"))
 
 table(gbifeud$species)
 table(gbifeud$infraspecificEpithet)
@@ -544,7 +545,7 @@ nosubplotgbif <- ggplot() +
                                   y = decimalLatitude)) +
   geom_sf(data = shapefile, colour = "darkgrey", fill = NA) +  
   scale_color_gradient(low = "orange", high = "blue") +
-  coord_sf(xlim = c(110, 185), ylim = c(-50, -10)) +
+
   guides(alpha = "none",
          colour = guide_colorbar(title = "Density")) +
     labs(subtitle = paste("Number of observations (GBIF):", nrow(nosub_gbif))) +
@@ -643,7 +644,8 @@ variplotgbif <- ggplot() +
 
 ```{r}
 nonecombined <- nosubplot + nosubplotgbif + plot_annotation(title = "Eudyptula minor (unspecified)")
-ggsave('eudyptula_subsp_plots/noncombined.png', nonecombined)
+
+ggsave('eudyptula_subsp_plots/nonecombined.png', nonecombined)
 
 albocombined <- alboplot + alboplotgbif + plot_annotation(title = "Eudyptula minor albosignata")
 ggsave('eudyptula_subsp_plots/albocombined.png', albocombined)
