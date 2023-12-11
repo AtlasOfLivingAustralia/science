@@ -1,0 +1,187 @@
+---
+title: "2023 Literature Summary"
+format: html
+editor: visual
+---
+
+1.  Load required packages
+
+```{r}
+#| message: false
+library(here)
+library(tidyverse)
+library(janitor)
+library(lubridate)
+```
+
+2.  Load in exported .csv from Zotero
+
+First you will need to export the latest encompassing .csv from Zotero and save it on your local system. You can do this by selecting **File \> Export library** in the desktop application.
+
+```{r}
+#| message: false
+#| warning: false
+data <- read_csv(here("projects", "literature-tracking", "data", "5dec23zotero.csv"))
+```
+
+3.  Clean column names - it will make it easier to process and interpret the data.
+
+```{r}
+dataclean <- janitor ::clean_names(data) 
+```
+
+4.  We also want to make sure the date is the same across every entry so that it processes correctly when we filter it. `as_date` standardises all date data to `yyyy-mm-dd`. We also add a new column that extracts just the month and year for the month by month analysis below.
+
+```{r}
+dataclean2 <- dataclean |>
+  mutate(
+    date_added_clean = as_date(date_added),
+    date_added_month = month(date_added_clean),
+    date_added_year = year(date_added_clean)) |>
+   select(title, date, place, publication_year, publication_title, item_type, url, manual_tags, date_added, date_added_clean, date_added_month, date_added_year)
+dataclean2
+```
+
+# Step 2 -
+
+Tag prep
+
+1.  Now let's analyse this by tags (1- ALA used and 2 - ALA cited are the most important here). We'll use the above \`dataclean2\` dataset.
+
+```{r}
+dataclean3 <- dataclean2 |> 
+  filter(date_added_clean >= ymd("2023-01-01")) |>
+  filter(date_added_clean <= ymd("2023-12-31")) |>
+  filter(publication_year == c("2023")) 
+```
+
+2.  We need to clean the tags as they have white space and numbers that will interfere with our filtering.\
+    First we remove the numbers, create a new column named tags and remove the prefixes.
+
+```{r}
+remove <- c("1 - ", "2 - ", "3 - ", "4 - ", "5 - ", "6 - ") # list numbers you want removed
+
+dataclean4 <- dataclean3 %>% # remove numbers
+  mutate( # make new column called "tags"
+    tags = str_remove_all(dataclean3$manual_tags, # remove prefix
+                          paste(remove, collapse = "|")) 
+  )
+```
+
+3.  Second, we place these tags into separate rows for the same paper. Tag names are split where semicolons are, and the `unnest` function makes them occupy multiple rows.
+
+```{r}
+## Filtering Tags
+
+# separate manual tags into separate rows (multiple entries for one paper if inc. many tags)
+ALA_tags <- dataclean4 %>%
+  mutate(tags = strsplit(as.character(tags), ";")) %>% # split names where there is a semicolon
+  unnest(tags) # make them occupy multiple rows
+
+# trim whitespace from tags
+ALA_tags <- ALA_tags %>% # remove numbers
+  mutate(
+    tags = str_trim(tags) # trim whitespace around string 
+  )
+```
+
+
+```{r}
+used <- ALA_tags |>
+  filter(tags == "ALA used" | tags %in% c("AGRICULTURE", "BIODIVERSITY SCIENCE", "BIOGEOGRAPHY", "CITIZEN SCIENCE", "CLIMATE CHANGE", "CONSERVATION", "DATA MANAGMENT", "DNA", "ECOLOGY", "ECOSYSTEM SERVICES", "EVOLUTION", "INVASIVE SPECIES", "MARINE", "PHYLOGENETICS", "SPECIES DISTRIBUTION", "TAXONOMY"))
+used
+```
+
+
+we need a count for each tag now
+
+```{r}
+tag_counts <- ALA_tags |>
+  group_by(tags) |>
+  summarise(count = n()) 
+
+  
+selected_tags <- c("AGRICULTURE", "BIODIVERSITY SCIENCE", "BIOGEOGRAPHY", "CITIZEN SCIENCE", "CLIMATE CHANGE", "CONSERVATION", "DATA MANAGMENT", "DNA", "ECOLOGY", "ECOSYSTEM SERVICES", "EVOLUTION", "INVASIVE SPECIES", "MARINE", "PHYLOGENETICS", "SPECIES DISTRIBUTION", "TAXONOMY")
+
+filtered_tags <- tag_counts %>%
+  filter(tags %in% selected_tags)
+
+filtered_tags
+```
+
+```{r}
+total_tags <- sum(filtered_tags$count)
+total_tags
+```
+
+
+```{r}
+percents <- filtered_tags %>%
+  mutate(perc = paste0(sprintf("%4.1f", count / total_tags * 100), "%"))
+percents
+```
+
+check percents add to 100 
+```{r}
+numeric_percentages <- as.numeric(sub("%", "", percents$perc))
+
+# Sum the numeric percentages
+total_sum <- sum(numeric_percentages)
+total_sum
+```
+
+reorder for largest to smallest in bar plot 
+```{r}
+percents <- percents %>%
+  mutate(tags = reorder(tags, count))
+```
+
+choose top 10 only 
+
+```{r}
+top_10 <- percents %>%
+  top_n(10, wt = count)
+```
+
+
+make palette
+
+```{r}
+custom_palette <- c("#003A70", "#6CDE4B", "#DE4BC3", "#F26649", "#E0AA51", "#895C81", "#667073", "#691C32", "#6BDAD5", "#B7CD96")
+```
+
+
+
+plotting :) 
+
+```{r}
+extrafont::loadfonts(device = "win", quiet = TRUE)
+theme_set(theme_minimal(base_family = "Roboto"))
+
+litsum <- ggplot(top_10, aes(x = count, y = tags)) +
+  geom_col(fill = custom_palette) +
+  geom_text(
+    aes(label = paste(tags, perc, sep = "\n")),
+    position = position_nudge(x = -0.5),
+    hjust = 1,
+    vjust = 0.5,  # Center the label vertically
+    color = "white", size = 3, fontface = "bold"  # Adjust text color, size, and fontface for bold
+  ) +
+  theme(
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    panel.grid = element_blank(),
+    text = element_text(family = "Roboto", color = "white", face = "bold")  # Set font family, text color, and bold
+  ) +
+  scale_fill_manual(values = custom_palette)
+```
+
+saving as .svg 
+
+```{r}
+library(svglite)
+ggsave("literaturesummary23.svg", plot = litsum , width = 8, height = 6, units = "in")
+```
+
+
+
