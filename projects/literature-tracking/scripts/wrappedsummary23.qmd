@@ -85,13 +85,33 @@ ALA_tags <- ALA_tags %>% # remove numbers
   )
 ```
 
+For ALA cited + used publication numbers:
+
+```{r}
+#number of papers that cite the ALA
+ALA_cited <- ALA_tags |>
+  filter(tags == "ALA cited")
+ALA_cited
+```
+
+```{r}
+# number of papers that use the ALA 
+usedjournals <- ALA_tags |>
+  filter(tags == "ALA used")
+usedjournals
+```
+
+```{r}
+nrow(ALA_cited) + nrow(usedjournals)
+```
+
+research category graph
 
 ```{r}
 used <- ALA_tags |>
   filter(tags == "ALA used" | tags %in% c("AGRICULTURE", "BIODIVERSITY SCIENCE", "BIOGEOGRAPHY", "CITIZEN SCIENCE", "CLIMATE CHANGE", "CONSERVATION", "DATA MANAGMENT", "DNA", "ECOLOGY", "ECOSYSTEM SERVICES", "EVOLUTION", "INVASIVE SPECIES", "MARINE", "PHYLOGENETICS", "SPECIES DISTRIBUTION", "TAXONOMY"))
 used
 ```
-
 
 we need a count for each tag now
 
@@ -114,14 +134,14 @@ total_tags <- sum(filtered_tags$count)
 total_tags
 ```
 
-
 ```{r}
 percents <- filtered_tags %>%
   mutate(perc = paste0(sprintf("%4.1f", count / total_tags * 100), "%"))
 percents
 ```
 
-check percents add to 100 
+check percents add to 100
+
 ```{r}
 numeric_percentages <- as.numeric(sub("%", "", percents$perc))
 
@@ -130,19 +150,19 @@ total_sum <- sum(numeric_percentages)
 total_sum
 ```
 
-reorder for largest to smallest in bar plot 
+reorder for largest to smallest in bar plot
+
 ```{r}
 percents <- percents %>%
   mutate(tags = reorder(tags, count))
 ```
 
-choose top 10 only 
+choose top 10 only
 
 ```{r}
 top_10 <- percents %>%
   top_n(10, wt = count)
 ```
-
 
 make palette
 
@@ -150,9 +170,7 @@ make palette
 custom_palette <- c("#003A70", "#6CDE4B", "#DE4BC3", "#F26649", "#E0AA51", "#895C81", "#667073", "#691C32", "#6BDAD5", "#B7CD96")
 ```
 
-
-
-plotting :) 
+plotting :)
 
 ```{r}
 extrafont::loadfonts(device = "win", quiet = TRUE)
@@ -176,12 +194,9 @@ litsum <- ggplot(top_10, aes(x = count, y = tags)) +
   scale_fill_manual(values = custom_palette)
 ```
 
-saving as .svg 
+saving as .svg
 
 ```{r}
 library(svglite)
 ggsave("literaturesummary23.svg", plot = litsum , width = 8, height = 6, units = "in")
 ```
-
-
-
