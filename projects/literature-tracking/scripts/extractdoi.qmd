@@ -43,7 +43,7 @@ dataclean2 <- dataclean |>
 dataclean2
 ```
 
-#  Step 2 - Filter 
+# Step 2 - Filter
 
 ```{r}
 publicationbyyear <- dataclean2 |>
@@ -54,7 +54,7 @@ publicationbyyear <- dataclean2 |>
   
 ```
 
-#  Step 3 - Save .csv 
+# Step 3 - Save .csv
 
 ```{r}
 publicationbyyear |>
