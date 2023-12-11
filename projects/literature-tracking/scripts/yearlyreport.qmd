@@ -38,7 +38,7 @@ First you will need to export the latest encompassing .csv from Zotero and save 
 ```{r}
 #| message: false
 #| warning: false
-data <- read_csv(here("projects", "literature-tracking", "data", "19july23.csv"))
+data <- read_csv(here("projects", "literature-tracking", "data", "5dec23zotero.csv"))
 ```
 
 3.  Clean column names - it will make it easier to process and interpret the data.
@@ -102,6 +102,31 @@ journalratio <- dataclean2 |>
   count() |>
   drop_na() 
 journalratio
+```
+
+## ALA "Wrapped": 
+
+These numbers are used for our socials content, and cover the calendar year from January to December (not from mid-year to mid-year as above). As our YiR is released after the financial year ends, we cannot provide a Jan-Dec calendar year number. This code is likely to be used later in the year.
+
+```{r}
+wrappedcitations <- dataclean2 |>
+  filter(date_added_clean >= ymd("2023-01-01")) |>
+  filter(date_added_clean <= ymd("2023-12-31")) |>
+  filter(publication_year == "2023") |>
+  count() |>
+  drop_na() 
+wrappedcitations
+```
+
+```{r}
+wrappedcitationsjournal <- dataclean2 |>
+  filter(item_type == "journalArticle") |>
+  filter(date_added_clean >= ymd("2023-01-01")) |>
+  filter(date_added_clean <= ymd("2023-12-31")) |>
+  filter(publication_year == "2023") |>
+  count() |>
+  drop_na() 
+wrappedcitationsjournal
 ```
 
 ## Top journal articles
