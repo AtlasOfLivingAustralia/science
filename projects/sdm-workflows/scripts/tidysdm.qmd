@@ -1,0 +1,648 @@
+---
+title: "Using tidymodels (clean but long version)"
+author: "Dax Kellie"
+date: "23 January 2024"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+# Start
+
+Let's see if we can test the effect of urbanisation/loss of habitat affects the kookaburra. Let's also see if we can predict an updated species distribution too.
+
+To do this, we will explore how {tidymodels} and {tidysdm} can be used to run species distribution models and GLMs.
+
+First let's load some packages.
+
+```{r}
+library(galah)
+library(tidyverse)
+library(terra)
+library(tidymodels)
+library(tidyterra)
+library(here)
+library(sf)
+library(ozmaps)
+library(tidysdm) # devtools::install_github("EvolEcolGroup/tidysdm")
+```
+
+
+# MaxEnt
+
+MaxEnt models are used to predict a species' distribution. MaxEnt models do this by contrasting presence only points (locations where species have occurred) with background points (confusingly, often called pseudo-absences), or more usefully, absence points (locations where species do not occur). 
+
+MaxEnt models start with a prior assumption that all locations are equally likely for a species to be presence. They then use environmental variables as predictors to predict the relative probability that a cell or pixel is in the collection cells that contain a presence sample (known as the Relative Occurrence Rate, ROR). 
+
+As a result, the background data and environmental data used in a model can make a big difference to your final output. It is important to use relevant ecological knowledge of your species to inform what is best for your model.
+
+If you intend to use MaxEnt models for prediction, we highly recommend reading [this paper](https://nsojournals.onlinelibrary.wiley.com/doi/full/10.1111/j.1600-0587.2013.07872.x). To understand what a MaxEnt model is doing to make predictions, it can also help to have a basic understanding of bayesian statistics. One way to start is to watch the first few lectures from Richard McElreath's Statistical Rethinking course, which are all free online.
+
+# Download data
+
+## Define area with bounding box
+
+First, let's pick a small area to get data for, defined by a bounding box.
+
+```{r bounding-box}
+# specify bounding box
+custom_bbox <- tibble(ymin = -35, ymax = -32, xmin = 149, xmax = 152.1)
+
+ggplot() +
+  geom_sf(data = ozmaps::ozmap_states) + 
+  geom_rect(data = custom_bbox,
+          mapping = aes(xmin = xmin, ymin = ymin, xmax = xmax, ymax = ymax))
+```
+
+## Occurrences
+
+Next, let's see the number of records that fall within our bounding box.
+
+```{r}
+# counts
+galah_call() |>
+  identify("Dacelo novaeguineae") |>
+  filter(year == 2023) |>
+  galah_apply_profile(ALA) |>
+  galah_geolocate(custom_bbox, type = "bbox") |>
+  atlas_counts()
+```
+
+And now we can download occurrence records.
+
+```{r}
+# occurrences
+galah_config(email = "dax.kellie@csiro.au")
+
+kookaburras <- galah_call() |>
+  identify("Dacelo novaeguineae") |>
+  filter(year == 2023) |>
+  galah_apply_profile(ALA) |>
+  galah_geolocate(custom_bbox, type = "bbox") |>
+  atlas_occurrences()
+
+# plot
+ggplot() +
+  geom_sf(data = ozmaps::ozmap_country) +
+  geom_point(data = kookaburras,
+             aes(x = decimalLongitude, 
+                 y = decimalLatitude)) + 
+  theme(legend.position = "none")
+```
+
+
+For many of the later steps we'll need to have the spatial data to plot each point (e.g., `geometry`), and so we will convert our occurrence data to an `sf` object.
+
+```{r}
+# convert to sf
+kookaburras_sf <- kookaburras |>
+  st_as_sf(coords = c("decimalLongitude", "decimalLatitude")) |>
+  st_set_crs(4326)
+```
+
+## Bioclimate data
+
+### Rasters
+
+Now we'll download raster data.
+
+[Explain raster data by showing pixels, then increase the number of pixels]
+
+Note: This data exists in the Science & Decision Support folder on Microsoft Teams
+* ./Data/science/projects/sdm-workflows/data
+
+```{r}
+#| eval: false
+# Download world climate data
+# worldclim <- geodata::worldclim_country(
+#     country = "Australia", 
+#     var = "bio",
+#     res = 5,
+#     path = here::here("projects", "sdm-workflows", "data")
+#   )
+```
+
+
+```{r}
+# Load data from file:
+worldclim <- terra::rast(here::here("projects",
+                                    "sdm-workflows",
+                                    "data",
+                                    "wc2.1_country",
+                                    "AUS_wc2.1_30s_bio.tif"))
+```
+
+### Map with tidyterra
+
+Let's crop our worldclim data to only within the extent of our defined bounding box using `ext()` & `crop()`.
+
+```{r}
+library(terra)
+
+# Set the coordinates to our bounding box
+# i.e. set the extent of our area of interest
+bbox_ext <- terra::ext(
+  c(custom_bbox[["xmin"]], custom_bbox[["xmax"]], 
+    custom_bbox[["ymin"]], custom_bbox[["ymax"]]
+    ))
+
+# Crop our wordlcim data to within our bounding box coordinates
+aus <- terra::crop(worldclim, bbox_ext)
+```
+
+
+Using only terra and base, you have to plot using a style that is not at all like using ggplot2. Here we'll plot Annual Mean Temperature (BioClim 1) across our area.
+
+```{r}
+# terra/base equivalent
+
+# plot our new australia layer with Temperature values
+plot(aus[[1]])
+
+# plot the points
+points(kookaburras[, c("decimalLongitude", "decimalLatitude")], 
+       col = "#312108", 
+       pch = 16)
+```
+
+It works, but it is not the way that most people are learning to make maps at the moment (including within ALA Labs). Luckily, {tidyterra} exists. Here's how to do the same with tidyterra.
+
+```{r}
+nsw <- ozmaps::ozmap_states |>
+  filter(NAME == "New South Wales") |>
+  st_transform(crs = st_crs("WGS84"))
+
+# tidyterra plotting
+first_map <- ggplot() +
+  geom_spatraster(data = aus,
+                  mapping = aes(fill = wc2.1_30s_bio_1)) +
+  geom_sf(data = kookaburras_sf,
+          colour = "#312108",
+          size = 2) +
+  scale_fill_whitebox_c(palette = "muted",
+                        na.value = NA) +
+  guides(fill = guide_colorbar(title = "Annual Mean\nTemperature")) +
+  theme_void()
+
+first_map
+```
+
+## Population density
+
+Population density data is downloaded from the latest [2022 population estimates from the Australian Bureau of Statistics (ABS)](https://www.abs.gov.au/statistics/people/population/regional-population/latest-release#data-downloads). Under "Population grid files", find the GeoTIFF format option and click "Download ZIP". Save the folder in your current working directory and unzip it.
+
+We will load the data as a raster, re-project it[^3] so that it matches our BioClim data, and see what it looks like.
+
+[^3]: There are many ways to project data on a spherical globe (Earth) onto a flat surface (a map). The Coordinate Reference System (CRS) determines the projection. ALA data uses the CRS "WGS84", also known as EPSG:4326.
+
+```{r}
+pop_density <- terra::rast(here("data",
+                                "sdm_workflows",
+                                "apg22r_1_0_0.tif"))
+
+# reproject to have same CRS as `aus`
+pop_density <- pop_density |>
+  terra::project(aus) |>
+  rename(pop_density = Band_1)
+
+# Check
+ggplot() +
+  geom_spatraster(data = pop_density,
+                  mapping = aes(fill = pop_density)) +
+  scale_fill_whitebox_c(palette = "atlas",
+                        na.value = NA) +
+  guides(fill = guide_colorbar(title = "Population\ndensity")) +
+  theme_void()
+```
+
+
+```{r}
+# Crop our population density data to within our bounding box coordinates
+pop_density_cropped <- terra::crop(pop_density, bbox_ext)
+
+ggplot() +
+  geom_spatraster(data = pop_density,
+                  mapping = aes(fill = pop_density)) +
+  scale_fill_whitebox_c(palette = "atlas",
+                        na.value = NA) +
+  guides(fill = guide_colorbar(title = "Population\ndensity")) +
+  theme_void()
+```
+
+
+# Preparing data for SDM
+
+## Thinning
+
+Our map above showed that we have quite a few observations, many that tightly overlap. However, the granularity of our prediction is dependent on both our data and our layer. For example, even if we had observational data for every metre squared, if our environmental data is only defined to every kilometre squared, we can only make predictions that are specific to every kilometre. In this scenario, we wouldn't have enough data to detect differences in the environment for every metre, and so our model and our predictions are limited to this area size without making unsubstantiated guesses.
+
+To help our model, it is useful to *thin* our data so that there is only one observation per cell of our raster. Let's use `tidysdm::thin_by_cell()` to do this.
+
+```{r}
+# thin
+set.seed(12345)
+kookaburras_thin <- tidysdm::thin_by_cell(kookaburras_sf, raster = aus)
+
+# number of observations
+tibble(
+  before = nrow(kookaburras_sf),
+  after = nrow(kookaburras_thin)
+  )
+```
+
+
+```{r}
+#| code-fold: true
+# see results of thinning
+ggplot() +
+  # geom_spatraster(data = aus, aes(fill = wc2.1_30s_bio_1)) +
+  geom_rect(data = custom_bbox,
+            mapping = aes(xmin = xmin, ymin = ymin, 
+                          xmax = xmax, ymax = ymax),
+            colour = "grey50",
+            fill = NA) +
+  geom_sf(data = kookaburras_thin,
+          colour = "#312108",
+          size = 2) +
+  scale_fill_whitebox_c(palette = "atlas",
+                        na.value = NA) +
+  theme_void()
+```
+
+We can thin our data further using distance, removing points closer than 5 km. This step can improve the speed of model by reducing its size.
+
+```{r}
+kookaburras_thinner <- tidysdm::thin_by_dist(kookaburras_thin, dist_min = km2m(5))
+
+# number of observations
+tibble(
+  before = nrow(kookaburras_thin),
+  after = nrow(kookaburras_thinner)
+  )
+```
+
+
+```{r}
+# see results of thinning again
+ggplot() +
+  # geom_spatraster(data = aus, aes(fill = wc2.1_30s_bio_1),
+  #                 alpha = 0.3) +
+  geom_rect(data = custom_bbox,
+            mapping = aes(xmin = xmin, ymin = ymin, 
+                          xmax = xmax, ymax = ymax),
+            colour = "grey50",
+            fill = NA) +  
+  geom_sf(data = kookaburras_thinner,
+          colour = "#312108",
+          size = 2) +
+  scale_fill_whitebox_c(palette = "muted",
+                        na.value = NA) +
+  theme_void()
+```
+
+## Pseudo-absences
+
+To build a model that predicts the probability that something lives in one area over another, we also need to supply data points of where kookaburras haven't been seen. Then our model will use other variables we might supply, like temperature, to weight where it is kookaburras are more likely seen. Our model will use this information eventually give us an overal estimates over the area we are attempting to predict.
+
+Our kookaburra data only contains where a kookaburra *has* been observed. We also need to supply data points where kookaburras *haven't* been observed to inform our model. One way to do this with "presence-only" data like ours is to create **pseudo-absences**, points that help represent the full extent of the area we wish to know about and show where kookaburras haven't been observed (yet) in our data. Importantly, these are not the same as *true* absences and this should be taken into account when interpreting results.
+
+Let's add 3 times the number of presences to fill our grid, making sure they aren't closer than 5 km to another point like our occurrence points.
+
+```{r}
+kookaburras_pseudoabs <- tidysdm::sample_pseudoabs(kookaburras_thinner,
+  n = 3 * nrow(kookaburras_thinner),
+  raster = aus,
+  method = c("dist_min", km2m(5))
+)
+```
+
+
+```{r}
+# see pseudo absences
+ggplot() +
+  geom_spatraster(data = aus,
+                  aes(fill = wc2.1_30s_bio_1),
+                  alpha = 0.2) +
+  geom_rect(data = custom_bbox,
+            mapping = aes(xmin = xmin, ymin = ymin, 
+                          xmax = xmax, ymax = ymax),
+            colour = "grey50",
+            fill = NA) +  
+  geom_sf(data = kookaburras_pseudoabs,
+          aes(col = class),
+          size = 2) +
+  scale_colour_manual(values = c("#312108", "#8A6A35")) +
+  scale_fill_whitebox_c(palette = "muted",
+                        na.value = NA) +
+  theme_void()
+```
+
+## Extract environmental values
+
+Now we have lots of points categorised into presences and abscences. The next step is to extract the environmental data for each point. We can do this with `terra::extract()` and bind the resulting values to our points. The result is a `tibble` with our points, their class, and the specific bioclimactic variable for each of the 30 worldclim variables.
+
+```{r}
+kookaburras_bioclim <- kookaburras_pseudoabs |> 
+  bind_cols(
+    terra::extract(aus, 
+                   kookaburras_pseudoabs, 
+                   ID = FALSE)
+    )
+kookaburras_bioclim
+```
+
+## Extract population density values
+
+Let's do the same to extract population density values for each point.
+
+```{r}
+kookaburras_pop_density <- kookaburras_pseudoabs |> 
+  bind_cols(
+    terra::extract(pop_density_cropped, 
+                   kookaburras_pseudoabs, 
+                   ID = FALSE)
+    )
+kookaburras_pop_density
+```
+
+
+
+## Selecting variables
+
+Not all environmental variables affect species' ability to inhabit an area equally. Some species can live in a wider range of temperatures or precipitation, for example. For your species distribution model, it is best to choose the most relevant variables to your species. The best place to find this information is using previous research to inform your decision. 
+
+It is also important not to place too many variables into a model. Adding too many variables can risk collinearity [^1] and overfitting [^2]. For species distribution models, it's also particularly important that the values of your predicting variables differ between when a species is present and when it's absent; otherwise, your model won't have much information to make predictions (and place more weight on small, maybe insignificant changes). 
+
+{tidysdm} offers a few helper functions to visualise and rank the distribution of variables between presences and background observations (i.e. pseudoabsences).
+
+[^1]: Particularly with climactic variables, it is quite likely that some will correlate closely with one another. Using highly correlated variables as a predictor violates a model's assumption that predicting variables aren't *collinear*. *Collinearity* [increases model uncertainty and makes predictions less precise](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0202403#:~:text=As%20expected%2C%20collinearity%20among%20predictors,better%20than%20simple%20envelope%20models.). 
+
+[^2]: Don't do it.
+
+```{r}
+# library(overlapping)
+
+# violin plot
+kookaburras_bioclim |>
+  plot_pres_vs_bg(class)
+
+# lists variables in order of % overlap
+kookaburras_bioclim |>
+  dist_pres_vs_bg(class) 
+```
+
+For our purposes, let's set an obscure but reasonable number as a cut-off. Based on our data, a reasonable cut-off might be to retain variables with at least 35% non-overlapping distribution. This leaves 3 variables.
+
+```{r}
+vars_to_keep <- kookaburras_bioclim |>
+  dist_pres_vs_bg(class)
+
+# filter names to within threshold
+vars_to_keep <- names(vars_to_keep[vars_to_keep > 0.35])
+
+vars_to_keep
+
+# keep columns for chosen variables
+kookaburras_bioclim_filtered <- kookaburras_bioclim |>
+  select(all_of(c(vars_to_keep, "class")))
+```
+
+To help avoid adding predictor variables with high collinearity to our model, we can use a collinearity matrix to check whether any variables are highly correlated using `terra::pairs()`.
+
+```{r}
+aus |>
+  select(all_of(vars_to_keep)) |>
+  terra::pairs()
+```
+
+Yowza! Some are very high. We can subset our variables to only those under a threshold we think is reasonable using `tidysdm::filter_high_cor()`. Given our data, it might be best to set a cut-off of 85%. The output shows us which
+
+```{r}
+aus_filtered <- aus |>
+  select(all_of(vars_to_keep))
+
+vars_uncor <- filter_high_cor(aus_filtered, cutoff = 0.85)
+vars_uncor
+```
+
+This leaves us with 2 variables:
+
+  - BIO4: Precipitation of Driest Quarter
+  - BIO12: Mean Temperature of Driest Quarter
+
+Are these the variables you might have chosen? For actual research, it's worth consulting previous research to decide whether these are the best options.
+
+We'll filter our point data and bioclim raster data to only our 2 final variables.
+
+```{r}
+# filter point data
+kookaburras_bioclim_filtered <- kookaburras_bioclim_filtered |> 
+  select(all_of(c(vars_uncor, "class")))
+kookaburras_bioclim_filtered |> head(5L)
+
+# filter bioclim data
+aus_filtered <- aus_filtered[[vars_uncor]]
+aus_filtered
+```
+
+## Merge
+
+Finally, we will combine our data sets.
+
+```{r}
+kookaburras_merged <- kookaburras_pop_density |>
+  select(geometry, pop_density) |>
+  st_join(kookaburras_bioclim_filtered) |>
+  drop_na(pop_density)
+
+# kookaburras_merged <- kookaburras_merged |>
+  # mutate(log_pop_dens = log10(pop_density))
+```
+
+# Model
+
+## Defining our model
+
+### Split data
+
+{tidymodels} follows a slightly different model building workflow to what many scientists might be used to. {tidymodels} has tools to build a model, see how the model performs, then test whether the model makes reasonable predictions.
+
+To use this framework, data is treated like a resource with a "data budget". Some of our data is used to train our model, and some is used to test its predictions. First, we can use `initial_split()` to allocate our "data budget" into these categories.
+
+```{r}
+# set training and testing data
+set.seed(100)
+
+kookaburras_split <- 
+  kookaburras_merged |>
+  initial_split()
+kookaburras_split
+```
+
+Now we can save these data as separate data objects for `training()` and `testing()`.
+
+```{r}
+kookaburras_train <- training(kookaburras_split)
+kookaburras_test <- testing(kookaburras_split)
+
+kookaburras_train |> head(5L)
+kookaburras_test |> head(5L)
+```
+
+### Resampling
+
+Now let's resample our data to use it to train our model and evaluate its performance.
+
+Resampling means grabbing random points from our existing data and using them to assess how well one or more models perform. Rather than only sampling points from our data once, however, we do this resampling several times, creating several sets of resampled data (this helps to ensure our model output isn't just because of the points we happened to sample in a resampled data set).
+
+The randomly split data are known as "folds". One way to sample folds is using "cross-validation", a well-established method of resampling. Although randomness is important when resampling, spatial data is not completely random. Areas that are close together are likely to relate in some way, not just randomly.
+
+To resample spatial data, we can use {spatialsample} to create vfolds. Using `spatial_block_cv()` we can perform spatial blocking to preserve the spatial relationships that might exist in our data. 
+
+```{r}
+set.seed(100)
+kookaburras_cv <- spatial_block_cv(kookaburras_train, v = 5)
+autoplot(kookaburras_cv)
+```
+
+Each of our 5 folds grabs chunks of data for analysis and assessment, and you'll notice the points are in groups, not just randomly selected entirely.
+
+```{r splits-gif}
+#| animation-hook: gifski
+purrr::walk(kookaburras_cv$splits, function(x) print(autoplot(x)))
+```
+
+### Create our model
+
+Next let's make our model's "recipe" - this is the {tidymodels} term for any pre-processing steps that happen to our data before adding it to a model. These steps include any transformations or standardisations we might wish to do.
+
+In our case, let's define that our model's outcome variable (what we are interested in knowing) is the `class` of presence or 'absence'. We'll then add our predictor variables (what we think might explain our outcome variable) to our model, with the formula `class ~ .`, equivalent to `class ~ bio4 + bio12`.
+
+```{r}
+kookaburras_recipe <- recipe(
+  kookaburras_merged, formula = class ~ .
+  )
+kookaburras_recipe
+```
+
+For our model to make predictions correctly, the model assumes that "presence" is the reference level for our model (i.e., presence is the baseline for our model, set as the first level in our data; presence = 0, absence = 1). We can double check before proceeding.
+
+```{r}
+kookaburras_bioclim_filtered %>% check_sdm_presence(class)
+```
+
+## Workflow set
+
+Build workflow set
+
+```{r}
+kookaburras_models <-
+  # create the workflow_set
+  workflow_set(
+    preproc = list(default = kookaburras_recipe),
+    models = list(
+      # the standard glm specs
+      glm = sdm_spec_glm(),
+      # rf specs with tuning
+      rf = sdm_spec_rf(),
+      # boosted tree model (gbm) specs with tuning
+      gbm = sdm_spec_boost_tree(),
+      # maxent specs with tuning
+      maxent = sdm_spec_maxent()
+    ),
+    # make all combinations of preproc and models,
+    cross = TRUE
+  ) %>%
+  # tweak controls to store information needed later to create the ensemble
+  option_add(control = control_ensemble_grid())
+```
+
+
+See how our models perform
+
+```{r}
+set.seed(1234567)
+kookaburras_models_tune <-
+  kookaburras_models %>%
+  workflow_map("tune_grid",
+    resamples = kookaburras_cv, 
+    grid = 10,
+    metrics = sdm_metric_set(),
+    verbose = TRUE
+  )
+
+autoplot(kookaburras_models_tune)
+
+# see metrics
+collect_metrics(kookaburras_models_tune)
+
+rank_results(kookaburras_models_tune, rank_metric = "boyce_cont")
+autoplot(kookaburras_models_tune, metric = "boyce_cont")
+```
+
+
+Let's select the best set of parameters for each model (this step is mainly relevant to random forest)
+
+```{r}
+kookaburras_ensemble <- simple_ensemble() %>%
+  add_member(kookaburras_models_tune, metric = "boyce_cont")
+kookaburras_ensemble
+
+autoplot(kookaburras_ensemble)
+```
+
+
+Predict stuff
+
+```{r}
+prediction_present <- predict_raster(kookaburras_ensemble, c(aus_filtered, pop_density_cropped))
+ggplot() +
+  geom_spatraster(data = prediction_present, aes(fill = mean)) +
+  scale_fill_whitebox_c(palette = "purple",
+                        na.value = NA) + 
+  theme_minimal()
+  # scale_fill_terrain_c() +
+  # plot presences used in the model
+  # geom_sf(data = pyg_pos_biovars %>% filter(class == "presence")) + 
+  # geom_sf(data = kookaburras_sf)
+```
+
+
+
+## GLM
+
+```{r}
+glm_spec <- sdm_spec_glm()
+
+glm_workflow <- workflow() |>
+  add_recipe(kookaburras_recipe) |>
+  add_model(glm_spec)
+
+glm_fit <- glm_workflow |>
+  fit(data = kookaburras_train)
+
+glm_fit |>
+  extract_fit_parsnip() |>
+  tidy()
+
+## OR
+# This does everything
+logistic_fit <- glm_spec %>% 
+  last_fit(kookaburras_recipe, 
+           split = kookaburras_split)
+
+logistic_fit %>% 
+  collect_metrics()
+
+logistic_fit %>%
+  extract_fit_parsnip() %>%
+  tidy()
+
+logistic_fit %>% 
+  collect_predictions() %>% 
+  # Plot ROC curve
+  roc_curve(truth = class, .pred_presence) %>% 
+  autoplot()
+
+```
+

@@ -6,6 +6,8 @@ editor_options:
   chunk_output_type: console
 ---
 
+NOTE: As of 13 December, 2023 the issue below seems to be amended by using the tidysdm package
+
 NOTE: As of 1 September, 2023 the **Making Predictions** section of this script does not work. This is due to an issue in the {spatialsample} package that does not allow tidymodels to handle spatial folds.
 
 # Start
@@ -23,22 +25,25 @@ library(sf)
 library(tidymodels)
 library(tidyverse)
 library(ggdensity)
+library(tidysdm) # devtools::install_github("EvolEcolGroup/tidysdm")
 
 ```
 
+
+
 # Download data
 
-## Species observations
+## Define area with bounding box
 
-Identify bounding box
+First, let's pick a small area to get data for, defined by a bounding box.
 
 ```{r bounding-box}
 # specify bounding box
 custom_bbox <- tibble(ymin = -37, ymax = -35, xmin = 147, xmax = 149)
 
 # See it on a map
-oz <- ozmaps::ozmap_country |>
-  st_transform(crs = st_crs("WGS84"))
+# oz <- ozmaps::ozmap_country |>
+#   st_transform(crs = st_crs("WGS84"))
 
 ggplot() +
   geom_sf(data = ozmaps::ozmap_country) + 
@@ -46,29 +51,6 @@ ggplot() +
           mapping = aes(xmin = xmin, ymin = ymin, xmax = xmax, ymax = ymax))
 ```
 
-```{r}
-nsw <- ozmaps::ozmap_states |>
-  filter(NAME == "New South Wales") |>
-  st_transform(crs = st_crs("WGS84"))
-
-ggplot() +
-  geom_sf(data = nsw)
-```
-
-
-```{r}
-#| eval: false
-nsw_records <- galah_call() |>
-  galah_identify("perameles") |>
-  galah_filter(year > 2015,
-               cl22 == "New South Wales") |>
-  galah_apply_profile("ALA") |>
-  atlas_occurrences()
-
-nsw_records <- nsw_records |> drop_na()
-
-nsw_box <- c(right = 153.62986, left = 140.99927 , top = -28.15703, bottom = -37.50503)
-```
 
 ```{r}
 galah_config(email = "dax.kellie@csiro.au")
@@ -81,17 +63,26 @@ pyg_pos <- galah_call() |>
   group_by(species) |>
   galah_apply_profile(ALA) |>
   galah_select(el674, group = "basic") |>
-  galah::filter(cl22 == c("New South Wales", "Victoria", "Tasmania")) |>
+  galah_geolocate(custom_bbox, type = "bbox") |>
+  # galah::filter(cl22 == c("New South Wales", "Victoria", "Tasmania")) |>
   atlas_occurrences() |> 
   dplyr::filter(!is.na(el674)) # remove obs with missing elevation
 
 pyg_pos <- pyg_pos |>
-  rename("elevation" = "el674")
+  rename("elevation" = "el674") |>
+  dplyr::filter(!is.na(decimalLongitude) & !is.na(decimalLatitude))
 
 ggplot() +
   geom_sf(data = ozmaps::ozmap_country) +
   geom_point(data = pyg_pos,
-             aes(x = decimalLongitude, y = decimalLatitude, colour = scientificName))
+             aes(x = decimalLongitude, y = decimalLatitude, colour = scientificName)) + 
+  theme(legend.position = "none")
+
+# convert to sf
+pyg_pos_sf <- pyg_pos |>
+  st_as_sf(coords = c("decimalLongitude", "decimalLatitude"))
+st_crs(pyg_pos_sf) <- 4326
+
 ```
 
 
@@ -103,66 +94,148 @@ Note: This data exists in the Science & Decision Support folder on Microsoft Tea
 
 ```{r}
 # Download world climate data
-worldclim <- geodata::worldclim_country(
-    country = "Australia", 
-    var = "bio",
-    res = 5,
-    path = here::here("projects", "sdm-workflows", "data")
-  )
+# worldclim <- geodata::worldclim_country(
+#     country = "Australia", 
+#     var = "bio",
+#     res = 5,
+#     path = here::here("projects", "sdm-workflows", "data")
+#   )
+
+# Load data from file:
+worldclim <- terra::rast(here::here("projects",
+                                    "sdm-workflows",
+                                    "data",
+                                    "wc2.1_country",
+                                    "AUS_wc2.1_30s_bio.tif"))
 ```
 
 
 ```{r}
 # get states bbox
-states <- c("New South Wales", "Victoria", "Tasmania")
-states_sf <- ozmaps::ozmap_states |>
-  filter(NAME %in% states)
-states_bbox <- sf::st_bbox(states_sf)
+# states <- c("New South Wales", "Victoria", "Tasmania")
+# states_sf <- ozmaps::ozmap_states |>
+  # filter(NAME %in% states)
+# states_bbox <- sf::st_bbox(states_sf)
 
 # Crop to NSW, VIC, TAS
-bbox <- ext(c(states_bbox["xmin"], states_bbox["xmax"], 
-              states_bbox["ymin"], states_bbox["ymax"]))
-aus <- crop(worldclim, bbox)
+bbox_ext <- terra::ext(c(custom_bbox[["xmin"]], custom_bbox[["xmax"]], custom_bbox[["ymin"]], custom_bbox[["ymax"]]))
+
+aus <- crop(worldclim, bbox_ext)
+# aus <- terra::mask(worldclim, bbox_ext)
 ```
 
 ```{r}
+nsw <- ozmaps::ozmap_states |>
+  filter(NAME == "New South Wales") |>
+  st_transform(crs = st_crs("WGS84"))
+
 # tidyterra plotting
 first_map <- ggplot() +
   geom_spatraster(data = aus,
                   mapping = aes(fill = wc2.1_30s_bio_1)) + 
-  geom_point(data = pyg_pos,
-          mapping = aes(decimalLongitude,decimalLatitude),
+  geom_sf(data = pyg_pos_sf,
           colour = "#762a83",
           size = 2) +
   scale_fill_whitebox_c(palette = "atlas",
                         na.value = NA) +
-  theme_void() + 
-  geom_sf(data = nsw,
-          fill = NA,
-          colour = "grey20")
+  theme_void()
+  # geom_sf(data = nsw,
+  #         fill = NA,
+  #         colour = "grey20")
 
 first_map
 ```
 
 ```{r}
 #| eval: false
-
 # terra/base equivalent
 plot(aus[[1]])
 points(pyg_pos[, c("decimalLongitude", "decimalLatitude")], col = "black", pch = 16)
 ```
 
 
+# Thinning
 
-# Prepare for modelling
-
-## Generate pseudo-absences
-
-Define the model's calibration area. In other words, define the area that the model might expect to have samples from. We used a 20-km buffer radius
+Thinning with {tidysdm}. The goal is to thin observations to only one per cell in the raster
 
 ```{r}
+# thin
+set.seed(12345)
+pyg_pos_thin <- tidysdm::thin_by_cell(pyg_pos_sf, raster = aus)
+nrow(pyg_pos_thin)
+
+# see results of thinning
+ggplot() +
+  geom_spatraster(data = aus, aes(fill = wc2.1_30s_bio_1)) +
+  geom_sf(data = pyg_pos_thin,
+          colour = "#762a83",
+          size = 2) +
+  scale_fill_whitebox_c(palette = "atlas",
+                        na.value = NA) +
+  theme_void()
+```
+
+Now to thin further to remove points closer than 5km
+
+```{r}
+pyg_pos_thin_again <- tidysdm::thin_by_dist(pyg_pos_thin, dist_min = km2m(5))
+nrow(pyg_pos_thin_again)
+
+# see results of thinning again
+ggplot() +
+  geom_spatraster(data = aus, aes(fill = wc2.1_30s_bio_1)) +
+  geom_sf(data = pyg_pos_thin_again,
+          colour = "#762a83",
+          size = 2) +
+  scale_fill_whitebox_c(palette = "atlas",
+                        na.value = NA) +
+  theme_void()
+
+```
+
+
+# Pseudo absences
+
+## tidysdm
+
+```{r}
+pyg_pos_pseudoabsences <- tidysdm::sample_pseudoabs(pyg_pos_thin_again,
+  n = 3 * nrow(pyg_pos_thin_again),
+  raster = aus,
+  method = c("dist_min", km2m(5))
+)
+
+# see pseudo absences
+ggplot() +
+  geom_spatraster(data = aus, 
+                  aes(fill = wc2.1_30s_bio_1)) +
+  geom_sf(data = pyg_pos_pseudoabsences,
+          aes(col = class),
+          size = 2) +
+  scale_fill_whitebox_c(palette = "atlas",
+                        na.value = NA,
+                        direction = -1) +
+  theme_void()
+```
+
+
+## flexsdm
+
+Define the model's calibration area. 
+
+(In other words, define the area that the model might expect to have samples from. We used a 20-km buffer radius)
+
+```{r}
+# convert geometry to lon/lat
+pyg_pos_thin_again_tibble <- 
+  pyg_pos_thin_again |>   
+  dplyr::mutate(longitude = sf::st_coordinates(geometry)[,2],
+                latitude = sf::st_coordinates(geometry)[,1]) |>
+  st_drop_geometry() |>
+  drop_na()
+
 # Calibrate area of samples
-calibration_area <- calib_area(
+calibration_area <- flexsdm::calib_area(
   data = pyg_pos,
   x = "decimalLongitude",
   y = "decimalLatitude",
@@ -206,10 +279,10 @@ Create pseudo-absence data
 
 ```{r}
 set.seed(234)
-p_absences <- sample_pseudoabs(
-  data = pyg_pos,
-  x = "decimalLongitude",
-  y = "decimalLatitude",
+p_absences <- flexsdm::sample_pseudoabs(
+  data = pyg_pos_thin_again_tibble,
+  x = "longitude",
+  y = "latitude",
   n = nrow(pyg_pos), # get n p-absence point equal to number of presences
   method = "random",
   rlayer = aus,
@@ -224,11 +297,11 @@ ggplot() +
   geom_point(data = pyg_pos,
           mapping = aes(decimalLongitude,decimalLatitude),
           colour = "#762a83",
-          size = 1) +
+          size = 2) +
   geom_point(data = p_absences,
-             mapping = aes(decimalLongitude, decimalLatitude),
+             mapping = aes(longitude, latitude),
              colour = "grey30",
-             size = 0.8) +
+             size = 1.6) +
   scale_fill_whitebox_c(palette = "atlas",
                         na.value = NA) +
   labs(subtitle = glue::glue("
@@ -252,27 +325,346 @@ points(pyg_pos[, c("decimalLongitude", "decimalLatitude")], cex = 0.8, pch = 16,
 ```
 
 
-Merge psedo-absences & presences into a single data.frame
+Merge pseudo-absences & presences into a single data.frame
 
 ```{r}
 records_pa <- bind_rows(pyg_pos, p_absences)
 
 # convert all NAs to "present"
 records_pa <- records_pa %>%
-  dplyr::select(decimalLatitude, decimalLongitude, elevation, pr_ab) %>%
-  mutate(pr_ab = if_else(is.na(pr_ab), 1, 0)) # %>%
-  # mutate(pr_ab = dplyr::case_when(pr_ab == 1 ~ "present",
-  #                                 pr_ab == 0 ~ "absent"))
+  dplyr::select(decimalLatitude, decimalLongitude, pr_ab) %>%
+  mutate(pr_ab = dplyr::case_when(pr_ab == 0 ~ "absent",
+                                  TRUE ~ "present"))
+
+
+
 ```
 
 
-## Get environmental factors
+# Two datasets
+
+OK so there are two dataframes now
+
+```{r}
+# from {tidysdm}
+pyg_pos_pseudoabsences
+
+# from {flexsdm}
+records_pa
+
+```
+
+
+# Get environmental factors
+
+
+## tidysdm
+
+Extract environmental data for each of our points
+
+```{r}
+pyg_pos_bio_point <- pyg_pos_pseudoabsences %>% 
+  bind_cols(terra::extract(aus, pyg_pos_pseudoabsences, ID = FALSE))
+
+pyg_pos_bio_point
+```
+
+Visualise which environmental factors affect our presences more than absences
+
+```{r}
+# library(overlapping)
+
+pyg_pos_bio_point %>% plot_pres_vs_bg(class) # violin plot
+pyg_pos_bio_point %>% dist_pres_vs_bg(class) # ranks based on density overlap
+```
+
+Set an obscure number as a cut-off e.g. variables must have at least 40% non-overlapping distribution
+
+```{r}
+vars_to_keep <- pyg_pos_bio_point %>% dist_pres_vs_bg(class) 
+vars_to_keep <- names(vars_to_keep[vars_to_keep > 0.40]) # big drop off at 45%
+pyg_pos_bio_small <- pyg_pos_bio_point %>% select(all_of(c(vars_to_keep, "class")))
+vars_to_keep
+```
+
+Now to look at collinearity of variables
+
+```{r}
+pairs(aus[[vars_to_keep]])
+```
+
+Yowza some are very very high
+
+We can subset our variables to only those under another obscure threshold correlation of 70%
+
+```{r}
+aus_filtered <- aus[[vars_to_keep]]
+vars_uncor <- filter_high_cor(aus_filtered, cutoff = 0.7)
+vars_uncor
+```
+
+This leaves us with 2 variables:
+
+  - BIO17: Precipitation of Driest Quarter
+  - BIO9: Mean Temperature of Driest Quarter
+
+(not the ones I might have chose without strange thresholds)
+
+*Note: On a second pass, I got 2 different variables, bio_2 (mean diurnal range aka max - min temp) & bio_4 (temperature seasonality). Seems like variation can be huge on this method of choosing variables*
+
+```{r}
+pyg_pos_biovars <- pyg_pos_bio_small %>% select(all_of(c(vars_uncor, "class")))
+aus_filtered <- aus_filtered[[vars_uncor]]
+```
+
+
+
+
+# Two datasets
+
+```{r}
+# tidysdm
+pyg_pos_biovars
+
+# flexsdm
+pyg_train_sf
+```
+
+
+# Fit model
+
+Create a recipe for our model. This is equivalent to class ~ bio17 + bio9
+
+```{r}
+pyg_pos_recipe <- recipe(pyg_pos_biovars, formula = class ~ .)
+pyg_pos_recipe
+```
+
+Check assumption that "presence" is the reference level for our model
+
+```{r}
+pyg_pos_biovars %>% check_sdm_presence(class)
+```
+
+Build workflow set
+
+```{r}
+pyg_models <-
+  # create the workflow_set
+  workflow_set(
+    preproc = list(default = pyg_pos_recipe),
+    models = list(
+      # the standard glm specs
+      glm = sdm_spec_glm(),
+      # rf specs with tuning
+      rf = sdm_spec_rf(),
+      # boosted tree model (gbm) specs with tuning
+      gbm = sdm_spec_boost_tree(),
+      # maxent specs with tuning
+      maxent = sdm_spec_maxent()
+    ),
+    # make all combinations of preproc and models,
+    cross = TRUE
+  ) %>%
+  # tweak controls to store information needed later to create the ensemble
+  option_add(control = control_ensemble_grid())
+```
+
+Use {spatialsample} to create vfolds
+
+```{r}
+# not part of tidysdm workflow
+
+# set training and testing data
+set.seed(100)
+
+pyg_split <- 
+  pyg_pos_biovars |>
+  initial_split()
+pyg_split
+
+pyg_train <- training(pyg_split)
+pyg_test <- testing(pyg_split)
+
+pyg_train
+pyg_test
+
+```
+
+
+```{r}
+set.seed(100)
+pyg_cv <- spatial_block_cv(pyg_train, v = 5)
+autoplot(pyg_cv)
+```
+
+See how our models perform
+
+```{r}
+set.seed(1234567)
+pyg_models_tune <-
+  pyg_models %>%
+  workflow_map("tune_grid",
+    resamples = pyg_cv, 
+    grid = 10,
+    metrics = sdm_metric_set(),
+    
+    # grid = 20,
+    
+    verbose = TRUE
+  )
+
+autoplot(pyg_models_tune)
+
+# see metrics
+collect_metrics(pyg_models_tune)
+
+# rank_results(pyg_models_tune, rank_metric = "roc_auc")
+# autoplot(pyg_models_tune, metric = "roc_auc")
+```
+
+Let's select the best set of parameters for each model (this step is mainly relevant to random forest)
+
+```{r}
+pyg_ensemble <- simple_ensemble() %>%
+  add_member(pyg_models_tune, metric = "boyce_cont")
+pyg_ensemble
+
+autoplot(pyg_ensemble)
+```
+
+
+
+Predict stuff
+
+```{r}
+prediction_present <- predict_raster(pyg_ensemble, aus_filtered)
+ggplot() +
+  geom_spatraster(data = prediction_present, aes(fill = mean)) +
+  scale_fill_whitebox_c(palette = "atlas",
+                        na.value = NA,
+                        direction = -1) +
+  # scale_fill_terrain_c() +
+  # plot presences used in the model
+  # geom_sf(data = pyg_pos_biovars %>% filter(class == "presence")) + 
+  geom_sf(data = pyg_pos_sf)
+```
+
+omg it works yay
+
+Now you can subset to only use the best models based on a metric
+
+```{r}
+prediction_present_boyce <- predict_raster(pyg_ensemble, aus_filtered,
+  metric_thresh = c("boyce_cont", 0.6),
+  fun = "median"
+)
+
+ggplot() +
+  geom_spatraster(data = prediction_present_boyce, aes(fill = median)) +
+  scale_fill_whitebox_c(palette = "atlas",
+                        na.value = NA,
+                        direction = -1) +
+  # scale_fill_terrain_c() +
+  # plot presences used in the model
+  # geom_sf(data = pyg_pos_biovars %>% filter(class == "presence")) + 
+  geom_sf(data = pyg_pos_sf)
+```
+
+Alternatively, maybe we want to choose a specific model. Maxent seemed to balance estimate accuracy and the error around that predictions better than other models, so maybe we want to pick that one.
+
+```{r}
+pyg_ensemble |>
+  fit(pyg_train)
+
+pyg_train_min <- pyg_train |>
+  sf::st_drop_geometry()
+
+maxent_spec <- maxent(feature_classes = "lq")
+glm_spec <- sdm_spec_glm()
+
+maxent_workflow <- workflow() |>
+  add_recipe(pyg_pos_recipe) |>
+  add_model(maxent_spec)
+
+glm_workflow <- workflow() |>
+  add_recipe(pyg_pos_recipe) |>
+  add_model(glm_spec)
+
+# answer: maxent does not provide coefficients of effect
+maxent_fit <- maxent_workflow %>%
+  fit(data = pyg_train)
+
+glm_fit <- glm_workflow %>%
+  fit(data = pyg_train)
+
+glm_fit %>%
+  extract_fit_parsnip() %>%
+  tidy()
+
+
+pyg_wf <- workflow(
+    pyg_pos_recipe, 
+    maxent_spec |> set_engine("maxnet")
+)
+new_pyg_fit <- last_fit(pyg_wf, pyg_split)
+
+collect_predictions(new_pyg_fit) |>
+  conf_mat(class, .pred_class)
+
+
+pred_prob <- predict(maxent_fit, new_data = pyg_test |> sf::st_drop_geometry(), type = "prob")
+pred_class <- predict(maxent_fit, new_data = bradypus[, -1], type = "class")
+
+
+
+```
+
+
+
+
+
+What about making future predictions?
+
+
+### Testing
+
+See how each model performed
+
+```{r}
+rank_results(pyg_models_tune, rank_metric = "roc_auc")
+```
+
+maxent models seem to be the best in general
+
+```{r}
+# or a handy plot: 
+autoplot(pyg_models_tune, metric = "roc_auc")
+```
+
+See individual model results
+
+```{r}
+autoplot(pyg_models_tune, metric = "roc_auc", id = "default_maxent")
+```
+
+
+
+# STOPPING HERE
+
+## flexsdm
+
 
 Extract environmental factors for our points
 
 ```{r}
 # extract environmental values for each point
 bio_point_data <- terra::extract(aus, records_pa[, c("decimalLongitude", "decimalLatitude")])
+
+
+bind_cols(records_pa, bio_point_data) |>
+  filter(pr_ab == "absent") |>
+  rename()
 
 # merge info to presence-absence data.frame
 # now this bioclim info is listed for each record
@@ -282,10 +674,8 @@ merged_records_pa <- bind_cols(records_pa, bio_point_data) |>
   rename_with(~ stringr::str_replace(., 'wc2.1_30s_', '')) %>%
   mutate_if(is.character, as.factor) %>% # remove beginning of bioclim col names
   dplyr::select(decimalLatitude, decimalLongitude, pr_ab, ID,
-                elevation,
-                bio_1, # annual mean temperature
-                bio_7, # temperature annual range
-                bio_12, # annual precipitation
+                bio_2, # bioclim variable 1
+                bio_4, # bioclim variable 2
                 ) 
 
 # convert to sf object
@@ -307,7 +697,7 @@ Designate how you will spend your "data budget". Split data into training and te
 ```{r}
 # Split data into training & testing data
 set.seed(456)
-pyg_split <- initial_split(merged_records_pa)
+pyg_split <- initial_split(pyg_train_sf)
 pyg_train <- training(pyg_split)
 pyg_test <- testing(pyg_split)
 ```
@@ -324,7 +714,7 @@ set.seed(567)
 ## Spatial
 # see what's happening with spatial_clustering_cv
 library(spatialsample)
-pyg_folds <- spatial_clustering_cv(pyg_train_sf, v = 10)
+pyg_folds <- spatial_block_cv(pyg_train_sf, v = 10)
 autoplot(pyg_folds)
 
 pyg_folds$splits[[1]] |> st_drop_geometry()
@@ -334,17 +724,48 @@ pyg_folds$splits[[1]] |> st_drop_geometry()
 ## Build model workflow
 
 ```{r}
+#| eval: false
+
+### NOTE FIXME: THIS DOESN'T WORK
+
 # choose model type
 glm_model <- logistic_reg() %>%
   set_engine("glm")
 
 # formula
-recipe_steps <- recipe(pr_ab ~ elevation + bio_1 + bio_7 + bio_12, data = st_drop_geometry(pyg_train_sf)) %>%
+recipe_steps <- recipe(pyg_train_sf, formula = pr_ab ~ .) %>%
   step_dummy(all_nominal_predictors()) %>%
-  step_interact(~ elevation:bio_1 + elevation:bio_7 + elevation:bio_12)
+  step_interact(~ .)
+
+recipe_steps <- recipe(pyg_train_sf, formula = pr_ab ~ .)
 
 wf_basic <- workflow(recipe_steps, glm_model)
 ```
+
+
+```{r}
+wf_basic <-
+  # create the workflow_set
+  workflow_set(
+    preproc = list(default = recipe_steps),
+    models = list(
+      # the standard glm specs
+      glm = sdm_spec_glm(),
+      # rf specs with tuning
+      rf = sdm_spec_rf(),
+      # boosted tree model (gbm) specs with tuning
+      gbm = sdm_spec_boost_tree(),
+      # maxent specs with tuning
+      maxent = sdm_spec_maxent()
+    ),
+    # make all combinations of preproc and models,
+    cross = TRUE
+  ) %>%
+  # tweak controls to store information needed later to create the ensemble
+  option_add(control = control_ensemble_grid())
+```
+
+
 
 
 ## Fit model
@@ -371,6 +792,16 @@ show_notes(.Last.tune.result)
 # Get results
 collect_metrics(rs_basic)
 ```
+
+```{r}
+pyg_models_tune <-
+  wf_basic %>%
+  workflow_map("tune_grid",
+    resamples = pyg_folds, grid = 3,
+    metrics = sdm_metric_set(), verbose = TRUE
+  )
+```
+
 
 ```{r}
 augment(rs_basic) %>%
@@ -660,7 +1091,7 @@ p1 <- ggplot() +
                              "))
 
 ggplot() +
-  stat_summary_hex(data = bandi_grid_preds,
+  stat_summary_hex(data = prediction_present, # data = bandi_grid_preds,
                    aes(x = decimalLongitude, 
                        y = decimalLatitude,
                        z = .pred_present),
@@ -669,7 +1100,6 @@ ggplot() +
   scale_fill_viridis_c(direction = -1, option = "G") +
   guides(fill=guide_legend(title="Probability"))
   
-
 p1 + 
   ggnewscale::new_scale_fill() +
   stat_summary_hex(data = bandi_grid_preds,
