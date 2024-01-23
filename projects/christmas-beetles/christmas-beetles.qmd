@@ -1,0 +1,688 @@
+---
+title: "Christmas Beetles"
+author: "Dax Kellie"
+date: "4 December, 2023"
+title-block-banner: "#B8573E"
+format: 
+  html: 
+    fontfamily: Roboto
+    mainfont: Roboto
+    sansfont: Roboto
+    monofont: Fira Code
+    linkcolor: "#E06E53"
+    highlight-style: arrow
+editor_options: 
+  chunk_output_type: console
+---
+
+This is an investigation of Christmas Beetle records in the ALA.
+
+```{r setup}
+#| include: false
+#| message: false
+#| warning: false
+
+# packages
+library(galah)
+library(tidyverse)
+library(here)
+library(sf)
+library(ozmaps)
+library(showtext)
+library(ggtext)
+
+galah_config(email = "dax.kellie@csiro.au")
+
+font_add_google("Roboto Condensed", "Roboto")
+showtext_auto(enable = TRUE)
+
+# create a list of all years
+all_years <- tibble(year = c(1900:2023))
+
+# Map of australia
+aus <- ozmap_states |>
+  st_transform(crs = st_crs(4326))
+```
+
+# Background
+
+## Beetles
+
+Counts of all beetles in 2023:
+
+```{r}
+beetle_taxon <- search_taxa("coleoptera")
+
+beetles <- galah_call() |>
+  identify(beetle_taxon$taxon_concept_id) |>
+  filter(year > 1900) |>
+  group_by(year) |>
+  atlas_counts() |>
+  mutate(year = as.numeric(year)) |>
+  right_join(all_years, join_by(year == year)) |>
+  replace_na(list(count = 0))
+
+beetles |>
+  ggplot(aes(x = year, y = count)) + 
+  geom_bar(stat = "identity", fill = "#A191B2") + 
+  labs(title = "<i>Coleoptera</i>") +
+  pilot::theme_pilot(axes = "l",
+                     grid = "h") + 
+  theme(plot.title = element_markdown(family = "Roboto", halign = 0.5))
+```
+
+## Scarab beetles
+
+Counts of all scarab beetles (family *Scarabaeidae*)
+
+```{r}
+scarabs <- galah_call() |>
+  identify("Scarabaeidae") |>
+  filter(year > 1900) |>
+  group_by(year) |>
+  atlas_counts() |>
+  mutate(year = as.numeric(year)) |>
+  right_join(all_years, join_by(year == year)) |>
+  replace_na(list(count = 0)) 
+
+scarabs |>
+  ggplot(aes(x = year, y = count)) + 
+  geom_bar(stat = "identity", fill = "#A191B2") + 
+  labs(title = "*Scarabaeidae*") +
+  pilot::theme_pilot(axes = "l",
+                     grid = "h") + 
+  theme(plot.title = element_markdown(family = "Roboto", halign = 0.5))
+```
+
+# Christmas beetles
+
+## Counts
+
+Counts of Christmas beetles (genus *Anoplognathus*)
+
+Total:
+
+```{r}
+c_beetle_taxon <- search_taxa("Anoplognathus Leach, 1815")
+
+galah_call() |>
+  identify(c_beetle_taxon$taxon_concept_id) |>
+  filter(year > 1900) |>
+  atlas_counts()
+```
+
+Total before 2022:
+
+```{r}
+# total before 2022
+galah_call() |>
+  identify(c_beetle_taxon$taxon_concept_id) |>
+  filter(year < 2022) |>
+  atlas_counts()
+```
+
+
+```{r}
+# total before 2022
+galah_call() |>
+  identify(c_beetle_taxon$taxon_concept_id) |>
+  atlas_counts()
+```
+
+**% Growth since Christmas Beetle count initiative in 2022**
+
+```{r}
+# growth in observations due to christmas beetle count
+(16655/12719) * 100
+```
+
+
+```{r}
+c_beetles <- galah_call() |>
+  identify(c_beetle_taxon$taxon_concept_id) |>
+  filter(year > 1899) |>
+  group_by(year) |>
+  atlas_counts() |>
+  mutate(year = as.numeric(year)) |>
+  right_join(all_years, join_by(year == year)) |>
+  replace_na(list(count = 0))
+
+c_beetles |>  
+  ggplot(aes(x = year, y = count)) + 
+  geom_bar(stat = "identity", fill = "#A191B2") + 
+  labs(title = "Christmas Beetles") +
+  pilot::theme_pilot(axes = "l",
+                     grid = "h") + 
+  theme(plot.title = element_markdown(family = "Roboto", halign = 0.5))
+```
+
+Christmas beetle counts scaled by all beetle counts
+
+```{r}
+# Scale christmas beetle counts
+c_beetles_scaled <- c_beetles |>
+  left_join(scarabs, join_by(year == year), suffix = c("", "_scarabs")) |>
+  left_join(beetles, join_by(year == year), suffix = c("", "_beetles")) |>
+  mutate(
+    prop_of_scarabs = count / count_scarabs,
+    prop_of_beetles = count / count_beetles
+  ) %>%
+  mutate_if(is.numeric, ~ replace(., is.infinite(.), 0))
+
+c_beetles_scaled |>  
+  ggplot() + 
+  # geom_bar(aes(x = year, y = count), stat = "identity", fill = "#A191B2") + 
+  geom_smooth(aes(x = year, y = prop_of_beetles), method="loess",
+            color = pilot::pilot_color("orange")) +
+  labs(title = "Proportion of christmas beetle observations to all beetle observations") +
+  pilot::theme_pilot(axes = "l",
+                     grid = "h") + 
+  theme(plot.title = element_markdown(family = "Roboto", halign = 0.5))
+```
+
+Ok so it turns out christmas beetles are fairly well recorded in the last 2 years, which means scaling counts likely won't really control for growth in overall counts (they are driving this growth in beetles)
+
+```{r}
+galah_call() |>
+  identify("coleoptera") |>
+  filter(year > 2020) |>
+  group_by(year, genus) |>
+  atlas_counts(limit = 5)
+```
+
+
+Scaled by total insects, observations still appear to be going up (though the actual number is tiny)
+
+```{r}
+insects <- galah_call() |>
+  identify("insecta") |>
+  filter(year > 1899) |>
+  group_by(year) |>
+  atlas_counts() |>
+  mutate(year = as.numeric(year)) |>
+  right_join(all_years, join_by(year == year)) |>
+  replace_na(list(count = 0))
+
+c_beetles_scaled <- c_beetles_scaled |>
+  left_join(insects, join_by(year == year), suffix = c("", "_insects")) |>
+  mutate(
+    prop_of_insects = count / count_insects,
+  ) %>%
+  mutate_if(is.numeric, ~ replace(., is.infinite(.), 0))
+
+c_beetles_scaled |>
+  filter(year > 2000) |>
+  ggplot() + 
+  # geom_bar(aes(x = year, y = count), stat = "identity", fill = "#A191B2") + 
+  geom_smooth(aes(x = year, y = prop_of_insects), method="loess",
+            color = pilot::pilot_color("orange")) +
+  labs(title = "Proportion of christmas beetle observations to all insect observations") +
+  pilot::theme_pilot(axes = "l",
+                     grid = "h") + 
+  theme(plot.title = element_markdown(family = "Roboto", halign = 0.5))
+```
+
+## Observations
+
+```{r}
+# counts by data resource
+galah_call() |>
+  identify(c_beetle_taxon$taxon_concept_id) |>
+  group_by(dataResourceName) |>
+  galah_apply_profile(ALA) |>
+  atlas_counts()
+
+# observations
+c_beetle_obs <- galah_call() |>
+  identify(c_beetle_taxon$taxon_concept_id) |>
+  galah_apply_profile(ALA) |>
+  select(group = "basic", year, dataResourceName) |>
+  atlas_occurrences()
+```
+
+```{r}
+# argentinian scarabs
+ggplot() + 
+  geom_sf(data = aus,
+          fill = "white",
+          colour = "grey60") + 
+  geom_point(data = c_beetle_obs |>
+               filter(dataResourceName == "iNaturalist Australia",
+                      year > 2000),
+             aes(x = decimalLongitude,
+                 y = decimalLatitude),
+             colour = pilot::pilot_color("navy"),
+             alpha = 0.6
+             ) +
+  geom_point(data = c_beetle_obs |>
+               filter(dataResourceName != "iNaturalist Australia",
+                      year > 2000),
+             aes(x = decimalLongitude,
+                 y = decimalLatitude),
+             colour = pilot::pilot_color("orange"),
+             alpha = 0.6
+             ) +
+  coord_sf(xlim = c(110, 155), 
+           ylim = c(-45, -10)) +
+  labs(title = "Christmas beetle observations since 2000",
+       subtitle = glue::glue("<span style = 'color: #204466;'>**iNaturalist**</span> vs 
+                             <span style = 'color: #f28100;'>all other observations</span>")) +
+  theme_void() + 
+  theme(
+    plot.title = ggtext::element_markdown(family = "Roboto", hjust = 0.5),
+    plot.subtitle = ggtext::element_markdown(family = "Roboto", hjust = 0.5)
+  )
+```
+
+
+
+# Plants
+
+What about plants that christmas beetles rely on for food? Have those observations decreased?
+
+
+#### Eucalypts
+
+```{r}
+eucalypt_taxon <- search_taxa("eucalyptus")
+
+eucalypts <- galah_call() |>
+  identify(eucalypt_taxon$taxon_concept_id) |>
+  filter(year > 1899) |>
+  group_by(year, species) |>
+  atlas_counts() |>
+  mutate(year = as.numeric(year)) |>
+  right_join(all_years, join_by(year == year)) |>
+  replace_na(list(count = 0))
+
+eucalypt_total <- galah_call() |>
+  identify(eucalypt_taxon$taxon_concept_id) |>
+  filter(year > 1899) |>
+  group_by(year) |>
+  atlas_counts() |>
+  mutate(year = as.numeric(year)) |>
+  right_join(all_years, join_by(year == year)) |>
+  replace_na(list(count = 0))
+
+euc_scaled <- eucalypts |>
+  left_join(eucalypt_total, join_by(year == year), suffix = c("", "_total")) |>
+  mutate(
+    prop_of_euc = count / count_total,
+  ) %>%
+  mutate_if(is.numeric, ~ replace(., is.infinite(.), 0))
+
+euc_scaled |>
+  filter(str_detect(species, "Eucalyptus melliodora"))
+
+ggplot() + 
+  geom_line(data = euc_scaled,
+            aes(x = year, y = prop_of_euc, group = species),
+            colour = "grey80",
+            stat = "identity") +
+  geom_line(data = euc_scaled |> filter(species == "Eucalyptus camaldulensis"),
+            aes(x = year, y = prop_of_euc),
+            stat = "identity",
+            colour = pilot::pilot_color("purple"),
+            linewidth = 1.3) +
+  geom_line(data = euc_scaled |> filter(species == "Eucalyptus melliodora"),
+            aes(x = year, y = prop_of_euc),
+            stat = "identity",
+            colour = pilot::pilot_color("orange"),
+            linewidth = 1.3) +
+  geom_line(data = euc_scaled |> filter(species == "Eucalyptus sideroxylon"),
+            aes(x = year, y = prop_of_euc),
+            stat = "identity",
+            colour = pilot::pilot_color("green"),
+            linewidth = 1.3) +
+  geom_line(data = euc_scaled |> filter(species == "Eucalyptus conica"),
+            aes(x = year, y = prop_of_euc),
+            stat = "identity",
+            colour = pilot::pilot_color("blue"),
+            linewidth = 1.3) +
+
+  # geom_smooth(aes(x = year, y = prop_of_euc, fill = species), method="loess") +
+  labs(title = "Proportion of eucalypt observations") +
+  # pilot::scale_color_pilot() +
+  pilot::theme_pilot(axes = "l",
+                     grid = "h") + 
+  theme(
+    legend.position = "none",
+    plot.title = element_markdown(family = "Roboto", halign = 0.5)
+    )
+```
+
+### Native grasses
+
+```{r}
+search_taxa(c("Chloridoideae", "Poaceae", "Pooideae"))
+
+galah_call() |>
+  identify("Chloridoideae", "Poaceae", "Pooideae") |>
+  group_by(year) |>
+  atlas_counts() |>
+  
+  ggplot() +
+  geom_bar(aes(x = year, y = count), stat = "identity", fill = pilot::pilot_color("green")) +
+  labs(title = "Grasses counts") +
+  pilot::theme_pilot(axes = "l",
+                     grid = "h")
+```
+
+
+# Christmas beetles misidentification
+
+Top 3 misIDs are:
+
+  1.  Argentinian scarab (Cyclocephala signaticollis)
+  2.  June beetle (Melolonthinae, assorted species)
+  3.  Golden stag beetle (Lamprima aurata)
+
+```{r}
+mis_id_taxon <- search_taxa(c("Cyclocephala signaticollis", 
+                              "Melolonthinae", 
+                              "Lamprima aurata"
+                              ))
+mis_id_taxon
+```
+
+## Counts
+
+There is a growth in these 3 commonly misID'd beetles, particularly since the Christmas Beetle count was started
+
+```{r}
+arg_scarab <- galah_call() |>
+  identify(mis_id_taxon$taxon_concept_id[1]) |>
+  filter(year > 1999) |>
+  group_by(year) |>
+  atlas_counts() |>
+  mutate(year = as.numeric(year),
+         name = rep("Argentinian scarab beetle")) |>
+  right_join(all_years, join_by(year == year)) |>
+  replace_na(list(count = 0))
+
+june_beetle <- galah_call() |>
+  identify(mis_id_taxon$taxon_concept_id[2]) |>
+  filter(year > 1999) |>
+  group_by(year) |>
+  atlas_counts() |>
+  mutate(year = as.numeric(year),
+         name = rep("June beetle (assorted species)")) |>
+  right_join(all_years, join_by(year == year)) |>
+  replace_na(list(count = 0))
+
+golden_stag <- galah_call() |>
+  identify(mis_id_taxon$taxon_concept_id[3]) |>
+  filter(year > 1999) |>
+  group_by(year) |>
+  atlas_counts() |>
+  mutate(year = as.numeric(year), 
+         name = rep("Golden stag beetle")) |>
+  right_join(all_years, join_by(year == year)) |>
+  replace_na(list(count = 0))
+
+mis_id_joined <- arg_scarab |>
+  full_join(june_beetle) |>
+  full_join(golden_stag) |>
+  drop_na(name)
+
+ggplot(data = mis_id_joined) +
+  geom_bar(aes(x = year, y = count, fill = name), stat = "identity") + 
+  pilot::scale_fill_pilot() +
+  labs(title = "Observations of common misID'd species believed to be Christmas beetles") +
+  pilot::theme_pilot(axes = "l",
+                     grid = "h") + 
+  theme(
+    legend.position = "none",
+    plot.title = element_markdown(family = "Roboto", halign = 0.5)
+    )  +
+  facet_grid( ~ name)
+
+```
+
+## Observations
+
+Observations of beetles has grown, and so too has the distribution - especially of the 2 scarab beetles. This growth has implications for our understanding of these species, and it particularly relevant for Argentinian scarab beetles, which are invasive.
+
+```{r}
+# argentinian scarabs
+
+# counts by data resource
+galah_call() |>
+  identify(mis_id_taxon$taxon_concept_id[1]) |>
+  group_by(dataResourceName) |>
+  galah_apply_profile(ALA) |>
+  atlas_counts()
+
+# observations
+arg_scarab_obs <- galah_call() |>
+  identify(mis_id_taxon$taxon_concept_id[1]) |>
+  select(group = "basic", year, dataResourceName) |>
+  galah_apply_profile(ALA) |>
+  atlas_occurrences()
+
+search_all(fields, "basis") |> show_values()
+search_all(fields, "dataResourceName") |> search_values("museum")
+```
+
+
+```{r}
+# june beetles
+
+# counts by data resource
+galah_call() |>
+  identify(mis_id_taxon$taxon_concept_id[2]) |>
+  group_by(dataResourceName) |>
+  galah_apply_profile(ALA) |>
+  atlas_counts()
+
+# observations
+june_beetle_obs <- galah_call() |>
+  identify(mis_id_taxon$taxon_concept_id[2]) |>
+  galah_apply_profile(ALA) |>
+  select(group = "basic", year, dataResourceName) |>
+  atlas_occurrences()
+```
+
+
+```{r}
+# golden stags
+
+# counts by data resource
+galah_call() |>
+  identify(mis_id_taxon$taxon_concept_id[3]) |>
+  group_by(dataResourceName) |>
+  galah_apply_profile(ALA) |>
+  atlas_counts()
+
+# observations
+golden_stag_obs <- galah_call() |>
+  identify(mis_id_taxon$taxon_concept_id[3]) |>
+  select(group = "basic", year, dataResourceName) |>
+  galah_apply_profile(ALA) |>
+  atlas_occurrences()
+```
+
+
+```{r}
+
+# argentinian scarabs
+ggplot() + 
+  geom_sf(data = aus,
+          fill = "white",
+          colour = "grey60") + 
+  geom_point(data = arg_scarab_obs |>
+               filter(dataResourceName == "iNaturalist Australia",
+                      year > 2000),
+             aes(x = decimalLongitude,
+                 y = decimalLatitude),
+             colour = pilot::pilot_color("navy"),
+             alpha = 0.6
+             ) +
+  geom_point(data = arg_scarab_obs |>
+               filter(dataResourceName != "iNaturalist Australia",
+                      year > 2000),
+             aes(x = decimalLongitude,
+                 y = decimalLatitude),
+             colour = pilot::pilot_color("orange"),
+             alpha = 0.6
+             ) +
+  labs(title = "Argentinian scrab beetle observations since 2000",
+       subtitle = glue::glue("<span style = 'color: #204466;'>**iNaturalist**</span> vs 
+                             <span style = 'color: #f28100;'>all other observations</span>")) +
+  theme_void() + 
+  theme(
+    plot.title = ggtext::element_markdown(family = "Roboto", hjust = 0.5),
+    plot.subtitle = ggtext::element_markdown(family = "Roboto", hjust = 0.5)
+  )
+
+
+# june beetles
+ggplot() + 
+  geom_sf(data = aus,
+          fill = "white",
+          colour = "grey60") + 
+  geom_point(data = june_beetle_obs |>
+               filter(dataResourceName == "iNaturalist Australia",
+                      year > 2000),
+             aes(x = decimalLongitude,
+                 y = decimalLatitude),
+             colour = pilot::pilot_color("navy"),
+             alpha = 0.6
+             ) +
+  geom_point(data = june_beetle_obs |>
+               filter(dataResourceName != "iNaturalist Australia",
+                      year > 2000),
+             aes(x = decimalLongitude,
+                 y = decimalLatitude),
+             colour = pilot::pilot_color("orange"),
+             alpha = 0.6
+             ) +
+  coord_sf(xlim = c(110, 155), 
+           ylim = c(-45, -10)) +
+  labs(title = "June beetle observations since 2000",
+       subtitle = glue::glue("<span style = 'color: #204466;'>**iNaturalist**</span> vs 
+                             <span style = 'color: #f28100;'>all other observations</span>")) +
+  theme_void() + 
+  theme(
+    plot.title = ggtext::element_markdown(family = "Roboto", hjust = 0.5),
+    plot.subtitle = ggtext::element_markdown(family = "Roboto", hjust = 0.5)
+  )  
+
+# golden stag beetles
+ggplot() + 
+  geom_sf(data = aus,
+          fill = "white",
+          colour = "grey60") + 
+  geom_point(data = golden_stag_obs |>
+               filter(dataResourceName == "iNaturalist Australia",
+                      year > 2000),
+             aes(x = decimalLongitude,
+                 y = decimalLatitude),
+             colour = pilot::pilot_color("navy"),
+             alpha = 0.6
+             ) +
+  geom_point(data = golden_stag_obs |>
+               filter(dataResourceName != "iNaturalist Australia",
+                      year > 2000),
+             aes(x = decimalLongitude,
+                 y = decimalLatitude),
+             colour = pilot::pilot_color("orange"),
+             alpha = 0.6
+             ) +
+  coord_sf(xlim = c(110, 155), 
+           ylim = c(-45, -10)) +
+  labs(title = "Golden stag beetle observations since 2000",
+       subtitle = glue::glue("<span style = 'color: #204466;'>**iNaturalist**</span> vs 
+                             <span style = 'color: #f28100;'>all other observations</span>")) +
+  theme_void() + 
+  theme(
+    plot.title = ggtext::element_markdown(family = "Roboto", hjust = 0.5),
+    plot.subtitle = ggtext::element_markdown(family = "Roboto", hjust = 0.5)
+  )  
+
+```
+
+
+## Invasive species
+
+```{r}
+library(readxl)
+
+taxa_mis_id <- readxl::read_excel(here("projects", 
+                                       "christmas-beetles", 
+                                       "data",
+                                       "xmas-beetle-confusion.xlsx"
+                                       ),
+                                  sheet = 1, 
+                                  range = cell_cols("A:C")) |>
+  janitor::clean_names()
+
+taxa_list <- taxa_mis_id |>
+  pivot_longer(cols = 1:3,
+               names_to = "mis_id_type") |>
+  rename(name = value) |> 
+  drop_na(name)
+
+matched_taxa <- search_taxa(c(taxa_list$name)) |>
+  dplyr::filter(!is.na(taxon_concept_id))
+
+
+# counts plot
+
+get_counts <- function(taxon_id) {
+  
+  taxon_name <- search_taxa(taxon_id) |> 
+    dplyr::select(scientific_name) |>
+    pull(scientific_name)
+  
+  year_range <- tibble(year = c(2000:2023))
+  
+  query <- galah_call() |>
+  identify(taxon_id) |>
+  filter(year > 1999) |>
+  group_by(year) |>
+  atlas_counts() |>
+  mutate(year = as.numeric(year)) |>
+  right_join(year_range, join_by(year == year)) |>
+  replace_na(list(count = 0)) |>
+  mutate(name = rep(taxon_name))
+  
+}
+
+year_counts <- matched_taxa |>
+  select(taxon_concept_id) |>
+  pull(taxon_concept_id) |>
+  map(get_counts)
+
+year_counts <- year_counts |> bind_rows()
+
+ggplot(data = year_counts |>
+         filter(!name %in% c("CARABIDAE", "Onthophagus"))) +
+  geom_bar(aes(x = year, y = count, fill = name), stat = "identity") + 
+  pilot::scale_fill_pilot() +
+  labs(title = "Observations of common misID'd species believed to be Christmas beetles") +
+  pilot::theme_pilot(axes = "l",
+                     grid = "h") + 
+  theme(
+    legend.position = "none",
+    plot.title = element_markdown(family = "Roboto", halign = 0.5)
+    )  +
+  facet_wrap( ~ name)
+```
+
+```{r}
+# check whether any are on epbc list
+galah_call() |>
+  identify(matched_taxa$taxon_concept_id) |>
+  atlas_species()
+
+search_all(lists, "threatened") |>
+  dplyr::filter(isThreatened == TRUE)
+
+epbc_list <- search_all(lists, "dr656") |>
+  show_values()
+
+matched_taxa |>
+  select(scientific_name) |> print(n = 62)
+```
+
