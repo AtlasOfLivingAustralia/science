@@ -12,11 +12,8 @@ library(sf)
 library(showtext)
 library(terra)
 library(tidyterra)
-
-
 library(tictoc)
 library(beepr)
-
 
 
 # get australia map
@@ -181,3 +178,41 @@ ggplot() +
 # save
 ggsave(here::here("plots", "aus_2023_observations.svg"),
        height = 10, width = 10, unit = "in", dpi = 320)
+
+
+# try an animation
+library(gganimate)
+
+animate_df <- point_grid |>
+  filter(count > 0) |>
+  arrange(dens) |>
+  mutate(dens = as.ordered(dens))
+
+levels_text <- levels(animate_df$dens)
+animate_df2 <- lapply(seq_along(levels),
+       function(a){
+         result <- animate_df |>
+           mutate(timestep = a,
+                  size = as.integer(dens))
+         result$size[result$size > a] <- a
+         result
+         }) |>
+  bind_rows()
+
+x <- ggplot(animate_df2, 
+       aes(x = longitude, 
+           y = latitude,
+           color = size,
+           size = size,
+           group = id)) + 
+  geom_point() + 
+  scale_size(range = c(0.5, 4)) +
+  scale_color_gradient(low = "#ffffff", high = "#E0AA51") +
+  transition_states(timestep, wrap = FALSE) +
+  enter_grow() +
+  coord_fixed() +
+  theme_void() +
+  theme(legend.position = "none",
+        plot.background = element_rect(fill = "#DE4BC3"))
+
+animate(x, renderer = gifski_renderer('./gganimate/git_test.gif'))

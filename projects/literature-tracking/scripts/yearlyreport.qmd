@@ -41,10 +41,8 @@ First you will need to export the latest encompassing .csv from Zotero and save 
 ```{r}
 #| message: false
 #| warning: false
-data <- read_csv(here("projects", 
-                      "literature-tracking", 
-                      "data", 
-                      "20 oct 23.csv"))
+
+data <- read_csv(here("projects", "literature-tracking", "data", "5dec23zotero.csv"))
 ```
 
 3.  Clean column names - it will make it easier to process and interpret the data.
@@ -237,6 +235,7 @@ dataclean2 |>
 ```
 
 2021: 
+
 ```{r}
 #| code-fold: true
 #| eval: false
@@ -251,8 +250,8 @@ dataclean2 |>
 
 ## Top journal articles
 
-This section analyses the ten most common journal articles mentioning, citing, using, acknowledging etc. the ALA **across all time**. It is worth checking that these journals are not preprint repositories (e.g. BioXriv), as, occasionally Zotero auto categorises them as journal articles instead.\
-\
+This section analyses the ten most common journal articles mentioning, citing, using, acknowledging etc. the ALA **across all time**. It is worth checking that these journals are not preprint repositories (e.g. BioXriv), as, occasionally Zotero auto categorises them as journal articles instead.
+
 These numbers might change subtly over time due to ongoing data cleaning, but will likely remain similar. **They are included in the report**.
 
 ```{r}

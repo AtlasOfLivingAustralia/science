@@ -1,4 +1,0 @@
-GBIF.org (14 November 2023) GBIF Occurrence Download  https://doi.org/10.15468/dl.5edp58
-
-Basis of record Preserved specimen
-Scientific name Eudyptula minor (J.R.Forster, 1781)
