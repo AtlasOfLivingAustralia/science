@@ -118,6 +118,7 @@ Total before 2022:
 galah_call() |>
   identify(c_beetle_taxon$taxon_concept_id) |>
   filter(year < 2022) |>
+  # group_by(dataProviderName) |>
   atlas_counts()
 ```
 
@@ -133,7 +134,8 @@ galah_call() |>
 
 ```{r}
 # growth in observations due to christmas beetle count
-(16655/12719) * 100
+(17119/12836) * 100
+12836/17119
 ```
 
 
@@ -149,12 +151,36 @@ c_beetles <- galah_call() |>
 
 c_beetles |>  
   ggplot(aes(x = year, y = count)) + 
-  geom_bar(stat = "identity", fill = "#A191B2") + 
+  geom_bar(stat = "identity", fill = "#A31d34") + 
   labs(title = "Christmas Beetles") +
   pilot::theme_pilot(axes = "l",
                      grid = "h") + 
-  theme(plot.title = element_markdown(family = "Roboto", halign = 0.5))
+  geom_vline(xintercept = 2021, linetype ='longdash', col = 'grey55', linewidth = 1) +
+  annotate("text", x = 2000, y = 1200, 
+           label = "Christmas beetle\ncount starts",
+           hjust = 0.5,
+           fontface = 'bold', size = 5, col = 'grey30', lineheight = 0.5) +
+  annotate("curve", x = 2021, xend = 2004,
+           y = 1000, yend = 1075,
+           curvature = -.5,
+           color = "grey55",
+           size = 1,
+           alpha = 0.8,
+           arrow = arrow(length = unit(0.09, "inches"), type = "closed")) +
+  theme(plot.title = element_text(family = "Roboto"))
 ```
+
+```{r}
+#| eval: false
+library(showtext)
+# turn on showtext
+showtext_auto()
+showtext_opts(dpi = 320)
+
+ggsave(here::here("projects", "christmas-beetles", "plots", "counts_christmas-beetles.png"),
+       dpi = 320)
+```
+
 
 Christmas beetle counts scaled by all beetle counts
 
@@ -387,6 +413,29 @@ mis_id_taxon
 
 ## Counts
 
+```{r}
+galah_call() |>
+  identify(mis_id_taxon$taxon_concept_id[1]) |>
+  filter(year < 2022) |>
+  # group_by(year) |>
+  atlas_counts()
+
+3071-621
+
+2450/621
+
+galah_call() |>
+  identify(mis_id_taxon$taxon_concept_id[2]) |>
+  filter(year < 2022) |>
+  atlas_counts()
+
+35611-22890
+
+12721/22890
+
+```
+
+
 There is a growth in these 3 commonly misID'd beetles, particularly since the Christmas Beetle count was started
 
 ```{r}
@@ -433,11 +482,16 @@ ggplot(data = mis_id_joined) +
                      grid = "h") + 
   theme(
     legend.position = "none",
-    plot.title = element_markdown(family = "Roboto", halign = 0.5)
+    plot.title = element_text(family = "Roboto")
     )  +
   facet_grid( ~ name)
 
 ```
+
+```{r}
+ggsave(here::here("projects", "christmas-beetles", "plots", "counts_misID.png"))
+```
+
 
 ## Observations
 
@@ -684,5 +738,39 @@ epbc_list <- search_all(lists, "dr656") |>
 
 matched_taxa |>
   select(scientific_name) |> print(n = 62)
+```
+
+
+# Total counts of the ALA
+
+```{r}
+tree_data <- galah_call() |>
+  # filter(year == 2023) |>
+  group_by(kingdom, phylum, class) |>
+  count() |>
+  collect()
+
+tree_data |>
+  mutate(kingdom = ifelse(kingdom %in% c("Animalia", "Plantae", "Fungi"),
+                          kingdom,
+                          "Other"),
+         phylum = ifelse(kingdom == "Animalia",
+                         phylum,
+                         NA),
+         clade = case_when(
+           kingdom %in% c("Plantae", "Fungi", "Other") ~ kingdom,
+           kingdom == "Animalia" & class %in% c("Aves", "Actinopterygii", "Mammalia",  "Reptilia", "Amphibia", "Chondrichthyes", "Sarcopterygii") ~ "Vertebrates",
+           kingdom == "Animalia" ~ "Invertebrates"
+         )
+  ) |>
+  group_by(clade) |>
+  summarise(count = sum(count)) |>
+  ungroup() |>
+  mutate(clade = factor(clade, levels = c("Vertebrates", "Invertebrates", "Plantae", "Fungi", "Other"))) |>
+  arrange(clade) |>
+  mutate(fraction = count / sum(count),
+         ymax = cumsum(fraction),
+         percent = 100 * fraction,
+         ymin = c(0, head(ymax, n = -1)))
 ```
 
