@@ -1,0 +1,647 @@
+---
+title: "ALA User Satisfaction 2022"
+author: "Dax"
+date: '2022-06-07'
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+# packages
+library(tidyverse)
+library(here)
+library(janitor)
+library(glue)
+library(pilot) # themes + palettes
+library(ggsci) # palette
+library(readxl)
+```
+
+# Download data
+
+Data can be found in the Science & Decision Support Teams folder: /Data/user-satisfaction-survey/data/ <https://csiroau.sharepoint.com/:f:/r/sites/AtlasofLivingAustraliaTeams/Shared%20Documents/Teams/Science%20and%20Decision%20Support/Data/user-satisfaction-survey?csf=1&web=1&e=lFiuEe>
+
+```{r}
+# download data and rename
+survey <- read_csv(here("data", "2022-survey-all-responses.csv")) %>%
+  clean_names()
+```
+
+```{r}
+# download open answer data
+open_answer <- read_excel(here("data", "2022_open_answer.xlsx"), 
+                          sheet = 2, 
+                          range = cell_cols("A:G")) %>%
+  clean_names()
+```
+
+# Wrangle
+
+Main survey results
+
+```{r}
+glimpse(survey)
+
+# rename columns
+survey <- survey %>%
+  slice(-1) %>%
+  rename(used_ALA_2021 = 10,
+         improved_research_quality = 11,
+         how_satisfied = 12,
+         likely_to_recommend = 13,
+         reason_to_recommend = 14,
+         sector_affiliated = 15,
+         access_method_1 = 16,
+         access_method_2 = 17,
+         access_method_3 = 18,
+         access_method_4 = 19,
+         access_method_5 = 20,
+         access_method_6 = 21,
+         access_method_7 = 22,
+         access_method_8 = 23,
+         access_method_9 = 24)
+
+# remove text from numbered scales
+survey <- survey %>%
+  mutate(
+    improved_research_quality = as.numeric(gsub("[^0-9.-]", "", improved_research_quality)), 
+    likely_to_recommend = as.numeric(gsub("[^0-9.-]", "", likely_to_recommend)), 
+    how_satisfied = as.numeric(gsub("[^0-9.-]", "", how_satisfied))
+  )
+
+# Tidy text of affiliated sectors (remove special chr & double spaces)
+survey <- survey %>%
+  mutate(
+    sector_affiliated = gsub("[^0-9A-Za-z///' ]", "", sector_affiliated, ignore.case = TRUE) %>%
+      str_replace_all("  ", " ")
+  )
+
+# Add simplified user categories column
+survey <- survey %>%
+  mutate(
+    sector_simple = case_when(
+      sector_affiliated == "Community based organisation club society landcare" | 
+      sector_affiliated == "First Nations organisation" | 
+      sector_affiliated == "Wildlife Park sanctuary zoo aquarium wildlife rescue" | 
+      sector_affiliated == "Not for profit organisation" ~ 
+        "Community, conservation and First Nations organisations",
+      
+      sector_affiliated == "Education primary and secondary schools TAFE environmental or wildlife education" ~
+        "Education",
+
+      sector_affiliated == "Government federal state and local" ~
+        "Government",
+
+      sector_affiliated == "Industry commercial business or retail" ~
+        "Industry/commercial",
+
+      sector_affiliated == "Medical Research Institute MRI" |
+      sector_affiliated == "Publicly Funded Research Agency PFRA includes CSIRO ANSTO AIMS AAO AIATSIS AAD DSTO GA BoM" |
+      sector_affiliated == "University faculty researcher" |
+      sector_affiliated == "University general staff administration management" | 
+      sector_affiliated == "Other research organisation unaffiliated researcher" ~
+        "Research",
+
+      sector_affiliated == "Museum herbarium library botanic gardens" ~
+        "Collections",
+
+      sector_affiliated == "Private user" |
+      sector_affiliated == "Volunteer citizen scientist" |
+      sector_affiliated == "University student" ~
+        "Individuals",
+
+      sector_affiliated == "Other" ~ "Other",
+      sector_affiliated == "Prefer not to say" ~ "Prefer not to say",
+    
+    TRUE ~ as.character(NA)
+  ))
+```
+
+Open answer results
+
+```{r}
+# Get data needed, tidy names, fix NAs
+open_answer <- open_answer %>% 
+  select (responses, positive_negative_neutral_both, category_1, category_2) %>%
+  rename(reason_to_recommend = responses,
+         reason_type = positive_negative_neutral_both,
+         reason_topic_a = category_1,
+         reason_topic_b = category_2) 
+
+# fix NAs and remove unintended additional NA rows
+open_answer <- open_answer %>%
+  mutate(
+    across(everything(), ~na_if(.x, "N/A"))
+  ) %>%
+  filter(!is.na(reason_to_recommend))
+
+# merge
+survey_merged <- survey %>%
+  left_join(open_answer, by = "reason_to_recommend")
+```
+
+# User categories
+
+```{r}
+# custom colour palette
+survey |> distinct(sector_simple)
+
+custom_palette_2022 <- c(
+  "Education" = "#204466",
+  "Research" = "#227F9A",
+  "Individuals" = "#B66492",
+  "Government" = "#B84818",
+  "Citizen science group" = "#5D9C62",
+  "Other" = "#75C662",
+  "Industry/commercial" = "#FFC517",
+  "Community, conservation and First Nations organisations" = "#558080",
+  "Collections" = "#BB7b99",
+  "Indigenous group or organisation" = "#558080",
+  "Prefer not to say" = "grey70"
+)
+```
+
+```{r}
+p <- survey %>%
+  tabyl(sector_simple) %>%
+  
+  ggplot(aes(x = reorder(str_wrap(sector_simple, width = 30), n), y = percent, fill = sector_simple)) + 
+  geom_bar(stat = "identity") + 
+  labs(#title = "Affiliated sector",
+       x = "", y = "") +
+  scale_y_continuous(breaks = c(0, .25, .50, .75, 1),
+                     expand = c(0, 0),
+                     labels = scales::percent_format(),
+                     limits = c(0, 1)) +
+  scale_fill_manual(values = custom_palette_2022) +     
+  geom_text_pilot(mapping = aes(label = glue("{n} ({scales::percent(round(percent, 2))})")),
+                  color = "grey30",
+                  size = 5,
+                  hjust = -0.5,
+                  fontface = "bold"
+                  ) +
+  scale_x_discrete(expand = c(0, 0)) +
+  pilot::theme_pilot(grid = "",
+                     axes = "b") +
+  coord_flip() +
+  theme(legend.position = "none",
+        axis.line.x.bottom = element_line(size = 1.1)
+        )
+```
+
+# Answers
+
+## Used ALA
+
+```{r}
+survey %>%
+  tabyl(used_ALA_2021) %>%
+  
+  ggplot(aes(x = used_ALA_2021, y = percent, fill = used_ALA_2021)) + 
+  geom_bar(stat = "identity") + 
+  labs(#title = "Have you used ALA in the 2021-2022 financial year?",
+       x = "", y = "") +
+  scale_y_continuous(breaks = c(0, .25, .50, .75, 1),
+                     expand = c(0, 0),
+                     labels = scales::percent_format(),
+                     limits = c(0, 1)) +
+  geom_text_pilot(mapping = aes(label = glue("{n} ({scales::percent(round(percent, 2))})")),
+                  color = "grey30",
+                  size = 5,
+                  hjust = -0.2,
+                  # vjust = -0.9,
+                  fontface = "bold"
+                  ) +
+  scale_fill_manual(values = c("#2f7ab9", "#cb0300")) +
+  scale_x_discrete(expand = c(0, 0)) +
+  pilot::theme_pilot(grid = "",
+                     axes = "b") +
+  coord_flip() +
+  theme(legend.position = "none",
+        axis.line.x.bottom = element_line(size = 1.1),
+        plot.title = element_text(size = 16),
+        axis.text = element_text(size = 14)
+        # axis.line.y.left = element_line(size = 1.1)
+        )
+```
+
+```{r}
+plot / used
+```
+
+## Improved research
+
+```{r}
+# Number of respondents
+counts <- survey %>%
+  tabyl(improved_research_quality)
+
+answered <- sum(counts$n[1:7])
+not_answered <- sum(counts$n[8])
+sum(counts$valid_percent[2:7])
+```
+
+```{r}
+survey %>%
+  tabyl(improved_research_quality) %>%
+  
+  ggplot(aes(x = improved_research_quality, 
+             y = valid_percent, 
+             fill = improved_research_quality)) + 
+  geom_bar(stat = "identity") + 
+  labs(#title = glue::glue("To what extent has the ALA improved your research quality? (N = {answered})"),
+       # subtitle = glue::glue("(N = {answered})"),
+       x = "", 
+       y = "") +
+  geom_text_pilot(mapping = aes(x = improved_research_quality,
+                                label = glue("{n} ({scales::percent(round(valid_percent, 2))})")),
+                                # label = valid_percent),
+                  color = "grey30",
+                  size = 5,
+                  hjust = -0.5,
+                  # vjust = -0.9,
+                  fontface = "bold"
+                  ) +
+  scale_y_continuous(breaks = c(0, .25, .50, .75, 1),
+                     expand = c(0, 0),
+                     labels = scales::percent_format(),
+                     limits = c(0, 1)) +
+  scale_x_continuous(breaks = c(1:7),
+                     expand = c(0, 0),
+                     labels = c("Not at all 1", "2", "3", "4", "5", "6", "Very much 7")) +
+  scale_fill_gradient2(low = "grey80", 
+                       high = "#cb0300", 
+                       mid = "#E1A699",
+                       midpoint = 4) +
+  pilot::theme_pilot(grid = "",
+                     axes = "b") +
+  guides(fill = guide_coloursteps(label = FALSE, ticks = FALSE, show.limits = TRUE)) +
+  coord_flip() + 
+  theme(legend.position = "none",
+        axis.text = element_text(size = 14),
+        axis.line.x.bottom = element_line(size = 1.1)
+        )
+```
+
+Answer breakdown of individual ratings:
+
+```{r}
+survey %>%
+  filter(!is.na(improved_research_quality)) %>%
+  tabyl(improved_research_quality, sector_simple) %>%
+  # adorn_percentages(denominator = "col") %>%
+  pivot_longer(cols = Collections:Research, names_to = "sector", values_to = "valid_percent") %>%
+  # Change number to see who gave that answer
+  filter(sector == "Research") %>% 
+  summarise(improved = sum(valid_percent[4:7]),
+            not_improved = valid_percent[1])
+  
+  ggplot(aes(x = str_wrap(improved_research_quality, 35), 
+             y = valid_percent, 
+             fill = improved_research_quality)) + 
+  geom_bar(stat = "identity") + 
+  labs(x = "", 
+       y = "") +
+  geom_text_pilot(mapping = aes(label = round(valid_percent, 2)),
+                  color = "grey30",
+                  size = 5,
+                  hjust = -0.5,
+                  # vjust = -0.9,
+                  fontface = "bold"
+                  ) +
+  scale_fill_gradient2(low = "grey80", 
+                       high = "#cb0300", 
+                       mid = "#E1A699",
+                       midpoint = 4) +
+  pilot::theme_pilot(grid = "",
+                     axes = "b") +
+  guides(fill = guide_coloursteps(label = FALSE, ticks = FALSE, show.limits = TRUE)) +
+  coord_flip() +
+  theme(legend.position = "none",
+        axis.text = element_text(size = 14),
+        axis.line.x.bottom = element_line(size = 1.1)
+        ) #+ facet_grid(~improved_research_quality)
+```
+
+## How satisfied are you with the ALA?
+
+```{r}
+
+
+
+
+
+
+test <- survey %>%
+  tabyl(how_satisfied)
+
+answered <- sum(test$n[1:7])
+
+survey %>%
+  tabyl(how_satisfied) %>%
+  # tabyl(how_satisfied, sector_simple) %>%
+  # adorn_percentages(denominator = "col") %>%
+  # pivot_longer(cols = Collections:Research, names_to = "sector", values_to = "percent") %>%
+  # filter(how_satisfied < 4) %>% arrange(desc(sector, percent)) %>%
+  
+  ggplot(aes(x = how_satisfied, 
+             y = percent, 
+             fill = how_satisfied)) + 
+  geom_bar(stat = "identity") + 
+  labs(x = "", 
+       y = "") +
+  geom_text_pilot(mapping = aes(x = how_satisfied, 
+                                label = scales::percent(round(percent, 2))),
+                  color = "grey30",
+                  size = 5,
+                  hjust = -0.5,
+                  # vjust = -0.9,
+                  fontface = "bold"
+                  ) +
+  scale_y_continuous(breaks = c(0, .25, .50, .75, 1),
+                     expand = c(0, 0),
+                     labels = scales::percent_format(),
+                     limits = c(0, 1)) +
+  scale_x_continuous(breaks = c(1:7),
+                     expand = c(0, 0),
+                     labels = c("1\nVery dissatisfied", "2", "3", "4", "5", "6", "Very satisfied\n7")) +
+  scale_fill_gradient2(low = "#2f7ab9", 
+                       high = "#cb0300", 
+                       mid = "grey80", 
+                       midpoint = 4) +
+  pilot::theme_pilot(grid = "",
+                     axes = "b") +
+  coord_flip() + 
+  theme(legend.position = "none",
+        axis.text = element_text(size = 14),
+        axis.text.y = element_text(hjust = 0.5),
+        axis.line.x.bottom = element_line(size = 1.1)
+        ) #+ facet_grid(~sector)
+```
+
+Answer breakdown by individual answer:
+
+```{r}
+survey %>%
+  tabyl(how_satisfied, sector_simple) %>%
+  pivot_longer(cols = Collections:Research, names_to = "sector", values_to = "percent") %>%
+  # Change number to see who gave that answer
+  filter(how_satisfied == 6) %>%
+  
+  ggplot(aes(x = str_wrap(sector, 35), 
+             y = percent, 
+             fill = how_satisfied)) + 
+  geom_bar(stat = "identity") + 
+  labs(x = "", 
+       y = "") +
+  geom_text_pilot(mapping = aes(x = str_wrap(sector, 35),
+                                label = percent),
+                  color = "grey30",
+                  size = 5,
+                  hjust = -0.5,
+                  # vjust = -0.9,
+                  fontface = "bold"
+                  ) +
+  scale_fill_gradient2(low = "grey80", 
+                       high = "#cb0300", 
+                       mid = "#E1A699",
+                       midpoint = 4) +
+  pilot::theme_pilot(grid = "",
+                     axes = "b") +
+  guides(fill = guide_coloursteps(label = FALSE, ticks = FALSE, show.limits = TRUE)) +
+  coord_flip() +
+  theme(legend.position = "none",
+        axis.text = element_text(size = 14),
+        axis.line.x.bottom = element_line(size = 1.1)
+        ) + facet_grid(~how_satisfied)
+```
+
+## Reason for answer
+
+```{r}
+# filter to see example responses
+survey_merged %>%
+  filter(reason_type == "Positive") %>%
+  filter(str_detect(reason_to_recommend, "help")) %>%
+  select(reason_to_recommend)
+
+# merge reasons columns and remove NAs
+survey_reason <- survey_merged %>%
+  select(sector_simple, likely_to_recommend, reason_to_recommend, 
+         reason_type, reason_topic_a, reason_topic_b) %>%
+  pivot_longer(cols = reason_topic_a:reason_topic_b, names_to = "reason_rank", values_to = "reason_topic") %>%
+  drop_na(reason_topic)
+
+survey_reason %>%
+  distinct(reason_topic)
+
+survey_reason %>%
+  filter(reason_topic == "Data quality" & reason_type == "Negative") %>%
+  tabyl(sector_simple) %>%
+  arrange(desc(n))
+
+survey_reason %>%
+  filter(reason_topic == "Data quality" & reason_type == "Negative") %>%
+  select(sector_simple, reason_to_recommend) %>%
+  arrange(desc(sector_simple)) %>%
+  kbl()
+
+# Frequency tables
+survey_reason %>%
+  tabyl(reason_topic, reason_type)
+
+survey_reason %>%
+  tabyl(reason_topic, reason_type) %>%
+  adorn_percentages(denominator = "col")
+
+survey_reason %>%
+  tabyl(reason_topic, reason_type) %>%
+  # select(-Neutral) %>%
+  adorn_percentages(denominator = "col") %>%
+  pivot_longer(cols = 2:4, names_to = "feedback", values_to = "percent") %>%
+  
+  ggplot(aes(x = reorder(feedback, percent), 
+             y = percent, 
+             fill = reason_topic)) + 
+  geom_bar(stat = "identity", position = "dodge") + 
+  labs(x = "", 
+       y = "") +
+  scale_y_continuous(breaks = c(0, .25, .50, .75, 1),
+                     expand = c(0, 0),
+                     labels = scales::percent_format(),
+                     limits = c(0, 1)) +
+  scale_fill_lancet(alpha = .8) +     
+  scale_x_discrete(expand = c(0, 0)) +
+  pilot::theme_pilot(grid = "",
+                     axes = "b") +
+  theme(legend.position = "right",
+        axis.line.x.bottom = element_line(size = 1.1)
+        )
+```
+
+```{r}
+# text mining word cloud?
+```
+
+## Likeliness to recommend
+
+```{r}
+test <- survey %>%
+  tabyl(likely_to_recommend)
+
+answered <- sum(test$n[1:11])
+
+# Net Promoter Score
+
+# Sum of Promoter% - Sum of Detractor%
+# Above 0 is good, Above 20 is favourable, Above 50 is excellent
+net_promoter_score <- sum(test$percent[10:11]) - sum(test$percent[0:7])
+net_promoter_score
+
+#------------------------------------------------------------------------------#
+
+# Plot
+
+survey %>%
+  tabyl(likely_to_recommend) %>%
+  mutate(
+    group = case_when(
+      likely_to_recommend > 8 ~ "Promoters",
+      likely_to_recommend > 6 & likely_to_recommend < 9 ~ "Passive",
+      likely_to_recommend < 7 ~ "Detractors"
+    )
+  ) %>%
+  
+  ggplot(aes(x = likely_to_recommend, 
+             y = percent, 
+             fill = group)) + 
+  geom_bar(stat = "identity") + 
+  labs(#title = glue::glue("How likely are you to recommend the ALA?"),
+       #subtitle = glue::glue("(N = {answered})"),
+       x = "", 
+       y = "") +
+  geom_text_pilot(mapping = aes(x = likely_to_recommend, 
+                                label = scales::percent(round(percent, 2))),
+                  color = "grey30",
+                  size = 5,
+                  hjust = -0.5,
+                  fontface = "bold"
+                  ) +
+  scale_y_continuous(breaks = c(0, .25, .50, .75, 1),
+                     expand = c(0, 0),
+                     labels = scales::percent_format(),
+                     limits = c(0, 1)) +
+  scale_x_continuous(breaks = c(0:10),
+                     expand = c(0, 0),
+                     labels = c("Very unlikely 0", "1", "2", "3", "4", "5", 
+                                "6", "7", "8", "9", "Very likely 10")) +
+  scale_fill_manual(values = c("#2f7ab9", "grey80", "#cb0300")) +
+  guides(fill = guide_legend(title = "Promoter group")) +
+  pilot::theme_pilot(grid = "",
+                     axes = "b") +
+  coord_flip() + 
+  theme(legend.position = "bottom",
+        axis.text = element_text(size = 14),
+        axis.line.x.bottom = element_line(size = 1.1),
+        legend.margin=margin(0,0,0,0),
+        legend.box.margin=margin(-10,-10,-10,-10))
+```
+
+## Access Methods
+
+```{r}
+survey_access_method <- survey %>%
+  select(respondent_id, sector_affiliated, sector_simple, access_method_1:access_method_9) %>%
+  pivot_longer(cols = access_method_1:access_method_9, names_to = "access_method_rank", values_to = "access_method") %>%
+  drop_na(access_method) %>%
+  mutate(access_method_rank = str_remove_all(access_method_rank, "[a-zA-Z_]"),
+         access_method_grouped = case_when(
+           access_method == "ALA website (ala.org.au)" ~ "Website",
+           access_method == "Email (e.g. ALA e-newsletter)" ~ "Email",
+           access_method == "Twitter (@atlaslivingaust)" ~ "Twitter",
+           access_method == "Facebook (atlasoflivingaustralia)" ~ "FaceBook",
+           access_method == "LinkedIn (Atlas of Living Australia)" ~ "LinkedIn",
+           access_method == "Direct contact with the ALA help desk (support@ala.org.au)" ~ "Help desk support",
+           access_method == "CSIRO social media (blog, facebook, twitter, Instagram, LinkedIn)" ~ "CSIRO social media",
+           access_method == "Traditional media (newspapers, radio, TV)" ~ "Traditional media",
+           TRUE ~ "Other"
+         ))
+
+p2 <- survey_access_method %>%
+  tabyl(access_method_grouped) %>%
+  
+  ggplot(aes(x = reorder(access_method_grouped, percent), 
+             y = percent, 
+             fill = access_method_grouped)) + 
+  geom_bar(stat = "identity") + 
+  labs(x = "", 
+       y = "") +
+  scale_y_continuous(breaks = c(0, .25, .50, .75, 1),
+                     expand = c(0, 0),
+                     labels = scales::percent_format(),
+                     limits = c(0, 1)) +
+  scale_fill_lancet(alpha = .8) +     
+  geom_text_pilot(mapping = aes(label = scales::percent(round(percent, 2))),
+                  color = "grey30",
+                  size = 5,
+                  hjust = -0.5,
+                  fontface = "bold"
+                  ) +
+  scale_x_discrete(expand = c(0, 0)) +
+  pilot::theme_pilot(grid = "",
+                     axes = "b") +
+  coord_flip() +
+  theme(legend.position = "none",
+        axis.line.x.bottom = element_line(size = 1.1)
+        ) #+ facet_grid(~sector)
+
+```
+
+Answer x sector breakdown:
+
+```{r}
+survey_access_method %>%
+  tabyl(access_method_grouped, sector_simple) %>%
+  pivot_longer(cols = Collections:Research, 
+               names_to = "sector", 
+               values_to = "percent") %>%
+  filter(sector == "Industry/commercial") %>%
+  
+  ggplot(aes(x = reorder(str_wrap(access_method_grouped, 28), percent), 
+             y = percent, 
+             fill = access_method_grouped)) + 
+  geom_bar(stat = "identity") + 
+  labs(x = "", 
+       y = "") +
+  scale_fill_lancet(alpha = .8) +     
+  geom_text_pilot(mapping = aes(label = percent),
+                  color = "grey30",
+                  size = 5,
+                  hjust = -0.5,
+                  fontface = "bold"
+                  ) +
+  scale_x_discrete(expand = c(0, 0)) +
+  pilot::theme_pilot(grid = "",
+                     axes = "b") +
+  coord_flip() +
+  theme(legend.position = "none",
+        axis.line.x.bottom = element_line(size = 1.1)
+        ) #+ facet_grid(~sector)
+```
+
+```{r}
+survey %>%
+  tabyl(sector_affiliated) %>%
+  arrange(desc(n))
+```
+
+```{r}
+p / p2
+```
+
+# Save
+
+```{r}
+ggsave(here("plots", "plot_q2_7.png"), height = 6, width = 11, units = "in")
+```

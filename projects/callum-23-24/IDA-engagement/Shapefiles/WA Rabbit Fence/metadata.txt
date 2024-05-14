@@ -1,0 +1,8 @@
+1.  Custodian provided geometry in GDA94
+2.  Upload
+    a.  Transformed Geometry from GDA94 to WGS84
+3.  Download
+    a.  Transformed geometry from WGS84 to GDA94
+    b.  Areas within the NTv2 grid had geometry transformed from GDA94 to GDA2020 using conformal and distortion grid
+    c.  Areas outside the NTv2 grid had geometry transformed using the conformal only 7 parameter transformation
+

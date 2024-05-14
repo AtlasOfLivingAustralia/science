@@ -1,0 +1,216 @@
+---
+title: "ALA User Satisfaction Survey 2023"
+author: "Dax Kellie"
+date: '2023-11-02'
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+# packages
+library(tidyverse)
+library(here)
+library(janitor)
+library(glue)
+library(pilot) # themes + palettes
+library(readxl)
+```
+
+
+# Download data
+
+Data can be found in the Science & Decision Support Teams folder: /Data/user-satisfaction-survey/data/
+https://csiroau.sharepoint.com/:f:/r/sites/AtlasofLivingAustraliaTeams/Shared%20Documents/Teams/Science%20and%20Decision%20Support/Data/user-satisfaction-survey?csf=1&web=1&e=lFiuEe
+
+
+```{r}
+# download data and rename
+survey <- read_csv(here("data", "2023-survey-all-responses.csv")) %>%
+  clean_names()
+
+glimpse(survey)
+```
+
+
+
+# Wrangle
+
+Main survey results
+
+```{r}
+# merge "reasons to access ALA" into one column
+survey <- survey |>
+  rename(reason_to_access = 11) |>
+  unite(reason_to_access, x12, x13, x14, x15, x16, x17, x18, x19, 
+        sep = "|", 
+        na.rm = TRUE, 
+        remove = TRUE)
+
+# colnames(survey[,23])
+
+# rename columns, select columns to keep
+survey <- survey |>
+  slice(-1) |>
+  rename(used_ALA_2023 = 10,
+         achieved_goal_of_visit = 12,
+         how_satisfied = 13,
+         likely_to_recommend = 14,
+         reason_to_recommend = 15,
+         sector_affiliated = 16,
+         sector_other = 17) |>
+  rename_with(~glue::glue("access_{1:5}"), .cols = 18:22) |>
+  select(1, 4, 10:22)
+
+glimpse(survey)
+```
+
+
+```{r}
+# remove text from numbered scales
+survey_tidy <- survey |>
+  mutate(
+    achieved_goal_of_visit = parse_number(achieved_goal_of_visit),
+    how_satisfied = as.numeric(gsub("[^0-9.-]", "", how_satisfied)),
+    likely_to_recommend = as.numeric(gsub("[^0-9.-]", "", likely_to_recommend))
+  )
+
+# Tidy text of affiliated sectors (remove special chr & double spaces)
+
+survey_tidy |>
+  mutate(
+    sector_affiliated = gsub("[^0-9A-Za-z///' ]", "", sector_affiliated, ignore.case = TRUE) %>%
+      str_replace_all("  ", " ")
+  ) #|> distinct(sector_affiliated)
+```
+
+
+# User categories
+
+Colour palette
+
+```{r}
+survey_tidy |> distinct(sector_affiliated)
+
+custom_palette <- c(
+  "Education (primary, secondary and tertiary)" = "#204466",
+  "Research user (including university, government, industry, collections or independent)" = "#227F9A",
+  "Private user" = "#B66492",
+  "Government (federal, state and local)" = "#B84818",
+  "Citizen science group" = "#5D9C62",
+  "Other (please specify)" = "#75C662",
+  "Industry and business" = "#FFC517",
+  "Community-based organisation, club, society" = "#558080",
+  "Collections (including museums, herbaria, libraries and botanic gardens)" = "#BB7b99",
+  "Indigenous group or organisation" = "#F28100",
+  "NA" = "grey70"
+)
+```
+
+
+```{r}
+total_n <- survey_tidy |> drop_na(sector_affiliated) |> nrow()
+
+plot_users <- survey_tidy |>
+  drop_na(sector_affiliated) |>
+  tabyl(sector_affiliated) |>
+  
+  ggplot(aes(x = reorder(str_wrap(sector_affiliated, width = 30), n), y = percent, fill = sector_affiliated)) + 
+  geom_bar(stat = "identity") + 
+  labs(x = "", y = "") +
+  scale_y_continuous(breaks = c(0, .25, .50, .75, 1),
+                     expand = c(0, 0),
+                     labels = scales::percent_format(),
+                     limits = c(0, 1)) +
+  scale_fill_manual(values = custom_palette) +     
+  geom_text_pilot(mapping = aes(label = glue("{n} ({scales::percent(round(percent, 2))})")),
+                  color = "grey30",
+                  size = 5,
+                  hjust = -0.3,
+                  fontface = "bold"
+                  ) +
+  scale_x_discrete(expand = c(0, 0)) +
+  pilot::theme_pilot(grid = "",
+                     axes = "b") +
+  coord_flip() +
+  theme(legend.position = "none",
+        axis.line.x.bottom = element_line(linewidth = 1.1)
+        )
+
+pilot::add_pilot_titles(plot_users, 
+                        title = "What sector are you affiliated with?",
+                        subtitle = glue::glue("N = {total_n}"))
+
+
+# extract colour palette
+# g <- ggplot_build(plot_users)
+# unique(g$data[[1]]["fill"]) |> unlist() |> scales::show_col()
+
+
+```
+
+```{r}
+# list of "other" sector responses
+survey_tidy |>
+  distinct(sector_other) |> 
+  view()
+```
+
+
+# Answers
+
+## ALA use 2023
+
+Did you use the ALA since January 1, 2023?
+
+```{r}
+# NOTE: `survey` refers to the 2022 survey data
+# You can get this by running the Download & Wrangle parts of that script
+ala_use_2022 <- survey |>
+  tabyl(used_ALA_2021) |>
+  mutate(year = rep(2022)) |>
+  rename(used_ala = used_ALA_2021)
+
+ala_use_2023 <- survey_tidy |>
+  tabyl(used_ALA_2023) |>
+  mutate(year = rep(2023)) |>
+  rename(used_ala = used_ALA_2023)
+
+ala_use_merged <- ala_use_2023 |>
+  full_join(ala_use_2022)
+  
+  
+ala_use_merged |>
+  ggplot(aes(x = used_ala, 
+             y = percent, 
+             fill = used_ala, 
+             alpha = factor(year))
+         ) + 
+  geom_bar(stat = "identity", position = position_dodge(preserve = 'single')) + 
+  labs(x = "", y = "") +
+  scale_y_continuous(breaks = c(0, .25, .50, .75, 1),
+                     expand = c(0, 0),
+                     labels = scales::percent_format(),
+                     limits = c(0, 1)) +
+  geom_text_pilot(mapping = aes(label = glue("{n} ({scales::percent(round(percent, 2))})")),
+                  position = position_dodge(width = .9),
+                  color = "grey30",
+                  size = 5,
+                  hjust = -0.2,
+                  # vjust = -0.9,
+                  fontface = "bold"
+                  ) +
+  scale_fill_manual(values = c("#9E9E9F", "#E06E53")) +
+  scale_alpha_manual(values = c(0.5, 1)) +
+  scale_x_discrete(expand = c(0, 0)) +
+  pilot::theme_pilot(grid = "",
+                     axes = "b") +
+  coord_flip() +
+  theme(legend.position = "none",
+        axis.line.x.bottom = element_line(size = 1.1),
+        plot.title = element_text(size = 16),
+        axis.text = element_text(size = 14)
+        # axis.line.y.left = element_line(size = 1.1)
+        )
+```
+

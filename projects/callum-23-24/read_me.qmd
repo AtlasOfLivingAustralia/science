@@ -1,0 +1,103 @@
+### Documenting Callum's Work with the ALA
+
+This directory of the `science` repository contains the coding work I have produced that does not already exist in another repository. Additional work exists in `koel`, `biosecurity-alerts`, `lucidus`, `cleaning_data`, `ala-labs` and `galah`.
+
+Here I've briefly documented the contents of each repository:
+
+#### biosecurity
+
+This contains various scripts and data I used throughout the duration of the biosecurity project that never quite made it into the existing official repositories that were `koel` and `biosecurity-alerts`. In this directory are:
+
+-   `ba_collate_csvs.R` - a script that was used to demo the collation of existing csvs in preparation for adding this code into the `s4` script in the `b-a` repository.
+
+-   `dummy_biosecurity_lists/` - a set of five short dummy lists used for testing
+
+-   `dummy_testing_files/` - a set of dummy testing scripts and some of their outputs, from across various stages of the biosecurity project. The most up-to-date testing functions, which contain the entire koel workflow in raw form, are `test_fns.R`, `test_fns_koel.R`, and `test_fns_Shandiya.R`.
+
+-   `higher_taxa_collated_alerts_script.R` - script containing the raw / experimental code to initiate the collation of all alerts csvs complete with higher taxa attached. Was performed the week of Apr 19th. The developed code version now sits in the `s4` script in the `b-a` repository.
+
+-   `inat_lag_times.R` is a script used to investigate the lag between `eventDate` and `firstUploadedDate` in iNaturalist records coming into the ALA
+
+-   `koel_workflow.R` - the beginnings of a script to create a programmatic workflow diagram for koel. Was abandoned in favour of one that I produced in MS Powerpoint, the template for which has been uploaded to the Science Teams folder
+
+-   `name_checking.R` - a script used to compare names during the name matching update of the taxonomic backbone. Uses data files located in `dummy_testing_files/`
+
+-   `shared_taxa.R` - a script used to produce csvs of shared taxa between certain lists as requested in the week of Apr 12 2024 by Andrew
+
+#### citations_tracker
+
+I assisted in producing figures and downloading data for citations tracking of the ALA and GBIF. In this directory are:
+
+-   `data/` - a set of data files, some provided by Martin and some created by me, that are used in the scripts to produce figures. The descriptions of each dataset are included in the R scripts
+
+-   `figures/` - a set of .pdf figures as produced by the scripts
+
+-   `scripts/` - three such scripts. The script `mw_240312_barplot_script.R` is written by Martin and is here for completeness. `citations_script.R` was the precursor to the main script in this directory, `citations_script_waite.R`. This should contain all necessary code to replicate any such figures and datsets replating to ALA and GBIF citations as produced by me. Note that some segments of the code may take a while to run, namely those looped functions that call the poorly developed GBIF API.
+
+#### dataViz
+
+This directory contains work on five different dataViz projects I worked on during my time at the Atlas:
+
+##### Eureka Prize
+
+This directory contains the code and data files I used to produce the map for the Eureka Prize application. Within this directory:
+
+-   `blank_maps/` contains example pdfs of the maps that were produced
+
+-   `eureka_map.R` is the script I used on my machine to produce the various maps
+
+-   `gbif_map_script.R` is a more general version of `eureka_map.R`, designed to be used by anyone. It has been shared with Dax prior to this.
+
+-   `hex_grid_counts_*.rds` files are data files containing data-frames of the GBIF hex grid counts as produced by `eureka_map.R`. The values (2, 7.9, 8) refer to the size parameter of the hexagons as generated in `sf::st_make_grid(..., size = *, ...)`. These can be loaded into the two scripts.
+
+##### Myrtle Rust
+
+This directory contains a small batch of code, data and pdfs for a brief myrtle rust mapping image I produced for Erin Rogers. Within this directory:
+
+-   `myrtle_rust_figures.R` contains the script to download the data from galah and produce the figures on my machine
+
+-   `myrtle_rust_map_data.csv` is the data used for this figure as produced by the R script
+
+-   `myrtle_rust_map*.pdf` are two pdfs of the figures produced using the script (with different load dates)
+
+##### World Cassowary Day
+
+Fairly self-explanatory - this contains the raw code and work used to produce the World Cassowary Day shiny widget, as stored on my machine. Note that a full and working version of this project exists on a repository hosted by Shandiya, and this is simply an echo of the important parts of that project. In this directory exists:
+
+-   `cassowary_app/` is the shiny directory containing all the code, images etc. for the shiny app to work
+
+-   `cassowary_data_exp.R` contains my experimental code in preparing to develop the working cassowary shiny app
+
+##### World Fungi Day
+
+Again fairly self-explanatory, this contains all of the work I did on the World Fungi Day video that ended up not actually being for World Fungi Day as that date does not exist anymore. Anyway, the content included is described below, but does include a number of .pdfs, .svgs and .pngs.
+
+-   `data/fungi_data.csv` contains the data used in producing the unique hex map
+
+-   `data_exploration.R` is exactly that - my exploration of visualising unique hex maps in R.
+
+-   `fungi_alphahulls.py` is code to produce alpha hulls of the fungi data in python
+
+-   `photos/` contains images of fungi and ALA/CSIRO logos, as well as photo metadata in a .txt file
+
+-   `plots/` contains .pdf and .svg files of the bar charts for each fungi made for monthly occurrences
+
+-   `shapefiles/` contains shapefiles for Coastal Waters (CWA1980_zones), Exclusive Economic Zone (EEZ) and the fungi alphahulls ad produced by `fungi_alphahulls.py`
+
+-   `sketches/` contains .svg and .png files of sketches produced for each fungi
+
+-   \`visualisation/1 contains .png and .svg files for producing the final visusalisations of the fungi data. This includes files as individual pages for each fungi, and overall figures containing all such data
+
+##### Wrapped
+
+This directory contains a single file, `wrapped_concept.R`, which contains the code used to explore and eventually produce the circular plots of taxonomic breakdowns of Atlas records in 2023. This was used to produce figures for the ALA Wrapped 2023 project.
+
+#### IDA-engagement
+
+This contains the following Jupyter notebooks I developed for the IDA project - there is one each for five key species, namely the Austrlian Bustard, Emu, Perentie, Red Kangaroo, and Sand Goanna. The .ipynb python notebook files are named respectively. There is also a `Shapefiles/` directory that contains various shapefiles used in the five notebooks.
+
+#### user-survey
+
+Lastly, this contains code I used to produce figures used in the 2023 ALA user survey. This includes two markdown documents, `2022_survey-analysis.Rmd` and `2023_survey-analysis.qmd`, produced by Dax/Martin that I used for inspiration in developing the figures, as well as `year_2_comparison.R`.
+
+`data/` contains the user survey data, and `year_2_comparison_cw.R` is the script I used to produce my figures, with code amalgamted and developed from the other three scripts.
