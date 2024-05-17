@@ -1,0 +1,33 @@
+Edited lists,Raw list,List name,Jurisdiction,Shape
+ACT_Weeds,ACT_PestList,ACT Invasive Plants and Plant Pests,ACT,YES
+AUS_ACPPO,,AUS ACPPO Plant Pests,Commonwealth,NO
+AUS_CEBO,,"AUS CEBO Pest, Weeds & Diseases",Commonwealth,NO
+NSW_Marine,NSW Marine,NSW DPI Aquatic Pests,NSW,NO
+NSW_TerrestrialPests,NSW PestList,NSW DPI Invasive Arthropods,NSW,NO
+NSW_Weeds,NSW Weeds,NSW DPI Weeds,NSW,NO
+QLD_InvasiveAnts,QLD Ants,QLD DAF  Invasive Ants,QLD,NO
+QLD_InvasivePests&Animals,QLD Invasive Plants and Animals,QLD DAF Invasive Plant & Animals,QLD,NO
+QLD_MarinePests,QLD Invasive Plants and Animals,QLD DAF Marine Pests,QLD,NO
+QLD_OtherAquaticPests,QLD Invasive Plants and Animals,QLD DAF Aquatic Pests,QLD,NO
+QLD_PlantHealth,QLD PlantBiosecuirty,QLD DAF Plant Pests,QLD,NO
+VIC_InvasivePlants,VIC_InvasivePlants,VIC Ag Weeds ,VIC,NO
+VIC_Marine,VIC_Marine,VIC Ag Aquatic Pests,VIC,NO
+VIC_PlantApiary,VIC_PlantPestDiseases,VIC Ag Apiary Pests,VIC,NO
+VIC_PlantEntomology,VIC_PlantPestDiseases,VIC Ag Plant Pests,VIC,NO
+VIC_PlantPathology,VIC_PlantPestDiseases,VIC Ag Plant Pathogens,VIC,NO
+WA_Entomology,WA_PestList,WA DPIRD Invasive Arthropods,WA,NO
+WA_PlantPathology,WA_PestList,WA Plant Pathology,WA,NO
+Wingecarribee_Weed,Wingecarribee_Weeds,LGA Wingecarribee Weeds,LGA's,NO
+TAS_PlantPest,TAS_PlantPests_AndrewBishop.xlsx,TAS NRE Plant Pests,TAS,NO
+VIC_DEECA_Weeds,VIC_DEEVA_Weeds_AnnieLamb,VIC DEECA Weeds,VIC,YES
+NSW_DPI_CaneToads,NSW_DPI_CaneToads_QuentinHart,NSW DPI Cane Toads,NSW,YES - FREE only
+NSW_NPWS_CentralTablelands_Weeds,NSW_NPWS_BMB_Weeds_List,NPWS Central Tablelands - Weeds,NSW,Yes
+NSW_NPWS_CentralWest_Weeds,NSW_NPWS_BMB_Weeds_List,NPWS Central West Weeds,NSW,Yes
+NSW_NPWS_GreaterSydney_Weeds,NSW_NPWS_BMB_Weeds_List,NPWS Greater Sydney Weeds,NSW,Yes
+NSW_NPWS_Hunter_Weeds,NSW_NPWS_BMB_Weeds_List,NPWS Hunter Weeds,NSW,Yes
+NSW_NPWS_InvasiveSpeciesUnit,NSW_NPWS_Weeds_list,NPWS InvasiveSpeciesUnit,NSW,Yes
+NSW_NPWS_NorthCoast_Weeds,NSW_NPWS_Weeds_list,NPWS NorthCoast Weeds,NSW,Yes
+NSW_NPWS_Southeast_Weeds,NSW_NPWS_BMB_Weeds_List,NPWS Southeast Weeds,NSW,Yes
+NSW_NPWS_SouthernRanges_Weeds,NSW_NPWS_Weeds_list.xlsx,NPWS SouthernRanges Weeds,NSW,Yes
+VIC_DEECA_VertebratePests,VIC_DEECA_VertebratePests_DanaPrice,VIC DEECA Vertebrate Pests,VIC,NO
+VIC_Delwp_FeralPigs,VIC_Delwp_FeralPigs_JonathanMelling,VIC DELWP Feral Pigs,VIC,NO

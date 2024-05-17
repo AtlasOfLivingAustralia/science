@@ -10,6 +10,8 @@ This contains various scripts and data I used throughout the duration of the bio
 
 -   `ba_collate_csvs.R` - a script that was used to demo the collation of existing csvs in preparation for adding this code into the `s4` script in the `b-a` repository.
 
+-   `alerts_paper_figures.R` - a directory containing all scripts, data files and pdfs used to created the images for the biosecurity alerts paper led by Erin Roger
+
 -   `dummy_biosecurity_lists/` - a set of five short dummy lists used for testing
 
 -   `dummy_testing_files/` - a set of dummy testing scripts and some of their outputs, from across various stages of the biosecurity project. The most up-to-date testing functions, which contain the entire koel workflow in raw form, are `test_fns.R`, `test_fns_koel.R`, and `test_fns_Shandiya.R`.
