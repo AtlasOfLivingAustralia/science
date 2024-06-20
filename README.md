@@ -5,10 +5,8 @@ This is a working repository for R code produced by the ALA Science & Decision S
 - Dax Kellie
 - Olivia Torresan
 - Shandiya Balasubramaniam
-- Amanda Buyan (c/o EcoCommons)
+- Amanda Buyan
 - Juliet Seers
-- Callum Waite
-- Andrew Schwenke
 
 ## Folder structure
 The repo stores two main types of outputs:
