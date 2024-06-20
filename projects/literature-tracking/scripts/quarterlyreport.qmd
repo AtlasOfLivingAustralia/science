@@ -1,190 +1,181 @@
 ---
 title: "Publication tracker reporting"
 toc: true
+editor_options: 
+  chunk_output_type: console
 ---
 
-**Advisory Board: Quarterly Review**
+# Advisory Board: Quarterly Review
 
-Every four months the ALA is required to provide the Advisory Board an overview of major activities and outcomes. This includes a short section of \~250 words that summarises the research impact over this time.\
-\
-**The total amount of publications with any mention, citation or use of the ALA are provided in the quarterly report as well as the amount both citing and using the ALA.**
+Every four months the ALA is required to provide the Advisory Board an overview of major activities and outcomes. This includes a short section of \~250 words that summarises the research impact over this time. **The total number of publications with any mention, citation or use of the ALA are provided in the quarterly report as well as the amount both citing and using the ALA.**
 
-The quarterly review is generally updated [here](https://csiroau.sharepoint.com/:w:/r/sites/AtlasofLivingAustralia-LeadershipTeam/_layouts/15/Doc.aspx?sourcedoc=%7BD5030E16-B726-452B-B044-2E68CCE89D86%7D&file=03%20-%20ALA_Advisory_Board_18_Item_2_Directors_Update.docx&action=default&mobileredirect=true), and time of update is at request:
+> This code was last updated on 2024-06-20.
 
-> This code was last updated on 2023-07-25.
+The quarterly review is generally updated [here](https://csiroau.sharepoint.com/:w:/r/sites/AtlasofLivingAustralia-LeadershipTeam/_layouts/15/Doc.aspx?sourcedoc=%7BD5030E16-B726-452B-B044-2E68CCE89D86%7D&file=03%20-%20ALA_Advisory_Board_18_Item_2_Directors_Update.docx&action=default&mobileredirect=true).
 
-> The last report looked at publications added between 2023-03-09 (9th of March 2023) and 2023-07-04 (4th of July 2023) with a publication date within 2023. Therefore, the next quarterly review will start from the **5th of July 2023**.
+## Data
 
-> Data to run this code can be found [here](https://csiroau.sharepoint.com/:f:/r/sites/AtlasofLivingAustralia/Shared%20Documents/Science%20and%20Decision%20Support/Data/science/projects/literature-tracking/data?csf=1&web=1&e=M5hBEt), and within this repo: science - projects - literature-tracking - data (set to .gitignore).
+#### Downloading data from Zotero
 
-# Step 1 - Data cleaning:
+Before running this script, you will need to export the Zotero latest Library of "ALA - Cited" (the top folder). You can do this by selecting **File \> Export library** in the desktop application. Save the Library as a .csv file and save it in `./projects/literature-tracking/data/` and save it on your local system.
 
-1.  Load required packages
+Data to run this code can be found [here](https://csiroau.sharepoint.com/:f:/r/sites/AtlasofLivingAustralia/Shared%20Documents/Science%20and%20Decision%20Support/Data/science/projects/literature-tracking/data?csf=1&web=1&e=M5hBEt), and within this repo: science - projects - literature-tracking - data (set to .gitignore).
 
-```{r}
-#| message: false
-library(here)
-library(tidyverse)
-library(janitor)
-library(lubridate)
-```
-
-2.  Load in exported .csv from Zotero
-
-First you will need to export the latest encompassing .csv from Zotero and save it on your local system. You can do this by selecting **File \> Export library** in the desktop application.
+#### Load data
 
 ```{r}
 #| message: false
 #| warning: false
-data <- read_csv(here("projects", "literature-tracking", "data", "1nov23.csv"))
-```
+# packages
+library(here)
+library(tidyverse)
+library(janitor)
+library(lubridate)
 
-3.  Clean column names - it will make it easier to process and interpret the data.
+# Load data
+data <- read_csv(here("projects", 
+                      "literature-tracking", 
+                      "data", 
+                      "2024-06-20_publications.csv"
+                      ))
 
-```{r}
-dataclean <- janitor::clean_names(data) 
+# Wrangle
+# extract relevant date data in correct format, select columns
+dataclean <- data |>
+  clean_names() |> # clean column names
+  mutate(
+    date_added_clean = lubridate::ymd_hms(date_added),
+    date_added_month = month(date_added_clean, label = TRUE),
+    date_added_year = year(date_added_clean)
+    ) |>
+  select(title, date, place, publication_year, item_type, 
+         url, manual_tags, date_added, date_added_clean, 
+         date_added_month, date_added_year)
+
 dataclean
 ```
 
-4.  We also want to make sure the date is the same across every entry so that it processes correctly when we filter it. `as_date` standardises all date data to `yyyy-mm-dd`. We also add a new column that extracts just the month and year for the month by month analysis below.\
+Specify date range:
 
 ```{r}
-dataclean2 <- dataclean |>
-  mutate(
-    date_added_clean = as_date(date_added),
-    date_added_month = month(date_added_clean),
-    date_added_year = year(date_added_clean)) |>
-   select(title, date, place, publication_year, item_type, url, manual_tags, date_added, date_added_clean, date_added_month, date_added_year)
-dataclean2
+publications_in_date_range <- dataclean |>
+  filter(date_added_clean >= ymd("2024-03-08")) |>
+  filter(date_added_clean <= ymd("2024-06-20")) |>
+  filter(publication_year == c("2024"))
 ```
 
-# Step 2 - Summaries:
+## Summaries:
 
-## Month by month
+#### Overall
 
-> This isn't usually required in the quarterly review, but it may be requested at times.
-
-1.  Here, we filter all publications added after a set date (dd/mm/yyyy) to a select date (dd/mm/yyyy). We also restrict to only those that are published in 2022+23 (sometimes old papers come in later in the tracker, we aren't really interested in these as they aren't recent).\
+Total publications
 
 ```{r}
-publicationbymonth <- dataclean2 |>
-  filter(date_added_clean >= ymd("2023-07-04")) |>
-  filter(date_added_clean <= ymd("2023-11-01")) |>
-  filter(publication_year == c("2023")) |>
+publications_in_date_range |>
+  count()
+```
+
+Publications by month (This isn't usually required in the quarterly review, but it may be requested at times)
+
+```{r}
+# Publication by month for specific date range
+publications_in_date_range |>
   group_by(date_added_month, date_added_year) |>
   count() 
-publicationbymonth
 ```
 
-2.  Sum all publications by month
+#### By tag
+
+1.  Now let's analyse this by tags (1- ALA used and 2 - ALA cited are the most important here). We'll use the above `dataclean2` dataset. We need to clean the tags as they have white space and numbers that will interfere with our filtering.\
+
+First we remove the numbers, create a new column named tags and remove the prefixes.
 
 ```{r}
-total_sum <- sum(publicationbymonth$n) |>
-  print()
-```
+prefix <- c("1 - ", "2 - ", "3 - ", "4 - ", "5 - ", "6 - ") # text to remove
 
-## Tags
-
-1.  Now let's analyse this by tags (1- ALA used and 2 - ALA cited are the most important here). We'll use the above `dataclean2` dataset.
-
-```{r}
-dataclean3 <- dataclean2 |> 
-  filter(date_added_clean >= ymd("2023-07-04")) |>
-  filter(date_added_clean <= ymd("2023-11-01")) |>
-  filter(publication_year == c("2023")) 
-```
-
-2.  We need to clean the tags as they have white space and numbers that will interfere with our filtering.\
-    First we remove the numbers, create a new column named tags and remove the prefixes.
-
-```{r}
-remove <- c("1 - ", "2 - ", "3 - ", "4 - ", "5 - ", "6 - ") # list numbers you want removed
-
-dataclean4 <- dataclean3 %>% # remove numbers
-  mutate( # make new column called "tags"
-    tags = str_remove_all(dataclean3$manual_tags, # remove prefix
-                          paste(remove, collapse = "|")) 
+# remove prefix
+tags_clean <- publications_in_date_range %>% # remove numbers
+  mutate( 
+    tags = str_remove_all(manual_tags, 
+                          paste(prefix, collapse = "|")) 
   )
 ```
 
-3.  Second, we place these tags into separate rows for the same paper. Tag names are split where semicolons are, and the `unnest` function makes them occupy multiple rows.
+2.  Because a single article might have more than one tag, we'll split each row into multiple rows with one for each tag.
 
 ```{r}
-## Filtering Tags
-
-# separate manual tags into separate rows (multiple entries for one paper if inc. many tags)
-ALA_tags <- dataclean4 %>%
+# Separate tags into separate rows (allowing more than one row per paper)
+ALA_tags <- tags_clean %>%
   mutate(tags = strsplit(as.character(tags), ";")) %>% # split names where there is a semicolon
-  unnest(tags) # make them occupy multiple rows
-
-# trim whitespace from tags
-ALA_tags <- ALA_tags %>% # remove numbers
+  unnest(tags) %>% # make them occupy multiple rows
   mutate(
     tags = str_trim(tags) # trim whitespace around string 
   )
 ```
 
-# Publications citing/using ALA  
-
-The number reported will be (a + b). Here, that is 91 papers citing and using the ALA.
+##### Publications citing/using ALA
 
 a)  All publications citing the ALA:
 
 ```{r}
-ALA_cited <- ALA_tags |>
+cited <- ALA_tags |>
   filter(tags == "ALA cited")
-ALA_cited
+cited
 ```
 
-b)  All publications using the ALA:
+b)  All publications using ALA data:
 
 ```{r}
-usedjournals <- ALA_tags |>
+used <- ALA_tags |>
   filter(tags == "ALA used")
-usedjournals
+used
 ```
 
-c) Total Cited + Used
+c)  Total
 
 ```{r}
-nrow(ALA_cited) + nrow(usedjournals)
+nrow(cited) + nrow(used)
 ```
 
-
-
-## Journal articles citing/using ALA
+##### Journal articles citing/using ALA
 
 > These numbers are also not reported in the quarterly report, but sometimes it is of interest to investigate how many of these publications are journal articles.
 
 c)  Citing the ALA
 
 ```{r}
-citedjournals <- ALA_tags %>%
+citedjournals <- ALA_tags |>
   filter(tags == "ALA cited") |>
   filter(item_type == "journalArticle") 
-usedjournals
+
+citedjournals
 ```
 
 d)  Using the ALA
 
 ```{r}
-citedjournals <- ALA_tags %>%
+citedjournals <- ALA_tags |>
   filter(tags == "ALA used") |>
   filter(item_type == "journalArticle") 
+
 usedjournals
 ```
 
-# Open select publications
+##### Open select publications
 
 If you want to open a select handful of publications in your browser quickly, you can do so by using this code:
 
+**WARNING: This opens lots of tabs in your browser. Don't run unless you really want to do this**
+
 ```{r}
 #| eval: false
-usedjournals |>
-  mutate(url = map(url, browseURL)) #this code will take all of the url's in the url column and open them in your default browser (NA's excluded, so be sure to check those through Zotero)
+# Take all of the url's in the url column and open them in your default browser 
+# (NA's excluded, so be sure to check those through Zotero)
+used |>
+  mutate(url = map(url, browseURL)) 
 ```
 
-# Summary example:
+## Summary example:
 
 **Research Impact**
 
