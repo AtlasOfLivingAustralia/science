@@ -463,3 +463,11 @@ litsum <- ggplot(top_10, aes(x = count, y = tags)) +
   scale_fill_manual(values = custom_palette)
 litsum
 ```
+
+```{r}
+
+library(tmaptools)
+
+
+ggsave("litcategories.jpg", plot = litsum, width =  9, height = 8, dpi = 300)
+```
