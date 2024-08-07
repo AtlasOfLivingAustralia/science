@@ -18,9 +18,9 @@ They are:
 3.  **Top 10 journal articles (grand total + yearly)**
 4.  **Research domains or categories citing the ALA**
 
-> This code was last updated on 2023-10-23 (yyyy/mm/dd). 
+> This code was last updated on 2023-10-23 (yyyy/mm/dd).
 >
-> Data to run this code can be found [here](https://csiroau.sharepoint.com/:f:/r/sites/AtlasofLivingAustralia/Shared%20Documents/Science%20and%20Decision%20Support/Data/science/projects/literature-tracking/data?csf=1&web=1&e=M5hBEt), and within this repo: science - projects - literature-tracking - data (set to .gitignore). You can export the current literature tracking repository by accessing Zotero ([how here](https://confluence.csiro.au/display/ALASD/Using+Zotero)) and choosing File > Export library (as .csv).
+> Data to run this code can be found [here](https://csiroau.sharepoint.com/:f:/r/sites/AtlasofLivingAustralia/Shared%20Documents/Science%20and%20Decision%20Support/Data/science/projects/literature-tracking/data?csf=1&web=1&e=M5hBEt), and within this repo: science - projects - literature-tracking - data (set to .gitignore). You can export the current literature tracking repository by accessing Zotero ([how here](https://confluence.csiro.au/display/ALASD/Using+Zotero)) and choosing File \> Export library (as .csv).
 
 # Step 1 - Data cleaning:
 
@@ -42,7 +42,7 @@ First you will need to export the latest encompassing .csv from Zotero and save 
 #| message: false
 #| warning: false
 
-data <- read_csv(here("projects", "literature-tracking", "data", "5dec23zotero.csv"))
+data <- read_csv(here("projects", "literature-tracking", "data", "25july2024zotero.csv"))
 ```
 
 3.  Clean column names - it will make it easier to process and interpret the data.
@@ -74,7 +74,7 @@ In this section we collate the number of **journal articles** mentioning, citing
 >
 > In 2022, it was decided to exclude this tag from the library (held on file) as GBIF's direct downloads are not always related to the ALA's own research impact.
 
-###Calender year:
+### Calendar year:
 
 ```{r}
 # Annual calendar  (not financial year) journal numbers. Note the current year will show 6 months of data Jan-June or up until the date these numbers are reproduced (generally June)
@@ -101,7 +101,7 @@ ggplot(apublicationbyyear, aes(x = n, y = publication_year)) +
     axis.ticks = element_blank()) + scale_x_continuous(expand = c(0, 2))
 ```
 
-###Financial year:
+### Financial year:
 
 ```{r}
 library(dplyr)
@@ -113,8 +113,8 @@ dataclean2$publication_date <- ymd(dataclean2$publication_date)
 # Create an empty data frame to store the results
 result_df <- data.frame()
 
-# Iterate through each financial year from 2006-2007 to 2022-2023
-for (year in 2006:2022) {
+# Iterate through each financial year from 2006-2007 to 2023-2024 - change the second year here each year this needs to be reproduced 
+for (year in 2006:2023) {
   # Calculate the start and end dates for the financial year
   start_date <- if (year == 2006) {
     ymd(paste(year, "-06-30", sep = ""))
@@ -145,14 +145,11 @@ for (year in 2006:2022) {
 result_df
 ```
 
-
-
 ```{r}
 # Load the ggplot2 library if it's not already loaded
 library(ggplot2)
 library(ggthemes)
 
-# Assuming you have a data frame named 'result_df' with columns 'n' and 'Financial_Year'
 
 # Create a horizontal bar plot
 ggplot(result_df, aes(x = n, y = Financial_Year)) +
@@ -169,19 +166,19 @@ ggplot(result_df, aes(x = n, y = Financial_Year)) +
 
 ## Total to journal article ratio
 
-*Total* to *journal only* publications within the current financial year: \
+*Total* to *journal only* publications within the current financial year:\
 \
 NOTE: Publications that are *not* journal articles rarely list a publication `date` in a dd/mm/yyyy format, and there is no streamlined method to correct mass records if they have been missed in the past to this format without a DOI (for journal articles, I have used ZotMeta). For a financial year analysis, data needs to be in a dd/mm/yyyy format. Therefore, for publications other than `journal_article`s we have substituted `date_added` (dd/mm/yyyy format), restricted by the current `publication_year` under the justification that publications are (*most* of the time) added within a similar range of them being published. We use `publication_date` for `journal_article`s.
 
-1. Updated code (2023-10-23)
+1.  Updated code (2023-10-23)
 
 ```{r}
 #non-journal ratio
 nonjournalstotalfy <- dataclean2 |>
   filter(item_type != "journalArticle") |>
-  filter(date_added_clean >= ymd("2022-06-30")) |>
-  filter(date_added_clean <= ymd("2023-06-30")) |>
-  filter(publication_year == "2022" | publication_year == "2023") |>
+  filter(date_added_clean >= ymd("2023-06-30")) |> # change these numbers to represent financial year 
+  filter(date_added_clean <= ymd("2024-06-30")) |>
+  filter(publication_year == "2023" | publication_year == "2024") |>
   count() |>
   drop_na() 
 nonjournalstotalfy
@@ -191,9 +188,9 @@ nonjournalstotalfy
 # journal ratio *
 journalstotalfy <- dataclean2 |>
   filter(item_type == "journalArticle") |>
-  filter(publication_date >= ymd("2022-06-30")) |>
-  filter(publication_date <= ymd("2023-06-30")) |>
-  filter(publication_year == "2022" | publication_year == "2023") |>
+  filter(publication_date >= ymd("2023-06-30")) |> # change these numbers to represent financial year 
+  filter(publication_date <= ymd("2024-06-30")) |>
+  filter(publication_year == "2023" | publication_year == "2024") |>
   count() |>
   drop_na() 
 journalstotalfy
@@ -205,9 +202,9 @@ totalpubsbyfy <- nonjournalstotalfy + journalstotalfy
 totalpubsbyfy
 ```
 
-2. Previous code (expandable) (before publication date to (dd/mm/yyyy) data cleaning - see filtering justifications below)
+2.  Previous code (expandable) (before publication date to (dd/mm/yyyy) data cleaning - see filtering justifications below)
 
-2022 (prior to cleaning, for '23 report): 
+2022 (prior to cleaning, for '23 report):
 
 ```{r}
 #| code-fold: true
@@ -234,7 +231,7 @@ dataclean2 |>
   drop_na() 
 ```
 
-2021: 
+2021:
 
 ```{r}
 #| code-fold: true
@@ -246,7 +243,6 @@ dataclean2 |>
   group_by(publication_title) |>
   count()
 ```
-
 
 ## Top journal articles
 
@@ -302,8 +298,7 @@ top10currentyear$publication_title[1:10]
 
 -   Similarly, a paper may be published online but the listed publication `date` can be some months in advance as it reflects when the physical copy is released. While a paper may have been added and accessible online, it may be excluded from the financial year report if the physical release is outside of this date. As we have done before data cleaning (see below), using `date_added` and restricting to the relevant `publication_year`s, on the other hand, may exclude papers that were added outside of the financial year period but have a publication `date` within it. This seems to be the less likely occurrence and the more logical choice between the two.
 
-- On the 19/10/2023, data were cleaned so that `publication_date` for all records are listed as close to dd/mm/yyyy instead of predominately yyyy. This means a holistic analysis by year (financial year) analysis of literature tracking is now possible. 2006-2016 data were cleaned manually, and 2017-2023 were cleaned using the ZotMeta add-on. Online publication dates were preferred and used over original/physical publication dates, but in cases where the online publication date only listed year, the original dd/mm/yyyy publication date was used. If neither were available - note that the date was listed as January of the available year (e.g 01/yyyy).
-
+-   On the 19/10/2023, data were cleaned so that `publication_date` for all records are listed as close to dd/mm/yyyy instead of predominately yyyy. This means a holistic analysis by year (financial year) analysis of literature tracking is now possible. 2006-2016 data were cleaned manually, and 2017-2023 were cleaned using the ZotMeta add-on. Online publication dates were preferred and used over original/physical publication dates, but in cases where the online publication date only listed year, the original dd/mm/yyyy publication date was used. If neither were available - note that the date was listed as January of the available year (e.g 01/yyyy).
 
 ### 2021 YiR error
 
@@ -317,7 +312,7 @@ You can find the GBIF papers removed from Zotero on file [here](https://csiroau.
 
 2.  Financial vs. calendar year
 
-In addition to this, we *also* did not restrict the year to papers within the '21-'22 **financial year** specifically for the 21-22' report. We only presented **total to journal article ratios** in the full data **calendar year** of the earlier year (**2021**). The code below is what was used (using the `30thjune21.csv`). It is unclear whether this has always been the method of reporting during YiR as no documentation has been provided for these metrics. From '23 onwards, we have decided to change this to the *financial year* due to it being a more recent metric and allows the more recent year to be equally compared to the others. 
+In addition to this, we *also* did not restrict the year to papers within the '21-'22 **financial year** specifically for the 21-22' report. We only presented **total to journal article ratios** in the full data **calendar year** of the earlier year (**2021**). The code below is what was used (using the `30thjune21.csv`). It is unclear whether this has always been the method of reporting during YiR as no documentation has been provided for these metrics. From '23 onwards, we have decided to change this to the *financial year* due to it being a more recent metric and allows the more recent year to be equally compared to the others.
 
 ```{r}
 #| code-fold: true
@@ -337,7 +332,134 @@ Thinking about best practice for reporting in the data filtering points above, a
 
 ## Top research domains
 
-We also include a research domain section that quantifies the the top 10 different fields of research the ALA has been utilized across. This involves text mining, and is a little more complex than the last analyses.\
-\
+In 2021, we included a research domain section that quantifies the the top 10 different fields of research the ALA has been utilized in (using text mining). In 2023, we started to tag research papers using broad categories in line with GBIF. For this summary, we'll use *financial year* instead of *calendar year* so it is a more holistic representation.
 
-To be added - Martin on file (?)
+\
+*First set the dates to incorporate the financial year of interest.*
+
+```{r}
+dataclean3 <- dataclean2 |> 
+  filter(date_added_clean >= ymd("2023-07-01")) |>
+  filter(date_added_clean <= ymd("2024-06-01")) |>
+  filter(publication_year == c("2023", "2024")) 
+dataclean3
+```
+
+First let's remove the numbers that are used for tagging in Zotero and then remove any white spaces that might interfere with filtering.
+
+```{r}
+remove <- c("1 - ", "2 - ", "3 - ", "4 - ", "5 - ", "6 - ") # list numbers you want removed
+dataclean4 <- dataclean3 %>% # remove numbers
+  mutate( # make new column called "tags"
+    tags = str_remove_all(dataclean3$manual_tags, # remove prefix
+                          paste(remove, collapse = "|")) 
+  )
+```
+
+Second, we place these tags into separate rows for the same paper. Tag names are split where semicolons are, and the `unnest` function makes them occupy multiple rows.
+
+```{r}
+## Filtering Tags
+# separate manual tags into separate rows (multiple entries for one paper if inc. many tags)
+ALA_tags <- dataclean4 %>%
+  mutate(tags = strsplit(as.character(tags), ";")) %>% # split names where there is a semicolon
+  unnest(tags) # make them occupy multiple rows
+# trim whitespace from tags
+ALA_tags <- ALA_tags %>% # remove numbers
+  mutate(
+    tags = str_trim(tags) # trim whitespace around string 
+  )
+```
+
+```{r}
+used <- ALA_tags |>
+  filter(tags == "ALA used" | tags %in% c("AGRICULTURE", "BIODIVERSITY SCIENCE", "BIOGEOGRAPHY", "CITIZEN SCIENCE", "CLIMATE CHANGE", "CONSERVATION", "DATA MANAGMENT", "DNA", "ECOLOGY", "ECOSYSTEM SERVICES", "EVOLUTION", "INVASIVE SPECIES", "MARINE", "PHYLOGENETICS", "SPECIES DISTRIBUTION", "TAXONOMY"))
+used
+```
+
+Now, we need a count for each tag:
+
+```{r}
+tag_counts <- ALA_tags |>
+  group_by(tags) |>
+  summarise(count = n()) 
+  
+selected_tags <- c("AGRICULTURE", "BIODIVERSITY SCIENCE", "BIOGEOGRAPHY", "CITIZEN SCIENCE", "CLIMATE CHANGE", "CONSERVATION", "DATA MANAGMENT", "DNA", "ECOLOGY", "ECOSYSTEM SERVICES", "EVOLUTION", "INVASIVE SPECIES", "MARINE", "PHYLOGENETICS", "SPECIES DISTRIBUTION", "TAXONOMY")
+
+filtered_tags <- tag_counts %>%
+  filter(tags %in% selected_tags)
+filtered_tags
+```
+
+```{r}
+total_tags <- sum(filtered_tags$count)
+total_tags
+```
+
+```{r}
+percents <- filtered_tags %>%
+  mutate(perc = paste0(sprintf("%4.1f", count / total_tags * 100), "%"))
+percents
+```
+
+check percents add to 10
+
+```{r}
+numeric_percentages <- as.numeric(sub("%", "", percents$perc))
+# Sum the numeric percentages
+total_sum <- sum(numeric_percentages)
+total_sum
+```
+
+reorder for largest to smallest in bar plot
+
+```{r}
+# count column needs to be a numeric not integer, convert first
+
+percents$count <- as.numeric(percents$count)
+
+
+percents <- percents |>
+  mutate(tags = reorder(tags, count))  # You can use .fun = mean if median is not appropriate
+percents
+```
+
+\
+choose top 10 only
+
+```{r}
+top_10 <- percents |> 
+  slice_max(order_by = count, n = 10, with_ties = FALSE)
+top_10
+```
+
+make palette
+
+```{r}
+custom_palette <- c("#003A70", "#6CDE4B", "#DE4BC3", "#F26649", "#E0AA51", "#895C81", "#667073", "#691C32", "#6BDAD5", "#B7CD96")
+```
+
+plotting :)
+
+```{r}
+extrafont::loadfonts(device = "win", quiet = TRUE)
+theme_set(theme_minimal(base_family = "Roboto"))
+
+litsum <- ggplot(top_10, aes(x = count, y = tags)) +
+  geom_col(fill = custom_palette) +
+  geom_text(
+    aes(label = paste(tags, perc, sep = "\n")),
+    position = position_nudge(x = -0.5),
+    hjust = 1,
+    vjust = 0.5,  # Center the label vertically
+    color = "white", size = 2.5, fontface = "bold"  # Adjust text color, size, and fontface for bold
+  ) +
+  theme(
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    panel.grid = element_blank(),
+    text = element_text(family = "Roboto", color = "white", face = "bold")  # Set font family, text color, and bold
+  ) +
+  scale_fill_manual(values = custom_palette)
+litsum
+```
