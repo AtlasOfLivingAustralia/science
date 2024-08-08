@@ -9,6 +9,7 @@ When our data is ordered alphabetically, though, you can see each genera as "clu
 
 ```{r}
 library(arrow)
+library(here)
 library(galah)
 library(tidyverse)
 library(ozmaps)
@@ -45,9 +46,8 @@ write_parquet(filteredparrotpoints, "parrots") #alphabetically ordered, filtered
 START HERE TO AVOID LONG DOWNLOAD
 
 ```{r}
-
-parquet_parrots <- read_parquet("parrots") # alphabetically ordered, filtered NA genus data 
-parquet2_parrots <- read_parquet("parrots2") # not alphabetically ordered, random data 
+parquet_parrots <- here("2023-05-31_parrot-plumage-map", "data", "parrots")
+parquet2_parrots <- here("2023-05-31_parrot-plumage-map", "data", "parrots2")
 ```
 
 Match filtered data (alphabetically ordered) to the random ordered non-filtered data that plotted pretty. We'll filter anything with a keep_me = 1 in the final ggplot step:
