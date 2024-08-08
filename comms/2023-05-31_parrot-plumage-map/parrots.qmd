@@ -3,8 +3,8 @@ title: "parrots"
 author: Olivia Torresan & Dax Kellie 
 ---
 
-This data visualisation presents parrot genera (*Psittaciformes*) by dominant plumage colours in Australia. The points in this graph are plotted entirely randomly, and as a result, the colored effect doesn't necessarily reflect regions with more or less of that genera and is purely for aesthetic value. There might be a trend, but it isn't able to be measured this way. \
-\
+This data visualisation presents parrot genera (*Psittaciformes*) by dominant plumage colours in Australia. The points in this graph are plotted entirely randomly, and as a result, the colored effect doesn't necessarily reflect regions with more or less of that genera and is purely for aesthetic value. There might be a trend, but it isn't able to be measured this way. 
+
 When our data is ordered alphabetically, though, you can see each genera as "clumps" because each point is plotted after the other from start to finish. We found that some filtering methods automatically attribute your data alphabetically, so to maintain randomness (and aesthetic value) but to filter the data effectively, we had to do a few extra steps.
 
 ```{r}
@@ -36,7 +36,7 @@ filteredparrotpoints <- parrotpoints |>
   filter(!(basisOfRecord == "PRESERVED_SPECIMEN"))
 ```
 
-save as parquet:
+Save as parquet:
 
 ```{r}
 write_parquet(parrotpoints, "parrots2") #not alphabetically ordered, random data 
@@ -44,6 +44,8 @@ write_parquet(filteredparrotpoints, "parrots") #alphabetically ordered, filtered
 ```
 
 START HERE TO AVOID LONG DOWNLOAD
+
+These parquets are too large to upload to GitHub repo. They can be located in Teams [here](https://csiroau.sharepoint.com/:f:/r/sites/AtlasofLivingAustraliaTeams/Shared%20Documents/Teams/Science%20and%20Decision%20Support/Projects/data_visualisations/scripts/2023_parrot-plumage-vis/data?csf=1&web=1&e=G95Lan) and placed in the appropriate local directory as below for the code to run. 
 
 ```{r}
 parquet_parrots <- here("comms", "2023-05-31_parrot-plumage-map", "data", "parrots")
@@ -64,7 +66,7 @@ parrotsmatched <- parquet2_parrots |>
 parrotsmatched
 ```
 
-\
+
 List genera needing allocated plumage colour:
 
 ```{r}
@@ -74,7 +76,7 @@ parrotgenuslist <- parquet_parrots |>
 parrotgenuslist
 ```
 
-\
+
 Allocate plumage colours:
 
 ```{r}
