@@ -1,0 +1,151 @@
+---
+title: "parrots"
+author: Olivia Torresan & Dax Kellie 
+---
+
+This data visualisation presents parrot genera (*Psittaciformes*) by dominant plumage colours in Australia. The points in this graph are plotted entirely randomly, and as a result, the colored effect doesn't necessarily reflect regions with more or less of that genera and is purely for aesthetic value. There might be a trend, but it isn't able to be measured this way. \
+\
+When our data is ordered alphabetically, though, you can see each genera as "clumps" because each point is plotted after the other from start to finish. We found that some filtering methods automatically attribute your data alphabetically, so to maintain randomness (and aesthetic value) but to filter the data effectively, we had to do a few extra steps.
+
+```{r}
+library(arrow)
+library(galah)
+library(tidyverse)
+library(ozmaps)
+library(skimr)
+library(arrow)
+galah_config(email = "your-email-here")
+```
+
+```{r}
+#parquet pre-downloaded below - this is original download code, but will take some time to download
+parrotpoints <- galah_call() |>
+  galah_identify("Psittaciformes") |>
+  galah_apply_profile(ALA) |>
+  galah_select(genus, recordID, group = "basic") |>
+  atlas_occurrences()
+```
+
+
+```{r}
+# when filtering like this, data is organised alphabetically which doesn't give our map the desired effect
+filteredparrotpoints <- parrotpoints |>
+  filter(!is.na(genus)) |>
+  filter(!is.na(cl1048)) |> # only include terrestrial data 
+  filter(!(basisOfRecord == "PRESERVED_SPECIMEN"))
+```
+
+save as parquet:
+
+```{r}
+write_parquet(parrotpoints, "parrots2") #not alphabetically ordered, random data 
+write_parquet(filteredparrotpoints, "parrots") #alphabetically ordered, filtered data 
+```
+
+START HERE TO AVOID LONG DOWNLOAD
+
+```{r}
+
+parquet_parrots <- read_parquet("parrots") # alphabetically ordered, filtered NA genus data 
+parquet2_parrots <- read_parquet("parrots2") # not alphabetically ordered, random data 
+```
+
+Match filtered data (alphabetically ordered) to the random ordered non-filtered data that plotted pretty. We'll filter anything with a keep_me = 1 in the final ggplot step:
+
+```{r}
+parrotstag <- parquet_parrots |>
+  mutate(keep_me = rep(1)) # add keep column for the alphabetically ordered / filtered data 
+parrotstag
+```
+
+```{r}
+parrotsmatched <- parquet2_parrots |>
+  left_join(parrotstag, by = ("recordID" = "recordID")) #join not alphabetically ordered data (non filtered) to the alphabetically ordered data (filtered) by record_ID column to maintain random order. 
+parrotsmatched
+```
+
+\
+List genera needing allocated plumage colour:
+
+```{r}
+parrotgenuslist <- parquet_parrots |>
+  group_by(genus) |>
+  summarise(total_count=n()) 
+parrotgenuslist
+```
+
+\
+Allocate plumage colours:
+
+```{r}
+custom_colours2 <- c("Alisterus" = "#E42525",
+"Aprosmictus" = "#88FF00",
+"Barnardius" = "#485F2F",
+"Cacatua" = "#E7E247",
+"Callocephalon" = "#9F9F9F",
+"Calyptorhynchus" = "#6A5B6E",
+"Cyanoramphus" = "#728639",
+"Cyclopsitta" = "#B3FF5C",
+"Eclectus" = "#8B0000",
+"Eolophus" = "#FFC0CB",
+"Geoffroyus" = "#00FFFF",
+"Glossopsitta" = "#0000FF",
+"Lathamus" = "#008000",
+"Lophochroa" = "#FFB6C1",
+"Melopsittacus" = "#FFFF00",
+"Neophema" = "#00BFFF",
+"Neopsephotus" = "#FF69B4",
+"Northiella" = "#FF0000",
+"Nymphicus" = "#FFFDD0",
+"Parvipsitta" = "#ADD8E6",
+"Pezoporus" = "#006400",
+"Platycercus" = "#FF4500",
+"Polytelis" = "#8DB600",
+"Probosciger" = "#404040",
+"Psephotus" = "#B0C4DE",
+"Psitteuteles" = "#7FFF00",
+"Purpureicephalus" = "#800080",
+"Trichoglossus" = "#FFA500",
+"Zanda" = "#000000")
+
+```
+
+```{r}
+library(ozmaps)
+aus <- ozmap_data(data = "country")
+
+parrotmap <- ggplot() +
+  geom_sf(data = aus, fill = NA, lwd = 0) +
+  geom_point(
+    data = parrotsmatched |>
+      filter(keep_me == 1), # we use this to filter records & maintain random ordering. it also removes ocean points 
+    size = 1.5,
+   mapping = aes(
+    x = decimalLongitude.x,
+    y = decimalLatitude.x,
+    colour = genus.x),
+    alpha = 0.5) +
+  scale_color_manual(values = custom_colours2) +
+  theme_void() +
+  coord_sf(
+    ylim = c(-45, -9),
+    xlim = c(110, 155)) +
+  theme(legend.position = "none",
+panel.border = element_blank(),
+panel.background = element_rect(fill = "#002A32", colour = "#002A32"), # remove white space from x/y region
+          plot.margin = unit(c(0,0,0,0),"cm"),
+          panel.spacing = unit(c(0,0,0,0), "cm"))
+
+parrotmap
+
+```
+
+```{r}
+# save plots
+library(tmaptools)
+
+plot_ratio <- get_asp_ratio(aus)  # aspect ratio
+
+
+ggsave("parrotmap23.jpg", width = plot_ratio * 9, height = plot_ratio * 8.08)
+```
