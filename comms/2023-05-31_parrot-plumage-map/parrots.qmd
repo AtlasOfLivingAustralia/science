@@ -46,8 +46,8 @@ write_parquet(filteredparrotpoints, "parrots") #alphabetically ordered, filtered
 START HERE TO AVOID LONG DOWNLOAD
 
 ```{r}
-parquet_parrots <- here("2023-05-31_parrot-plumage-map", "data", "parrots")
-parquet2_parrots <- here("2023-05-31_parrot-plumage-map", "data", "parrots2")
+parquet_parrots <- here("comms", "2023-05-31_parrot-plumage-map", "data", "parrots")
+parquet2_parrots <- here("comms", "2023-05-31_parrot-plumage-map", "data", "parrots2")
 ```
 
 Match filtered data (alphabetically ordered) to the random ordered non-filtered data that plotted pretty. We'll filter anything with a keep_me = 1 in the final ggplot step:
