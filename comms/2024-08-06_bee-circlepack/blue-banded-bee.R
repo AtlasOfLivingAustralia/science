@@ -80,12 +80,13 @@ top_day_count <- bee_counts_edited |>
 # find suitable "1 obs" candidate
 # this will act like a legend, so people can interpret all of the different sized dots
 # (it needs to be in a corner spot to make it easier to read/find)
+# (I just chose the top option, but you could pick whatever looks best)
 pack_layout |>
   filter(im_x > 460) |>
   arrange((im_y))
 
 one_day_count <- bee_counts_edited |>
-  slice(5816) |>
+  slice(5743) |>
   mutate(label = paste0(count, " observation")) |>
   select(id, label)
 
@@ -105,13 +106,13 @@ data_gg <- circleLayoutVertices(days_circles) %>%
 # (otherwise, each point of the circle will get its own label)
 labels_top <- data_gg |>
   filter(!is.na(label),
-         id != 5816) |>
+         id != 5743) |>
   group_by(id) |>
   filter(row_number()==14) # choose part of circle that the line will extend from
 
 labels_one <- data_gg |>
   filter(!is.na(label),
-         id == 5816) |>
+         id == 5743) |>
   group_by(id) |>
   filter(row_number()==1) # choose part of circle that the line will extend from
 
@@ -180,7 +181,7 @@ p +
                            family = "roboto") +
   labs(
     title = "Daily observations of blue-banded bees",
-    subtitle = "Each point represents the total occurrence records per day\nsince 1 Jan, 2000 in the Atlas of Living Australia",
+    subtitle = "Each point represents the total occurrence records per day\nsince 1 Jan, 2001 in the Atlas of Living Australia",
     caption = image_credits
     ) +
   scale_colour_identity() +
