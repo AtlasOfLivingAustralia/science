@@ -1,59 +1,29 @@
----
-title: "world lizard day"
-author: Olivia Torresan
-format: html
-editor: visual
----
+#---
+# title: Function to make a hex map of occurrence records from galah 
+# author: Olivia Torresan, Dax Kellie
+# date: 14 August, 2024
+#---
 
-## 
+make_hex_map <- function(taxon, 
+                         hex_colour_1,
+                         hex_colour_2,
+                         legend_text_colour) {
+  
+#filter records to within australian bounds
+filtered_occ <- taxon |> filter(decimalLongitude < 155,
+                                    decimalLongitude > 110,
+                                    decimalLatitude > -45,
+                                    decimalLatitude < -10)  
+#hex map
 
-```{r}
-library(galah)
-library(ggplot2)
-library(tidyr)
-library(dplyr)
-library(ozmaps)
-library(sf)
-library(hexbin)
-library(showtext)
-library(svglite)
-```
-
-```{r}
-galah_config(email = "your-email-here")
-
-lizards <- galah_call() |>
-  galah_identify("Lacertilia") |>
-  galah_apply_profile(ALA) |>
-  atlas_occurrences()
-lizards
-```
-
-```{r}
-filtered_occ <- lizards |> filter(decimalLongitude < 155,
-                                      decimalLongitude > 110,
-                                      decimalLatitude > -45,
-                                      decimalLatitude < -10)
-```
-
-Making our hex map:
-
-```{r}
 aus <- st_transform(ozmaps::ozmap_country, 4326)
-```
 
-```{r}
 grid_all <- st_make_grid(aus, 
                          cellsize = 1, 
                          what = "polygons", 
                          square = FALSE,
                          flat_topped = TRUE)
 
-ggplot() +
-  geom_sf(data = grid_all)
-```
-
-```{r}
 # extract rows that are within AUS land
 keep_hexes <- st_intersects(grid_all, aus) %>%
   as.data.frame(.) %>%
@@ -62,32 +32,22 @@ keep_hexes <- st_intersects(grid_all, aus) %>%
 # filter full grid to only hexagon IDs in AUS
 oz_grid <- grid_all[keep_hexes]
 
-ggplot() + geom_sf(data = oz_grid)
-```
-
-```{r}
-lizard_points_sf <- filtered_occ %>% 
+taxon_points_sf <- filtered_occ %>% 
   st_as_sf(coords = c("decimalLongitude", "decimalLatitude"), 
-  crs = st_crs(4326))
-```
+           crs = st_crs(4326))
 
-```{r}
-intersect <- st_intersects(lizard_points_sf, oz_grid)
+
+intersect <- st_intersects(taxon_points_sf, oz_grid)
 
 intersect[5:10]
-```
 
-```{r}
-# condense counts into tibble
 counts <- as_tibble(table(unlist(intersect)), 
-          .name_repair = "unique") %>%
+                    .name_repair = "unique") %>%
   rename("hex_id" = 1,
          "count" = 2) %>%
   mutate(hex_id = as.integer(hex_id)) %>%
   replace_na(list(count = 0))
-```
 
-```{r}
 oz_grid <- oz_grid %>%
   as_tibble() %>%
   mutate(id = row_number()) %>%
@@ -95,19 +55,10 @@ oz_grid <- oz_grid %>%
             by = join_by(id == hex_id)) %>%
   st_as_sf()
 
-oz_grid |> head()
-```
-
-```{r}
-
-# Add font
-font_add_google("Roboto")
-showtext_auto(enable = TRUE) 
-
-
-ggplot() +
+#plot 
+p <- ggplot() +
   geom_sf(data = oz_grid, aes(fill = count), size = .01) +
-  scale_fill_gradientn(colours = c("#FFEDCF", "#C44D34"), 
+  scale_fill_gradientn(colours = c(hex_colour_1, hex_colour_2), 
                        na.value = "white", 
                        trans = "log10",
                        labels = scales::comma_format(),
@@ -122,14 +73,13 @@ ggplot() +
         legend.position = "bottom",
         legend.text = element_text(size = 16,
                                    family = "Roboto",
-                                   colour = "black"),
+                                   colour = legend_text_colour),
         legend.key.height = unit(1.5, "lines"),   # Adjust the height of the legend key
         legend.key.width = unit(3, "lines"),      # Adjust the width of the legend key
         legend.text.align = 0.5)
-```
 
-```{r}
-showtext_opts(dpi = 320)
+return(p) 
 
-ggsave(here::here("comms", "2024-08-12_world-lizard-day", "lizard-hex-map.svg"), bg = "transparent",  height = 10, width = 10, unit = "in", dpi = 320)
-```
+}
+
+
