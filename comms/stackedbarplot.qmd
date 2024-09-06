@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-##library
+## library
 
 ```{r}
 library(galah)
@@ -49,6 +49,8 @@ galah_call() |>
 ```
 
 ```{r}
+custom_title <- "<span style='font-size:21pt'><span style='color:#204466'>**Total**</span> and <span style='color:#f28100'>**yearly**</span> eBird observations in the ALA </span>"
+
 birds |>
   filter(year>= 2010) |>
   ggplot() + 
@@ -85,9 +87,9 @@ birds |>
   scale_x_discrete(breaks = c(2003, 2005, 2007, 2009, 2011, 2013, 2015, 2017, 2019, 2021),
                    expand = c(0,0)) +
   labs(
-    title = "<span style='font-size:21pt'>
-    <span style='color:#204466;font-weight:bold;'>Total</span> and <span style='color:#f28100;font-weight:bold;'>yearly</span> eBird observations in the ALA </span>",
-    x = "Year", y = "Number of Observations") +
+    title = custom_title,
+    x = "Year", y = "Number of Observations"
+    ) +
   pilot::theme_pilot(grid = "h",
                      axes = "b") +
   theme(
