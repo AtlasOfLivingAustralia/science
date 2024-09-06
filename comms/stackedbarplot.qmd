@@ -15,6 +15,7 @@ library(pilot)
 library(showtext)
 library(ggtext)
 library(scales)
+library(pilot)
 ```
 
 ## download counts of eBird records
@@ -48,38 +49,38 @@ galah_call() |>
 ```
 
 ```{r}
-bar_plot <- birds |>
+birds |>
   filter(year>= 2010) |>
-  ggplot() +
+  ggplot() + 
   geom_bar(aes(x = year, y = total_count),
            stat = "identity",
-           fill = pilot::pilot_color("navy"),
+           fill = pilot_color("navy"),
            size = 1,
            width = 0.98) +
   geom_bar(aes(x = year, y = count),
            stat = "identity",
-           fill = pilot::pilot_color("orange"),
+           fill = pilot_color("orange"),
            size = 0.5,
            width = 0.98) +
-  pilot::geom_text_pilot(data = birds |> filter(year == 2021),
+ geom_text_pilot(data = birds |> filter(year == 2021),
                          mapping = aes(x = year,
                                        y = count,
-                                       label = ?number(count,
+                                       label = number(count,
                                                       accuracy = 0.1,
                                                       scale_cut = cut_short_scale())),
                          hjust = "center",
                          nudge_y = -900000,
                          size = 5) +
-  pilot::geom_text_pilot(data = birds |> filter(year == 2021),
-                         mapping = aes(x = year,
-                                       y = total_count,
-                                       label = number(total_count,
-                                                      accuracy = 0.1,
-                                                      scale_cut = cut_short_scale())),
-                         hjust = "center",
-                         nudge_y = -900000,
-                         size = 5) +
-  scale_y_continuous(labels = scales::comma_format(),
+ #geom_text_pilot(data = birds |> filter(year == 2021),
+                         #mapping = aes(x = year,
+                                       #y = total_count,
+                                       #label = number(total_count,
+                                                      #accuracy = 0.1,
+                                                      #scale_cut = cut_short_scale())),
+                         #hjust = "center",
+                         #nudge_y = -900000,
+                         #size = 5) +
+  scale_y_continuous(labels = comma_format(),
                      expand = c(0,0)) +
   scale_x_discrete(breaks = c(2003, 2005, 2007, 2009, 2011, 2013, 2015, 2017, 2019, 2021),
                    expand = c(0,0)) +
@@ -89,18 +90,16 @@ bar_plot <- birds |>
     x = "Year", y = "Number of Observations") +
   pilot::theme_pilot(grid = "h",
                      axes = "b") +
-  theme(axis.line.x.bottom = element_line(size = 1.2),
-        text = element_text(family = "roboto"),
+  theme(
+    #axis.line.x.bottom = element_line(size = 1.2),
+        #text = element_text(family = "roboto"),
         # title = element_text(size = 30),
-        axis.text = element_text(size = 18),
-        axis.title = element_text(size = 20),
-        axis.text.x = element_text(vjust = -2),
-        axis.title.x = element_text(vjust = -1.1),
+        #axis.text = element_text(size = 18),
+        #axis.title = element_text(size = 20),
+       #axis.text.x = element_text(vjust = -2),
+        #axis.title.x = element_text(vjust = -1.1),
         plot.title = element_markdown(lineheight = 1.1),
         legend.text = element_markdown(size = 11))
-
-bar_plot
-
 ```
 
 ```{r}
