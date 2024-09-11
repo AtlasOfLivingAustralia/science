@@ -1,0 +1,161 @@
+# Order common names
+
+library(tibble)
+
+class_common_names <- tribble(
+  ~class, ~class_common_name,
+  "Actinopterygii", "Fish",
+  "Amphibia", "Frogs & Salamanders",
+  "Arachnida", "Spiders",
+  "Aves", "Birds",
+  "Gastropoda", "Slugs & Snails",
+  "Insecta", "Insects",
+  "Mammalia", "Mammals",
+  "Reptilia", "Reptiles",
+  NA, "Other"
+)
+
+order_common_names <- tribble(
+  ~order, ~order_common_name,
+  
+  # Aves (Birds)
+  "Passeriformes", "Perching birds",
+  "Psittaciformes", "Parrots",
+  "Charadriiformes", "Shorebirds",
+  "Anseriformes", "Waterfowl",
+  "Ciconiiformes", "Storks",
+  "Columbiformes", "Pigeons and doves",
+  "Pelecaniformes", "Pelicans",
+  "Gruiformes", "Cranes",
+  "Accipitriformes", "Hawks, eagles, and vultures",
+  "Coraciiformes", "Kingfishers",
+  "Podicipediformes", "Grebes",
+  "Cuculiformes", "Cuckoos",
+  "Falconiformes", "Falcons",
+  "Galliformes", "Fowl",
+  "Procellariiformes", "Albatrosses and petrels",
+  "Caprimulgiformes", "Nightjars",
+  "Apodiformes", "Swifts and hummingbirds",
+  "Strigiformes", "Owls",
+  "Struthioniformes", "Ostriches",
+  "Turniciformes", "Buttonquails",
+  "Sphenisciformes", "Penguins",
+  "Phaethontiformes", "Tropicbirds",
+  
+  # Insecta (Insects)
+  "Lepidoptera", "Butterflies and moths",
+  "Coleoptera", "Beetles",
+  "Hymenoptera", "Ants, bees, and wasps",
+  "Hemiptera", "True bugs",
+  "Diptera", "Flies",
+  "Odonata", "Dragonflies and damselflies",
+  "Orthoptera", "Grasshoppers and crickets",
+  "Blattodea", "Cockroaches",
+  "Mantodea", "Praying mantises",
+  "Neuroptera", "Lacewings",
+  "Phasmida", "Stick insects",
+  "Trichoptera", "Caddisflies",
+  "Dermaptera", "Earwigs",
+  "Psocodea", "Lice",
+  "Ephemeroptera", "Mayflies",
+  "Thysanoptera", "Thrips",
+  "Zygentoma", "Silverfish",
+  "Megaloptera", "Dobsonflies",
+  "Plecoptera", "Stoneflies",
+  "Mecoptera", "Scorpionflies",
+  "Archaeognatha", "Bristletails",
+  "Embioptera", "Webspinners",
+  "Siphonaptera", "Fleas",
+  
+  # Arachnida (Arachnids)
+  "Araneae", "Spiders",
+  "Trombidiformes", "Mites and ticks",
+  "Scorpiones", "Scorpions",
+  "Opiliones", "Harvestmen",
+  "Ixodida", "Hard ticks",
+  "Pseudoscorpiones", "Pseudoscorpions",
+  
+  # Mammalia (Mammals)
+  "Diprotodontia", "Marsupials",
+  "Carnivora", "Carnivores",
+  "Lagomorpha", "Rabbits and hares",
+  "Rodentia", "Rodents",
+  "Monotremata", "Monotremes",
+  "Chiroptera", "Bats",
+  "Peramelemorphia", "Bandicoots",
+  "Dasyuromorphia", "Marsupial carnivores",
+  "Artiodactyla", "Even-toed ungulates",
+  "Cetacea", "Whales and dolphins",
+  "Perissodactyla", "Odd-toed ungulates",
+  "Sirenia", "Manatees and dugongs",
+  
+  # Reptilia (Reptiles)
+  "Squamata", "Lizards and snakes",
+  "Testudines", "Turtles",
+  "Crocodylia", "Crocodiles and alligators",
+  
+  # Actinopterygii (Ray-finned fishes)
+  "Perciformes", "Perch-like fishes",
+  "Tetraodontiformes", "Pufferfish and triggerfish",
+  "Syngnathiformes", "Pipefish and seahorses",
+  "Scorpaeniformes", "Scorpionfish and lionfish",
+  "Anguilliformes", "Eels",
+  "Mugiliformes", "Mullets",
+  "Cypriniformes", "Carps and minnows",
+  "Cyprinodontiformes", "Killifish",
+  "Siluriformes", "Catfish",
+  "Aulopiformes", "Lizardfishes",
+  "Salmoniformes", "Salmon and trout",
+  "Atheriniformes", "Silversides",
+  "Beloniformes", "Needlefish",
+  "Pleuronectiformes", "Flatfish",
+  "Lophiiformes", "Anglerfish",
+  "Beryciformes", "Squirrelfish",
+  "Clupeiformes", "Herring",
+  "Batrachoidiformes", "Toadfish",
+  "Gadiformes", "Cod and haddock",
+  "Gonorhynchiformes", "Milkfish",
+  "Elopiformes", "Ladyfish",
+  "Ophidiiformes", "Cusk eels",
+  "Albuliformes", "Bonefish",
+  "Zeiformes", "Dories",
+  
+  # Amphibia (Amphibians)
+  "Anura", "Frogs and toads",
+  "Caudata", "Salamanders",
+  
+  # Malacostraca (Crustaceans)
+  "Decapoda", "Crabs and lobsters",
+  "Isopoda", "Isopods",
+  "Amphipoda", "Amphipods",
+  "Tanaidacea", "Tanaids",
+  "Stomatopoda", "Mantis shrimp",
+  "Anaspidacea", "Syncarids",
+  "Mysida", "Opossum shrimp",
+  "Cumacea", "Cumaceans",
+  "Euphausiacea", "Krill",
+  
+  # Bivalvia (Bivalves)
+  "Cardiida", "Cockles",
+  "Ostreida", "Oysters",
+  "Arcida", "Ark clams",
+  "Pectinida", "Scallops",
+  "Mytilida", "Mussels",
+  "Carditida", "Cardita clams",
+  "Lucinida", "Lucine clams",
+  "Unionida", "Freshwater mussels",
+  "Myida", "Softshell clams",
+  "Limida", "File clams",
+  "Adapedonta", "Extinct bivalves",
+  "Trigoniida", "Trigoniid clams",
+  "Nuculanida", "Nuculan clams",
+  "Solemyida", "Solemyid clams",
+  "Nuculida", "Nuculid clams",
+  
+  # Cephalopoda (Cephalopods)
+  "Sepiida", "Cuttlefish",
+  "Octopoda", "Octopuses",
+  "Teuthida", "Squid",
+  "Sepiolida", "Bobtail squid",
+  "Nautilida", "Nautiluses"
+)
