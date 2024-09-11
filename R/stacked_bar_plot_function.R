@@ -5,8 +5,8 @@
 #---
 
 make_stacked_bar_plot <- function(taxon, 
-                         bar_colour_1,
-                         bar_colour_2,
+                                  bar_colour_1,
+                                  bar_colour_2,
                          legend_text_colour,
                          highlight) {
 #cumulative sum column 
@@ -17,20 +17,18 @@ make_stacked_bar_plot <- function(taxon,
     ) %>%
     arrange(desc(year))
   
-  colour_1 <- paste0(bar_colour_1)
-  colour_2 <- paste0(bar_colour_2)
-  
   p <- taxon |>
+    filter(year > 2000) |>
     ggplot() + 
     geom_bar(aes(x = year, y = total_count),
              stat = "identity",
-             fill = colour_1,
-             size = 1,
+             linewidth = 1,
+             fill = bar_colour_1,
              width = 0.98) +
     geom_bar(aes(x = year, y = count),
              stat = "identity",
-             fill = colour_2,
-             size = 0.5,
+             linewidth = 0.5,
+             fill = bar_colour_2,
              width = 0.98) +
     geom_text_pilot(data = taxon |> filter(year == highlight),
                     mapping = aes(x = year,
@@ -61,15 +59,18 @@ make_stacked_bar_plot <- function(taxon,
     theme_pilot(grid = "h",
                 axes = "b") +
     theme(
-      axis.line.x.bottom = element_line(size = 1.2),
+      axis.line.x.bottom = element_line(linewidth = 1.2),
       text = element_text(family = "roboto"),
       title = element_text(size = 30),
       axis.text = element_text(size = 18),
       axis.title = element_text(size = 20),
       axis.text.x = element_text(vjust = -2),
       axis.title.x = element_text(vjust = -1.1),
-      plot.title = element_markdown(lineheight = 1.1),
-      legend.text = element_markdown(size = 11))
+      # NOTE: adding the coloured title in a function causes a graphics error in ggplot.
+      #       might need to add this part outside of the function (if at all)
+      # plot.title = ggtext::element_markdown(lineheight = 1.1),
+      # legend.text = ggtext::element_markdown(size = 11)
+      )
 
   return(p) 
   

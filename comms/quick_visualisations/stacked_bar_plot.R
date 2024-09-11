@@ -29,7 +29,7 @@ library(galah)
 taxon <- galah_call() |>
   galah_filter(dataResourceName == "eBird Australia") |>
   galah_group_by(year) |>
-  galah_filter(year <= "2021") |>
+  galah_filter(year <= 2021) |>
   atlas_counts(limit = NULL)
 
 # two colours should be selected from the above ALA colours for the main stacked bar + the smaller 
@@ -65,7 +65,12 @@ source(here("R", "stacked_bar_plot_function.R"))
 
 #make graph 
 
-make_stacked_bar_plot(taxon, bar_colour_1, bar_colour_2, highlight, legend_text_colour)
+make_stacked_bar_plot(taxon, 
+                      bar_colour_1,
+                      bar_colour_2,
+                      highlight, 
+                      legend_text_colour
+                      )
 
 
 # save the bar plot
