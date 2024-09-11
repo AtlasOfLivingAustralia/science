@@ -49,9 +49,9 @@ galah_call() |>
 ```
 
 ```{r}
-custom_title <- "<span style='font-size:21pt'><span style='color:#204466'>**Total**</span> and <span style='color:#f28100'>**yearly**</span> eBird observations in the ALA </span>"
+custom_title <- "<span style='font-size:18pt'><span style='color:#204466'>**Total**</span> and <span style='color:#f28100'>**yearly**</span> eBird observations in the ALA </span>"
 
-birds |>
+bar_plot <- birds |>
   filter(year>= 2010) |>
   ggplot() + 
   geom_bar(aes(x = year, y = total_count),
@@ -72,16 +72,16 @@ birds |>
                                                       scale_cut = cut_short_scale())),
                          hjust = "center",
                          nudge_y = -900000,
-                         size = 5) +
- #geom_text_pilot(data = birds |> filter(year == 2021),
-                         #mapping = aes(x = year,
-                                       #y = total_count,
-                                       #label = number(total_count,
-                                                      #accuracy = 0.1,
-                                                      #scale_cut = cut_short_scale())),
-                         #hjust = "center",
-                         #nudge_y = -900000,
-                         #size = 5) +
+                         size = 2.75) +
+ geom_text_pilot(data = birds |> filter(year == 2021),
+                         mapping = aes(x = year,
+                                       y = total_count,
+                                       label = number(total_count,
+                                                      accuracy = 0.1,
+                                                      scale_cut = cut_short_scale())),
+                         hjust = "center",
+                         nudge_y = -900000,
+                         size = 2.75) +
   scale_y_continuous(labels = comma_format(),
                      expand = c(0,0)) +
   scale_x_discrete(breaks = c(2003, 2005, 2007, 2009, 2011, 2013, 2015, 2017, 2019, 2021),
@@ -90,18 +90,19 @@ birds |>
     title = custom_title,
     x = "Year", y = "Number of Observations"
     ) +
-  pilot::theme_pilot(grid = "h",
+  theme_pilot(grid = "h",
                      axes = "b") +
   theme(
-    #axis.line.x.bottom = element_line(size = 1.2),
-        #text = element_text(family = "roboto"),
-        # title = element_text(size = 30),
-        #axis.text = element_text(size = 18),
-        #axis.title = element_text(size = 20),
-       #axis.text.x = element_text(vjust = -2),
-        #axis.title.x = element_text(vjust = -1.1),
+    axis.line.x.bottom = element_line(size = 1.2),
+        text = element_text(family = "roboto"),
+        title = element_text(size = 30),
+        axis.text = element_text(size = 18),
+        axis.title = element_text(size = 20),
+       axis.text.x = element_text(vjust = -2),
+       axis.title.x = element_text(vjust = -1.1),
         plot.title = element_markdown(lineheight = 1.1),
         legend.text = element_markdown(size = 11))
+bar_plot
 ```
 
 ```{r}
