@@ -18,10 +18,6 @@
 
 file_name <- "bird-stackbar"
 
-# what should the title be?
-
-custom_title <- "<span style='font-size:18pt'><span style='color:bar_colour_1'>**Total**</span> and <span style='color:bar_colour_2'>**yearly**</span> eBird observations in the ALA </span>"
-
 # what taxon are you interested in and how much data do you want to present?
 
 library(galah)
@@ -29,7 +25,8 @@ library(galah)
 taxon <- galah_call() |>
   galah_filter(dataResourceName == "eBird Australia") |>
   galah_group_by(year) |>
-  galah_filter(year <= 2021) |>
+  galah_filter(year > "2000") |>
+  galah_filter(year <= "2021") |> 
   atlas_counts(limit = NULL)
 
 # two colours should be selected from the above ALA colours for the main stacked bar + the smaller 
@@ -37,10 +34,6 @@ taxon <- galah_call() |>
 bar_colour_1 <- "#FFEDCF"
 
 bar_colour_2 <- "#C44D34"
-
-# select a year to highlight the number of records on the bar 
-
-highlight <- 2021
 
 # depending on the background you select for the visualisation (output is transparent) the text colour may need to be adjusted accordingly 
 

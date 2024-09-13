@@ -9,7 +9,7 @@ make_stacked_bar_plot <- function(taxon,
                                   bar_colour_2,
                          legend_text_colour,
                          highlight) {
-#cumulative sum column 
+# cumulative sum column 
   taxon <- taxon %>%
     arrange(-desc(year)) %>%
     mutate(
@@ -17,8 +17,15 @@ make_stacked_bar_plot <- function(taxon,
     ) %>%
     arrange(desc(year))
   
+  # determine the minimum and maximum of 'year' for dataset
+  min_year <- min(taxon$year)
+  max_year <- max(taxon$year)
+  
+  # set the x labels to start at a set point past the first listed year 
+  start_value <- as.numeric(min_year) + 2
+  
+  # plot 
   p <- taxon |>
-    filter(year > 2000) |>
     ggplot() + 
     geom_bar(aes(x = year, y = total_count),
              stat = "identity",
@@ -30,7 +37,7 @@ make_stacked_bar_plot <- function(taxon,
              linewidth = 0.5,
              fill = bar_colour_2,
              width = 0.98) +
-    geom_text_pilot(data = taxon |> filter(year == highlight),
+    geom_text_pilot(data = taxon |> filter(year == max_year),
                     mapping = aes(x = year,
                                   y = count,
                                   label = number(count,
@@ -39,7 +46,7 @@ make_stacked_bar_plot <- function(taxon,
                     hjust = "center",
                     nudge_y = -900000,
                     size = 2.75) +
-    geom_text_pilot(data = taxon |> filter(year == highlight),
+    geom_text_pilot(data = taxon |> filter(year == max_year),
                     mapping = aes(x = year,
                                   y = total_count,
                                   label = number(total_count,
@@ -50,10 +57,9 @@ make_stacked_bar_plot <- function(taxon,
                     size = 2.75) +
     scale_y_continuous(labels = comma_format(),
                        expand = c(0,0)) +
-    scale_x_discrete(breaks = c(2003, 2005, 2007, 2009, 2011, 2013, 2015, 2017, 2019, 2021),
+    scale_x_discrete(breaks = seq(start_value, max_year, by = 2),
                      expand = c(0,0)) +
     labs(
-      title = custom_title,
       x = "Year", y = "Number of Observations"
     ) +
     theme_pilot(grid = "h",
