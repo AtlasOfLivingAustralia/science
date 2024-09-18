@@ -1,3 +1,9 @@
+# ---------------------------------- #
+# Title: Bubble chart of 2024 Animalia observations
+# Author: Dax Kellie
+# Date: 17/09/2024
+# ---------------------------------- #
+
 # remotes::install_github("EvaMaeRey/ggcirclepack")
 # remotes::install_version("ggplot2", version = "3.4.4", repos = "http://cran.us.r-project.org")
 library(galah)
@@ -151,7 +157,8 @@ bar <- new_counts |>
 bubble + bar +
   plot_annotation(
     title = "Observations of Animals in 2024",
-    subtitle = paste0("Number of *Animalia* observations recorded in the Atlas of Living Australia") |> 
+    subtitle = glue("Taxonomic breakdown of **{scales::comma(sum(new_counts$count))}** *Animalia* 
+                      observations recorded in the Atlas of Living Australia <br> 1 Jan - 17 Sep, 2024") |> 
       str_wrap(130),
     caption = "Data source: The {galah} package \n Dataviz: Dax Kellie \n Code source: Georgios Karamanis · github.com/gkaramanis/tidytuesday"
   ) +
@@ -160,7 +167,7 @@ bubble + bar +
     plot.margin = unit(c(2, 1, 1, 1), "cm"),
     plot.background = element_rect(fill = "#101C28", colour = NA),
     plot.title = element_text(face = "bold", size = 26, family = "roboto", colour = "white", hjust = 0.5, margin=margin(12,0, 12, 0)),
-    plot.subtitle = ggtext::element_markdown(family = "roboto", colour = "white", size = 14, hjust = 0.5, margin = margin(0,0,-20,0)),
+    plot.subtitle = ggtext::element_markdown(family = "roboto", lineheight = 1.2, colour = "white", size = 14, hjust = 0.5, margin = margin(0,0,-20,0)),
     plot.caption = element_text(hjust = 1, , family = "roboto", color = "grey50")
   )
 
