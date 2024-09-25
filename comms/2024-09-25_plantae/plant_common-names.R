@@ -1,0 +1,207 @@
+# Common names of broad plantae groups and taxonomic families
+
+# packages
+library(tidyverse)
+library(here)
+library(readxl)
+
+#----------------#
+
+# Larger groups
+
+# download spreadsheet
+groups <- read_xlsx(here("comms", "2024-09-25_plantae", "SpeciesGroups_ALA.xlsx"),
+                    sheet = 1)
+
+# find where all the plantae names are in the spreadsheet
+which(groups$topTaxon == "Plantae")
+which(groups$topTaxon == "Fungi")
+
+groups_clean <- groups |>
+  slice(74:84) |>
+  filter(!str_detect(Inclusions, "Equisetopsida")) |> # Vascular plants groups override smaller groups
+  mutate(
+    common_name = case_when(
+      !is.na(level2Name) ~ level2Name,
+      is.na(level2Name)  ~ level3Name,
+      .default = NA
+    ),
+    includes = strsplit(as.character(Inclusions), ",")
+  ) |>
+  unnest(includes) |>
+  select(common_name, includes) |>
+  mutate(
+    includes = str_trim(includes)
+  ) |>
+  filter(common_name != "Horsetails") |> # includes is NA, which affects the next step
+  tibble::add_row(includes = NA, common_name = "Other")
+
+
+#----------------#
+
+# Family names
+
+# generated from chatgpt (but it broke at ~160)
+family_common_names <- tribble(
+  ~family,        ~family_common_name,
+  "Fabaceae",     "Legumes",
+  "Asteraceae",   "Daisies",
+  "Myrtaceae",    "Myrtles",
+  "Poaceae",      "Grasses",
+  "Orchidaceae",  "Orchids",
+  "Proteaceae",   "Proteas",
+  "Solanaceae",   "Nightshades",
+  "Ericaceae",    "Heaths",
+  "Rosaceae",     "Roses",
+  "Cyperaceae",   "Sedges",
+  "Asparagaceae", "Asparagus plants",
+  "Chenopodiaceae", "Goosefoots",
+  "Rutaceae",     "Rue plants",
+  "Malvaceae",    "Mallows",
+  "Lamiaceae",    "Mints",
+  "Apocynaceae",  "Dogbanes",
+  "Pittosporaceae", "Pittospores",
+  "Euphorbiaceae", "Spurges",
+  "Goodeniaceae", "Goodenias",
+  "Sapindaceae",  "Soapberries",
+  "Droseraceae",  "Sundews",
+  "Rubiaceae",    "Madders",
+  "Dilleniaceae", "Dilleniids",
+  "Oleaceae",     "Olives",
+  "Rhamnaceae",   "Buckthorns",
+  "Amaranthaceae", "Amaranths",
+  "Casuarinaceae", "She-oaks",
+  "Convolvulaceae", "Bindweeds",
+  "Cactaceae",    "Cacti",
+  "Acanthaceae",  "Acanthus plants",
+  "Araliaceae",   "Aralias",
+  "Hemerocallidaceae", "Daylilies",
+  "Verbenaceae",  "Vervains",
+  "Apiaceae",     "Carrots",
+  "Scrophulariaceae", "Figworts",
+  "Lauraceae",    "Laurels",
+  "Campanulaceae", "Bellflowers",
+  "Pteridaceae",  "Brake ferns",
+  "Plantaginaceae", "Plantains",
+  "Polygonaceae", "Knotsweeds",
+  "Thymelaeaceae", "Daphnes",
+  "Ranunculaceae", "Buttercups",
+  "Phyllanthaceae", "Leafflowers",
+  "Santalaceae",  "Sandalwoods",
+  "Loranthaceae", "Mistletoes",
+  "Moraceae",     "Mulberries",
+  "Iridaceae",    "Irises",
+  "Geraniaceae",  "Geraniums",
+  "Dennstaedtiaceae", "Bracken ferns",
+  "Hypericaceae", "St. John's worts",
+  "Violaceae",    "Violets",
+  "Aizoaceae",    "Ice plants",
+  "Boraginaceae", "Borages",
+  "Blechnaceae",  "Hard ferns",
+  "Brassicaceae", "Mustards",
+  "Bignoniaceae", "Trumpet vines",
+  "Oxalidaceae",  "Wood sorrels",
+  "Commelinaceae", "Spiderworts",
+  "Xanthorrhoeaceae", "Grass trees",
+  "Primulaceae",  "Primroses",
+  "Polypodiaceae", "Polypods",
+  "Elaeocarpaceae", "Elaeocarpus plants",
+  "Juncaceae",    "Rushes",
+  "Arecaceae",    "Palms",
+  "Onagraceae",   "Evening primroses",
+  "Haloragaceae", "Water milfoils",
+  "Crassulaceae", "Stonecrops",
+  "Colchicaceae", "Colchicums",
+  "Araceae",      "Aroids",
+  "Passifloraceae", "Passionflowers",
+  "Vitaceae",     "Grapes",
+  "Stylidiaceae", "Triggerplants",
+  "Polygalaceae", "Milkworts",
+  "Pottiaceae",   "Pott mosses",
+  "Cunoniaceae",  "Cunonias",
+  "Caryophyllaceae", "Pinks",
+  "Celastraceae", "Bittersweets",
+  "Urticaceae",   "Nettles",
+  "Cupressaceae", "Cypresses",
+  "Meliaceae",    "Mahoganies",
+  "Portulacaceae", "Purslanes",
+  "Cannabaceae",  "Hemp plants",
+  "Gleicheniaceae", "Fork ferns",
+  "Cyatheaceae",  "Tree ferns",
+  "Polytrichaceae", "Haircap mosses",
+  "Restionaceae", "Restios",
+  "Aspleniaceae", "Spleenworts",
+  "Leucobryaceae", "Leucobryum mosses",
+  "Smilacaceae",  "Catbriers",
+  "Menispermaceae", "Moonseeds",
+  "Dicksoniaceae", "Dicksonias",
+  "Dryopteridaceae", "Wood ferns",
+  "Bryaceae",     "Bryum mosses",
+  "Cucurbitaceae", "Gourds",
+  "Gentianaceae", "Gentians",
+  "Asphodelaceae", "Aloes",
+  "Anacardiaceae", "Cashews",
+  "Hydrocharitaceae", "Waterweeds",
+  "Lentibulariaceae", "Bladderworts",
+  "Papaveraceae", "Poppies",
+  "Amaryllidaceae", "Amaryllises",
+  "Zamiaceae",    "Cycads",
+  "Zygophyllaceae", "Caltrops",
+  "Caprifoliaceae", "Honeysuckles",
+  "Basellaceae",  "Basellas",
+  "Monimiaceae",  "Monimias",
+  "Lindsaeaceae", "Lindsays",
+  "Hymenophyllaceae", "Filmy ferns",
+  "Ochnaceae",    "Ochnas",
+  "Loganiaceae",  "Loganias",
+  "Lophocoleaceae", "Lophocolea mosses",
+  "Salicaceae",   "Willows",
+  "Phytolaccaceae", "Pokeweeds",
+  "Haemodoraceae", "Bloodroots",
+  "Lythraceae",   "Loosestrifes",
+  "Pandanaceae",  "Screwpines",
+  "Picrodendraceae", "Picrodendrons",
+  "Salviniaceae", "Water ferns",
+  "Zingiberaceae", "Gingers",
+  "Hypoxidaceae", "Star grasses",
+  "Sapotaceae",   "Sapotes",
+  "Araucariaceae", "Araucarias",
+  "Viburnaceae",  "Viburnums",
+  "Hypnaceae",    "Feather mosses",
+  "Rhizophoraceae", "Mangroves",
+  "Alliaceae",    "Onions",
+  "Nothofagaceae", "Southern beeches",
+  "Thuidiaceae",  "Thuidium mosses",
+  "Brachytheciaceae", "Feather mosses",
+  "Lunulariaceae", "Crescent-cup liverworts",
+  "Winteraceae",  "Winters' bark",
+  "Ricciaceae",   "Crystalworts",
+  "Capparaceae",  "Caper bushes",
+  "Juncaginaceae", "Arrowgrasses",
+  "Pinaceae",     "Pines",
+  "Nyctaginaceae", "Four-o'clocks",
+  "Atherospermataceae", "Southern sassafras",
+  "Typhaceae",    "Cattails",
+  "Bartramiaceae", "Bartramia mosses",
+  "Pontederiaceae", "Pickerelweeds",
+  "Selaginellaceae", "Spikemosses",
+  "Piperaceae",   "Peppers",
+  "Caulerpaceae", "Caulerpas",
+  "Dioscoreaceae", "Yams",
+  "Hypopterygiaceae", "Feather mosses",
+  "Melastomataceae", "Melastomas",
+  "Lycopodiaceae", "Clubmosses",
+  "Ebenaceae",    "Ebony",
+  "Menyanthaceae", "Buckbeans",
+  "Podocarpaceae", "Podocarps",
+  "Dicranaceae",  "Dicranum mosses",
+  "Alismataceae", "Water plantains",
+  "Nymphaeaceae", "Water lilies",
+  "Aquifoliaceae", "Hollies",
+  "Plumbaginaceae", "Leadworts",
+  "Marsileaceae", "Water clovers",
+  "Lomariopsidaceae", "Lomariopsid ferns",
+  "Eupomatiaceae", "Eupomatia plants",
+  "Ripogonaceae", "Ripogonums",
+  "Corallinaceae", "Corallines"
+)
