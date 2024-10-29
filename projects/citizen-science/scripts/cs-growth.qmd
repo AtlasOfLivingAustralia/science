@@ -1,0 +1,186 @@
+---
+title: "Growth of citizen science records"
+author: "Dax Kellie"
+date: '2024-09-27'
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+This version is for the CS page on the ALA website
+
+Growth of citizen science vs non-citizen science species observation records in the ALA from 2010
+
+```{r}
+# Load packages
+
+library(galah)
+library(tidyverse)
+library(here)
+library(janitor)
+library(ggstream) # stream plot
+library(scales)
+library(glue)
+library(pilot) # color palette
+library(showtext) # fonts
+library(geomtextpath)
+library(patchwork)
+```
+
+Load data providers data and categorisations
+
+```{r}
+# Load data
+cs_datasets <- read_csv(here("data", "ALA-CS-datasets.csv"))
+```
+
+Data wrangling
+
+```{r}
+# Wrangle
+cs_datasets <- cs_datasets %>%
+  clean_names(.) %>%
+  filter(!is.na(data_resource_name)) %>%
+  filter(!is.na(citizen_science))
+
+# Group categories of citizen science projects
+cs_categories <- cs_datasets %>%
+  select(data_resource_name, citizen_science, non_cs, data_biocache) %>%
+  mutate(
+    cs = case_when(
+      citizen_science == "N" & non_cs == "N" ~ "Non-citizen Science",
+      citizen_science == "Y" & non_cs == "Y" ~ "Citizen Science",
+      citizen_science == "Y" & non_cs == "N" ~ "Citizen Science",
+      citizen_science == "N" & non_cs == "Y" ~ "Non-citizen Science",
+      TRUE ~ "Unidentified"
+      
+    )
+  )
+```
+
+# Records growth (2010 - 2021)
+
+Download data
+
+```{r}
+# download data
+data_providers <- galah_call() %>%
+  galah_group_by(dataResourceName, year) %>%
+  galah_filter(year > 2010) %>%
+  atlas_counts(limit = 1e6)
+```
+
+Merge data frames
+
+```{r}
+# clean
+data_providers <- data_providers %>%
+  clean_names() %>%
+  mutate(year = as.integer(year))
+
+# Make complete data frame of all years and data providers
+years_list <- 2010:2024
+data_resource_names_list <- pull(data_providers, data_resource_name)
+cs_list <- c("Citizen Science", "Non-citizen Science")
+
+crossed_list <- crossing(data_resource_names_list, years_list) %>%
+  rename(data_resource_name = data_resource_names_list,
+         year = years_list) %>%
+  mutate(year = as.integer(year))
+
+# merge
+data_providers_cs <- crossed_list %>%
+  left_join(cs_categories, by = "data_resource_name") %>% ungroup() %>%
+  left_join(data_providers, by = c("data_resource_name", "year")) %>% ungroup() %>%
+  replace_na(list(count = 0)) # replace NAs
+
+# records_before_2000 <- galah_call() %>% galah_filter(year > 2010) %>% atlas_counts()
+
+# calculate cumulative sum of records for plotting
+data_providers_cs_summed <- data_providers_cs %>%
+  select(cs, year, count) %>%
+  arrange(-desc(year)) %>%
+  drop_na() %>%
+  group_by(cs, year) %>%
+  summarise(records = sum(count)) %>% # get total for each year
+  # Add correct baseline of records
+  # mutate(records = replace(records, records == 1474492, 1474492 + records_before_2000)) %>% 
+  mutate(total = cumsum(records)) # calculate cumulative total
+
+# Make everything factors
+data_providers_cs_summed <- data_providers_cs_summed %>% 
+  mutate(across(where(is.character), as.factor))
+```
+
+Make stream plot
+
+```{r}
+# add fonts to make it look nice
+font_add_google("Roboto", "roboto")
+showtext_auto(enable = TRUE)
+```
+
+```{r}
+# p3 <- 
+  data_providers_cs_summed %>%
+  ggplot(aes(x = year, y = total, fill = cs)) +
+  geom_stream(
+    aes(colour = NULL),
+    # color = NA,
+    extra_span = .013,
+    type = "ridge",
+    bw = .9
+  ) +
+  scale_fill_manual(values = c(
+    "Citizen Science" = "#38613D",
+    "Non-citizen Science" = "#FFEDCF"
+  )) +
+  ggnewscale::new_scale_colour() +
+  geom_stream_label(aes(label = cs, colour = cs),
+    size = 10.5,
+    bw = .9,
+    extra_span = 0.16,
+    type = "ridge",
+    family = "roboto"
+  ) +
+  scale_colour_manual(values = c(
+    "Citizen Science" = "#ffffff",
+    "Non-citizen Science" = "#222322"
+  )) +
+  guides(colour = "none") +
+  scale_x_continuous(
+    name = "Year",
+    expand = c(0, 0.1),
+    breaks = c(2010, 2012, 2014, 2016, 2018, 2020, 2022, 2024)
+  ) +
+  scale_y_continuous(
+    name = "Total observations per year",
+    expand = c(0, 0),
+    labels = scales::label_number(scale_cut = cut_short_scale())
+  ) +
+  theme_pilot(
+    grid = "",
+    axes = ""
+  ) +
+  theme(
+    legend.position = "none",
+    # axis.line.x.bottom = element_line(size = 1.2),
+    # axis.line.y.left = element_line(size = 1.2),
+    text = element_text(family = "roboto"),
+    axis.text = element_text(size = 18, family = "roboto", colour = "grey30"),
+    axis.title = element_text(size = 23, family = "roboto", colour = "grey20"),
+    # axis.ticks.x = element_line(colour = "grey30"),
+    # axis.text.x = element_text(vjust = -2),
+    # axis.title.x = element_text(vjust = -1.1)
+  )
+```
+
+Save
+
+```{r, eval=FALSE}
+showtext_opts(dpi = 300) # makes fonts correct size for 300 dpi
+
+# To save, change to showtext_opts(dpi = 300) and rerun building of plots
+ggsave(here::here("projects", "citizen-science", "plots", "cs-growth_green.png"),
+       height = 10, width = 16, units = "in", device='png', dpi = 300)
+```
