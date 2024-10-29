@@ -1,0 +1,207 @@
+---
+title: "2024 Bat observations in the ALA"
+author: "Dax Kellie"
+date: "29/10/2024"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+Top 5 bats recorded in the ALA in 2024 (as circle photos!)
+
+```{r}
+# packages
+library(tidyverse)
+library(galah)
+library(ozmaps)
+library(sf)
+library(here)
+library(glue)
+library(cropcircles)
+library(ggimage)
+library(ggtext)
+library(showtext)
+library(patchwork)
+
+font_add_google("Roboto")
+showtext_auto(enable = TRUE)
+```
+
+```{r}
+# registered ALA email (register at ala.org.au)
+galah_config(email = "your-email-here")
+```
+
+# Top bats
+
+Download top bats counts
+
+```{r}
+# total count
+total <- galah_call() |>
+  galah_identify("chiroptera") |>
+  filter(year == 2024) |>
+  atlas_counts()
+
+# download top 5 bat species
+bats_overall <- galah_call() |>
+  galah_identify("chiroptera") |>
+  galah_filter(year == 2024) |>
+  galah_group_by(species) |>
+  atlas_counts(limit = 5)
+
+# add rank
+bats_overall <- bats_overall |>
+  mutate(rank = c(20, 40, 60, 80, 100))
+```
+
+
+Add images of bats
+
+```{r images}
+# add folder path and get list of files
+folder <- glue("{here('comms', '2024-10-29_bat-week', 'images')}")
+files <- list.files(path = folder)
+
+# make tibble of file paths
+bat_images <- tibble("species" = bats_overall |> pull(species),
+                     images = c(glue("{folder}/{files}")))
+
+# crop image files with the {cropcircles} package
+bat_images <- bat_images |>
+  mutate(images_circle = circle_crop(images))
+
+# join to bat_ranks
+bat_ranks <- bats_overall |>
+  left_join(bat_images)
+```
+
+Add common names of top bats
+
+```{r images}
+# add common names too
+common_names <- search_taxa(bats_overall$species) |> 
+  select(scientific_name, vernacular_name) 
+
+bat_ranks <- bat_ranks |>
+  left_join(common_names, by = join_by(species == scientific_name))
+```
+
+
+## Bubble plot
+
+```{r}
+# create base for plotting, with adequate spacing for photos
+base_tibble <- tibble(x = 0:120, y = 1)
+
+# Add aspect ratio
+asp = 3.7 # ESSENTIAL for images with ggimage
+width = 10
+
+# Make total number pretty with comma
+total_comma <- prettyNum(total$count, big.mark=",")
+
+
+# image credits
+image_credits <- 
+  glue("
+       **Dataviz by Dax Kellie** <br> <br>
+       Data from the Atlas of Living Australia (ALA) <br> <br>
+       Image credits: <br>
+       P. poliocephalus - duke_n CC-BY-NC 4.0 (Int) <br>
+       P. alecto - pat_jones CC-BY-NC 4.0 (Int) <br>
+       V. vulturnus - Chris Lindorff CC-BY-NC 4.0 (Int) <br>
+       N. geoffroyi - Michael Keogh CC-BY-NC 4.0 (Int) <br>
+       P. conspicillatus - Greg Tasney CC-BY-NC 4.0 (Int) <br>
+       ")
+
+## Plot
+
+bubbles <- ggplot(base_tibble, aes(x = x, y = y)) +
+  geom_image(data = bat_ranks,
+             aes(x = rank, 
+                 y = 2.91, 
+                 image = images_circle),
+             color = "#242929",
+             size = 0.172,
+             asp = asp,
+             by="width") +
+  geom_image(data = bat_ranks,
+             aes(x = rank, 
+                 y = 2.91, 
+                 image = images_circle), 
+             size = .145,
+             asp = asp,
+             by="width") +
+  scale_size_identity() +
+  geom_text(data = bat_ranks,
+            aes(y = 0.6, 
+                label = stringr::str_wrap(glue("{vernacular_name}"), 20), 
+                x = rank),
+            color = "#ECF0E9",
+            family = "Roboto",
+            size = 12,
+            lineheight = 0.25,
+            fontface = 2,
+            hjust = 0.5) +
+  geom_text(data = bat_ranks,
+            aes(y = 0.0, 
+                label = stringr::str_wrap(glue("{scales::comma(count)} observations"), 35), 
+                x = rank),
+            color = "#ECF0E9",
+            family = "Roboto",
+            size = 10,
+            fontface = 1,
+            lineheight = 0.24,
+            hjust = 0.5) +
+  scale_y_continuous(limits = c(0,5.4), expand = expansion(mult = .075)) +
+  scale_x_continuous(limits = c(0,120)) + 
+  pilot::annotate_pilot(
+        x = 50,
+        y = 5.4,
+        label = paste(obs_number),
+        family = "Roboto",
+        color = "#ECF0E9",
+        hjust = 0.5,
+        size = 22) +
+  labs(
+    title = "Australia's most observed bats in 2024",
+    subtitle = glue("Total observations: {total_comma}"),
+    caption = image_credits
+       ) +
+  theme_void() +
+  theme(
+    plot.margin = unit(c(1,1,1,1),"cm"),
+    plot.title = element_text(family = "Roboto", size = 77, colour = "#ECF0E9", hjust = 0.5, margin=margin(0,0,10,0)),
+    plot.subtitle = element_text(family = "Roboto", size = 60, colour = "#ECF0E9", hjust = 0.5),
+    panel.spacing = unit(c(0,0,0,0), "cm"),
+    panel.background = element_rect(fill = "#1A1517", color = NA),
+    plot.background = element_rect(fill = "#1A1517", colour = NA),
+    panel.grid = element_blank(), #remove labels, ticks etc.
+    panel.border = element_blank(),
+    plot.caption = ggtext::element_textbox_simple(colour = "grey80",
+                                                  size = 29,
+                                                  halign = 1,
+                                                  lineheight = 0.25,
+                                                  margin = margin(t = 0.5,
+                                                                  r = 0.25,
+                                                                  unit = "cm")),
+    complete = TRUE
+  )
+
+```
+
+
+
+```{r}
+library(camcorder)
+
+gg_record(
+  dir = here("comms", "2024-10-29_bat-week", "plots"), # where to save the recording
+  width = 12.5,      # width of saved image
+  height = 5.8,     # height of saved image
+  units = "in",   # units for width and height
+  device = "png",
+  dpi = 350
+)
+```
