@@ -1,0 +1,191 @@
+---
+title: "FrogID"
+author: "Dax Kellie"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup}
+# packages
+library(tidyverse)
+library(galah)
+library(ggpubr) # for donutchart
+library(pilot) # palette
+library(showtext) # text for plot
+
+library(glue)
+library(pilot) # color palette
+library(showtext) # fonts
+library(geomtextpath)
+library(patchwork)
+library(forcats)
+library(ggstream)
+library(scales)
+
+# add custom font
+font_add_google("Roboto", "roboto")
+showtext_auto()
+```
+
+
+```{r}
+# Download data of frog records providers since 2016
+providers <- galah_call() |>
+  identify(search_taxa("frogs")) |>
+  filter(year >= 2019) |>
+  group_by(dataResourceName) |>
+  atlas_counts()
+
+
+years <- as.numeric(2019:2024)
+
+get_counts <- function(year_number) {
+  galah_call() |>
+    identify(search_taxa("frogs")) |>
+    filter(year == {{year_number}}) |>
+    group_by(species) |>
+    atlas_counts(limit = 10)
+}
+
+map(years, get_counts)
+```
+
+
+```{r}
+library(glue)
+providers
+
+
+providers_edit <- providers |> 
+  mutate(
+    dataResourceName = case_when( # change groups
+      dataResourceName == "FrogID"                ~ "FrogID",
+      dataResourceName == "NSW BioNet Atlas"      ~ "NSW BioNet Atlas",
+      dataResourceName == "iNaturalist Australia" ~ "iNaturalist Australia",
+      TRUE                                        ~ "Other"
+      )) |>
+  group_by(dataResourceName) |>
+  summarise_all(sum) |> # condense rows and sum counts
+  mutate(
+    total = sum(count),
+    percent = round((count/total) * 100, 0),
+    percent_label = glue("{percent}%", sep = ""),
+    lab.ypos = cumsum(percent) - 0.5 * percent
+    # xmin = c(0, 49.6),
+    # xmax = c(49.6, 100),
+    # xdist = xmax - xmin
+    )
+
+```
+
+```{r}
+library(geomtextpath)
+p1 <- providers_edit |>
+  ggplot(aes(x = 1, y = percent, fill = dataResourceName)) +
+  geom_col() +
+  geom_textpath(aes(label = percent_label),
+                position = position_stack(vjust = 0.5),
+                angle = 90,
+                size = 7.6,
+                color = "white",
+                family = "roboto") +
+  # scale_fill_viridis_d() +
+  scale_fill_manual(values = c(
+    "FrogID" = "#076164",
+    "NSW BioNet Atlas" = "grey40",
+    "Other" = "grey50",
+    "iNaturalist Australia" = "grey60")
+    ) +
+  xlim(-1, 3) +
+  # labs(title = "(b) Species occurrence records",
+  #      subtitle = paste0("Total occurrence records = ", scales::comma(sum(providers$count)))) +
+  # theme_void() + 
+  theme_pilot(grid = "", axes = "") +
+  coord_polar(theta = "y") + 
+  guides(fill = guide_legend(title = "")) +
+  theme(legend.position = "none",
+        legend.text = element_text(size = 13, family = "roboto"),
+        legend.title = element_text(size = 16),
+        text = element_text(family = "roboto"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        plot.title = element_text(size = 25),
+        plot.subtitle = element_text(size = 21),
+        panel.background = element_rect(fill = "transparent", colour = NA),
+        plot.background = element_rect(fill = "transparent", colour = NA),
+        plot.margin = unit(c(t = 1, l = 1, b = 1, r = 1), "cm"))
+
+p1 +
+  # geom_text_pilot(mapping = aes(label = paste(percent, "%", sep = ""), fontface = "bold"),
+  #           position = position_stack(vjust = 0.5),
+  #           size = 15,
+  #           family = "roboto",
+  #           color = "white") +
+  # annotate_pilot( # Total Records
+  #   x = -1,
+  #   y = 0,
+  #   label = paste(scales::comma((sum(providers_brief$count))), "\nfrog records \nsince 2018"),
+  #   color = "black",
+  #   size = 9,
+  #   family = "roboto",
+  #   lineheight = 0.9
+  # ) +
+  annotate_pilot( # FrogID
+    x = 2.9,
+    y = 70,
+    hjust = 0.5,
+    vjust = 0.5,
+    label = "FrogID",
+    color = "#076164",
+    family = "roboto",
+    size = 17,
+    fontface = "bold"
+  ) +
+  annotate_pilot( # iNaturalist
+    x = 2.4,
+    y = 19,
+    hjust = 0.5,
+    vjust = 0.5,
+    label = "iNaturalist",
+    color = "grey60",
+    family = "roboto",
+    size = 8
+  ) +
+  annotate_pilot( # NSW BioNet Atlas
+    x = 2.2,
+    y = 11,
+    hjust = 0.5,
+    vjust = 0.5,
+    label = paste("NSW \nBioNet \nAtlas"),
+    color = "grey40",
+    family = "roboto",
+    size = 8,
+    lineheight = 0.7
+  ) +
+  annotate_pilot( # Other
+    x = 1.9,
+    y = 4,
+    hjust = 0.5,
+    vjust = 0.5,
+    label = paste("Other"),
+    color = "grey50",
+    family = "roboto",
+    size = 8
+  )
+```
+
+
+```{r save}
+#| eval: false
+showtext_opts(dpi = 320)
+ggsave(here::here("comms", "2024-11-07_frogid", "frogid-donut.png"),
+       dpi = 350,
+       height = 10,
+       width = 11)
+
+```
+
+
