@@ -98,9 +98,6 @@ p1 <- providers_edit |>
     "iNaturalist Australia" = "grey60")
     ) +
   xlim(-1, 3) +
-  # labs(title = "(b) Species occurrence records",
-  #      subtitle = paste0("Total occurrence records = ", scales::comma(sum(providers$count)))) +
-  # theme_void() + 
   theme_pilot(grid = "", axes = "") +
   coord_polar(theta = "y") + 
   guides(fill = guide_legend(title = "")) +
