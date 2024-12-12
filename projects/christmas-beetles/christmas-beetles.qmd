@@ -37,7 +37,7 @@ font_add_google("Roboto Condensed", "Roboto")
 showtext_auto(enable = TRUE)
 
 # create a list of all years
-all_years <- tibble(year = c(1900:2023))
+all_years <- tibble(year = c(1900:2024))
 
 # Map of australia
 aus <- ozmap_states |>
@@ -152,14 +152,16 @@ c_beetles <- galah_call() |>
 c_beetles |>  
   ggplot(aes(x = year, y = count)) + 
   geom_bar(stat = "identity", fill = "#A31d34") + 
-  labs(title = "Christmas Beetles") +
+  labs(title = expression("Christmas beetles (" * italic("Anoplognathus") * ")"),
+       x = "Year",
+       y = "Observations") +
   pilot::theme_pilot(axes = "l",
                      grid = "h") + 
   geom_vline(xintercept = 2021, linetype ='longdash', col = 'grey55', linewidth = 1) +
   annotate("text", x = 2000, y = 1200, 
            label = "Christmas beetle\ncount starts",
            hjust = 0.5,
-           fontface = 'bold', size = 5, col = 'grey30', lineheight = 0.5) +
+           fontface = 'bold', size = 3, col = 'grey30', lineheight = 0.5) +
   annotate("curve", x = 2021, xend = 2004,
            y = 1000, yend = 1075,
            curvature = -.5,
@@ -416,7 +418,7 @@ mis_id_taxon
 ```{r}
 galah_call() |>
   identify(mis_id_taxon$taxon_concept_id[1]) |>
-  filter(year < 2022) |>
+  filter(year < 2025) |>
   # group_by(year) |>
   atlas_counts()
 
@@ -426,7 +428,7 @@ galah_call() |>
 
 galah_call() |>
   identify(mis_id_taxon$taxon_concept_id[2]) |>
-  filter(year < 2022) |>
+  filter(year < 2025) |>
   atlas_counts()
 
 35611-22890
@@ -445,7 +447,8 @@ arg_scarab <- galah_call() |>
   group_by(year) |>
   atlas_counts() |>
   mutate(year = as.numeric(year),
-         name = rep("Argentinian scarab beetle")) |>
+         name = (rep("Argentinian 
+scarab beetle"))) |>
   right_join(all_years, join_by(year == year)) |>
   replace_na(list(count = 0))
 
@@ -455,7 +458,8 @@ june_beetle <- galah_call() |>
   group_by(year) |>
   atlas_counts() |>
   mutate(year = as.numeric(year),
-         name = rep("June beetle (assorted species)")) |>
+         name = rep("June beetle (assorted 
+species)")) |>
   right_join(all_years, join_by(year == year)) |>
   replace_na(list(count = 0))
 
@@ -465,7 +469,8 @@ golden_stag <- galah_call() |>
   group_by(year) |>
   atlas_counts() |>
   mutate(year = as.numeric(year), 
-         name = rep("Golden stag beetle")) |>
+         name = rep("Golden stag 
+beetle")) |>
   right_join(all_years, join_by(year == year)) |>
   replace_na(list(count = 0))
 
@@ -477,19 +482,45 @@ mis_id_joined <- arg_scarab |>
 ggplot(data = mis_id_joined) +
   geom_bar(aes(x = year, y = count, fill = name), stat = "identity") + 
   pilot::scale_fill_pilot() +
-  labs(title = "Observations of common misID'd species believed to be Christmas beetles") +
-  pilot::theme_pilot(axes = "l",
-                     grid = "h") + 
+  labs(
+    title = expression("Common misidentified species 
+believed to be Christmas beetles (" * italic("Anoplognathus") * ")"),
+    y = "Observations",
+    x = "Year"
+  ) +
+  pilot::theme_pilot(axes = "l", grid = "h") + 
   theme(
+    axis.text.x = element_text(size = 7),  
     legend.position = "none",
     plot.title = element_text(family = "Roboto")
-    )  +
-  facet_grid( ~ name)
+  ) +
+  scale_x_continuous(breaks = seq(min(mis_id_joined$year), 2024, by = 4)) + 
+  facet_grid(~ name)  + 
+  geom_vline(xintercept = 2021, linetype ='longdash', col = 'grey55', linewidth = 1) +
+  annotate("text", x = 2000, y = 1200, 
+           label = "Christmas beetle\n count starts",
+           hjust = 0.1,
+           fontface = 'bold', size = 2, col = 'grey30', lineheight = 0.5) +
+  annotate("curve", x = 2021, xend = 2004,
+           y = 1000, yend = 1075,
+           curvature = -.5,
+           color = "grey55",
+           size = 1,
+           alpha = 0.8,
+           arrow = arrow(length = unit(0.09, "inches"), type = "closed")) 
 
 ```
 
+
+
 ```{r}
-ggsave(here::here("projects", "christmas-beetles", "plots", "counts_misID.png"))
+library(showtext)
+# turn on showtext
+showtext_auto()
+showtext_opts(dpi = 320)
+
+ggsave(here::here("projects", "christmas-beetles", "plots", "counts_misID.png"),
+       dpi = 320)
 ```
 
 
