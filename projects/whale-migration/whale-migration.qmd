@@ -207,19 +207,101 @@ jan_map <- ggplot(data = world) +
 jan_map
 ```
 
+
+
 ## problem??
 
+Dax: Note that the only reason I have to do it this way is because of how these data are split in lists. It might be easier to keep everything in a big dataframe until the final step in this chunk, where you split by month into separate lists.
+
 ```{r}
-create_and_save_map <- function(whales_data, krill_data, month_name) {
- browser()
-whales_data <- purrr::map(whales_data, ~ as.data.frame(.x) %>% mutate(type = "Whale"))
-krill_data <- purrr::map(krill_data, ~ as.data.frame(.x) %>% mutate(type = "Krill"))
+
+# add type column
+whales_data <- whales_data |>
+  map( \(df)
+       df |>
+         mutate(type = "Whale")
+       )
+
+krill_data <- krill_data |>
+  map(\(df)
+      df |>
+        mutate(type = "Krill")
+      )
+
+# Combine both datasets
+combined_data <- bind_rows(whales_data, krill_data)
+
+# split by month
+split_data <- combined_data |>
+  group_split(month)
+```
+
+
+
+```{r}
+create_and_save_map <- function(split_data, month_name) {
+  
+  # whales_data <- purrr::map(whales_data, ~ as.data.frame(.x) %>% mutate(type = "Whale"))
+  # krill_data <- purrr::map(krill_data, ~ as.data.frame(.x) %>% mutate(type = "Krill"))
 
   # Combine both datasets
-  combined_data <- bind_rows(whales_data, krill_data)
+  # combined_data <- bind_rows(whales_data, krill_data)
 
   # Create the plot
   jan_map <- ggplot(data = world) +
+    geom_sf() +
+    coord_sf(xlim = c(40, 200), 
+             ylim = c(-80, 20), 
+             expand = FALSE) +
+    labs(x = "Longitude", y = "Latitude") +
+
+    # Use combined data with color mapped to 'type'
+    geom_point(data = split_data, 
+               aes(x = decimal_longitude,
+                   y = decimal_latitude,
+                   color = type),   # Map color to type (Whale/Krill)
+               size = 1, 
+               alpha = 0.5) + 
+
+    # Manually define colors for whale and krill
+    scale_color_manual(values = c("Whale" = "#243A6A", "Krill" = "#6AAC90")) +
+
+    theme(
+      legend.position = "none",
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      axis.title = element_blank(),
+      panel.grid = element_blank(),
+      panel.background = element_blank(),
+      plot.background = element_blank(),
+      plot.margin = margin(0, 0, 0, 0)
+    )
+  
+  # Construct the file path using here()
+  file_path <- here("projects", "whale-migration", "maps", paste0({month_name}, "_map.png"))
+  
+  # Save the plot
+  ggsave(jan_map, filename = file_path, width = 1524, height = 1524, units = "px", dpi = 320, device = "png")
+  
+  # Store the plot in the global list
+  map_plots[[month_name]] <<- jan_map
+}
+
+# Apply function for each month
+purrr::walk2(split_data, month_names, create_and_save_map)
+
+
+```
+
+```{r}
+whales_data2 <- purrr::map(whales_data, ~ as.data.frame(.x) %>% mutate(type = "Whale"))
+krill_data2 <- purrr::map(krill_data, ~ as.data.frame(.x) %>% mutate(type = "Krill"))
+
+  # Combine both datasets
+  combined_data <- bind_rows(whales_data2, krill_data2)
+
+  # Create the plot
+ggplot(data = world) +
     geom_sf() +
     coord_sf(xlim = c(40, 200), 
              ylim = c(-80, 20), 
@@ -247,22 +329,11 @@ krill_data <- purrr::map(krill_data, ~ as.data.frame(.x) %>% mutate(type = "Kril
       plot.background = element_blank(),
       plot.margin = margin(0, 0, 0, 0)
     )
-  
-  # Construct the file path using here()
-  file_path <- here("projects", "whale-migration", "maps", paste0(month_name, "_map.png"))
-  
-  # Save the plot
-  ggsave(file_path, jan_map, width = 1524, height = 1524, units = "px", dpi = 320, device = "png")
-  
-  # Store the plot in the global list
-  map_plots[[month_name]] <<- jan_map
-}
 
-# Apply function for each month
-purrr::walk2(whales_by_month, krill_by_month, month_names, create_and_save_map)
-
-
+map_plots
 ```
+
+
 
 Creating the base outline:
 
