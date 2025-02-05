@@ -4,8 +4,7 @@ format: html
 editor: visual
 ---
 
-
-load packages
+#Load packages
 
 ```{r}
 library(tidyverse)
@@ -20,14 +19,14 @@ library(showtext)
 library(magick)
 ```
 
-Account configuration
+#Account configuration
 
 ```{r}
 galah_config(email = "olivia.torresan@csiro.au")
 ```
 
-\
-Download whale occurrence data from ALA
+
+#Download whale occurrence data from ALA
 
 -   Humpback whale: "Megaptera novaeangliae"
 
@@ -48,27 +47,34 @@ galah_call() |>
   apply_profile(ALA) |>
   select(month, group = "basic") |>
   atlas_occurrences() |>
-  clean_names()
+  clean_names() |>
+  select(-scientific_name)
 whales
 ```
-Food source movement? 
+
+#Download krill data
 
 ```{r}
-#krill <-
-#galah_call() |>
-  #identify("EUPHAUSIACEA") |> 
-  #apply_profile(ALA) |>
-  #atlas_occurrences() |>
-  #clean_names()
-#krill
+krill <-
+galah_call() |>
+  identify("EUPHAUSIACEA") |> 
+  apply_profile(ALA) |>
+  select(month, group = "basic") |>
+  atlas_occurrences() |>
+  clean_names()
+krill
 ```
 
-Split whale data into months 
+#Split data into months
 
 ```{r}
 # Create a list of months (1 through 12)
 months <- 1:12
+```
 
+##Whales:
+
+```{r}
 # Use purrr::map to loop over the months and filter the whales data
 whales_by_month <- months %>%
   set_names() %>%  # This names each list element after the month
@@ -103,36 +109,75 @@ whales_11 <- purrr::pluck(whales_by_month, "11")
 # Extract December (month 12)
 whales_12 <- purrr::pluck(whales_by_month, "12")
 ```
+##Krill:
 
-Create map
+```{r}
+# Use purrr::map to loop over the months and filter the whales data
+krill_by_month <- months %>%
+  set_names() %>%  # This names each list element after the month
+  map(~ filter(krill, month == .x))  # For each month, filter the whales data
+
+# Now, krill_by_month will be a list with data frames for each month
+```
+
+```{r}
+# Extract January (month 1)
+krill_1 <- purrr::pluck(krill_by_month, "1")
+# Extract February (month 2)
+krill_2 <- purrr::pluck(krill_by_month, "2")
+# Extract March (month 3)
+krill_3 <- purrr::pluck(krill_by_month, "3")
+# Extract April (month 4)
+krill_4 <- purrr::pluck(krill_by_month, "4")
+# Extract May (month 5)
+krill_5 <- purrr::pluck(krill_by_month, "5")
+# Extract June (month 6)
+krill_6 <- purrr::pluck(krill_by_month, "6")
+# Extract July (month 7)
+krill_7 <- purrr::pluck(krill_by_month, "7")
+# Extract August (month 8)
+krill_8 <- purrr::pluck(krill_by_month, "8")
+# Extract September (month 9)
+krill_9 <- purrr::pluck(krill_by_month, "9")
+# Extract October (month 10)
+krill_10 <- purrr::pluck(krill_by_month, "10")
+# Extract November (month 11)
+krill_11 <- purrr::pluck(krill_by_month, "11")
+# Extract December (month 12)
+krill_12 <- purrr::pluck(krill_by_month, "12")
+```
+
+
+#Create map
 
 ```{r}
 world <- ne_countries(scale = "medium", returnclass = "sf") # global base map
 ```
 
-
 ```{r}
-library(ggplot2)
-library(purrr)
-library(ggplot2)
-library(purrr)
-library(here)
-
 # List of whale datasets for each month
 whales_data <- list(whales_1, whales_2, whales_3, whales_4, whales_5, whales_6,
                     whales_7, whales_8, whales_9, whales_10, whales_11, whales_12)
 
+krill_data <- list(krill_1, krill_2, krill_3, krill_4, krill_5, krill_6, krill_7, 
+                   krill_8, krill_9, krill_10, krill_11, krill_12)
+```
+
+
+```{r}
 # List of month names
 month_names <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 # Create an empty list to store the maps
 map_plots <- list()
+```
 
-# Define a function to create, save, and store the map for each dataset
-create_and_save_map <- function(whale_data, month_name) {
-  # Create the plot
-  jan_map <- ggplot(data = world) +
+
+Jan only map example 
+
+```{r}
+jan_map <- ggplot(data = world) +
     geom_sf() +
     coord_sf(xlim = c(40, 200), 
              ylim = c(-80, 20), 
@@ -140,13 +185,18 @@ create_and_save_map <- function(whale_data, month_name) {
     labs(
       x = "Longitude",
       y = "Latitude"
-    ) +
-    geom_point(data = whale_data, # whale data for the month
+    ) + geom_point(data = whales_1, # whale data for the month
                aes(x = decimal_longitude,
-                   y = decimal_latitude,
-                   color = scientific_name),
-               alpha = 0.5,
-               size = 1.1) + 
+                   y = decimal_latitude),
+                   color = "#243A6A",
+                   size = 1.5,
+                   alpha = 0.5) + 
+   geom_point(data = krill_1, # whale data for the month
+               aes(x = decimal_longitude,
+                  y = decimal_latitude),
+                   color = "#6AAC90",
+                   size = 0.5,
+                   alpha = 0.5) + 
     theme(
       legend.position = "none",
       axis.text = element_blank(),  # Remove axis labels
@@ -157,71 +207,70 @@ create_and_save_map <- function(whale_data, month_name) {
       plot.background = element_blank(),   # Makes the whole plot background transparent
       plot.margin = margin(0, 0, 0, 0)    # Optional: Adjusts margin for no white border
     )
+jan_map
+```
+
+## problem??
+
+```{r}
+create_and_save_map <- function(whales_data, krill_data, month_name) {
+ 
+whales_data <- purrr::map(whales_data, ~ as.data.frame(.x) %>% mutate(type = "Whale"))
+krill_data <- purrr::map(krill_data, ~ as.data.frame(.x) %>% mutate(type = "Krill"))
+
+  # Combine both datasets
+  combined_data <- bind_rows(whales_data, krill_data)
+
+  # Create the plot
+  jan_map <- ggplot(data = world) +
+    geom_sf() +
+    coord_sf(xlim = c(40, 200), 
+             ylim = c(-80, 20), 
+             expand = FALSE) +
+    labs(x = "Longitude", y = "Latitude") +
+
+    # Use combined data with color mapped to 'type'
+    geom_point(data = combined_data, 
+               aes(x = decimal_longitude,
+                   y = decimal_latitude,
+                   color = type),   # Map color to type (Whale/Krill)
+               size = 1, 
+               alpha = 0.5) + 
+
+    # Manually define colors for whale and krill
+    scale_color_manual(values = c("Whale" = "#243A6A", "Krill" = "#6AAC90")) +
+
+    theme(
+      legend.position = "none",
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      axis.title = element_blank(),
+      panel.grid = element_blank(),
+      panel.background = element_blank(),
+      plot.background = element_blank(),
+      plot.margin = margin(0, 0, 0, 0)
+    )
   
-  # Construct the file path using `here()`
+  # Construct the file path using here()
   file_path <- here("projects", "whale-migration", "maps", paste0(month_name, "_map.png"))
   
-  # Save the plot to the specified folder
-  ggsave(file_path, jan_map, width = 1524, height = 1524, units = "px", dpi = 320)
+  # Save the plot
+  ggsave(file_path, jan_map, width = 1524, height = 1524, units = "px", dpi = 320, device = "png")
   
-  # Store the plot as an object in the global map_plots list
+  # Store the plot in the global list
   map_plots[[month_name]] <<- jan_map
 }
 
-# Apply the function for each month and dataset using walk2
-purrr::walk2(whales_data, month_names, create_and_save_map)
-
-```
-
-
-```{r}
-# Access and print each plot for all months
-jan_plot <- map_plots[["jan"]]
-print(jan_plot)
-
-feb_plot <- map_plots[["feb"]]
-print(feb_plot)
-
-mar_plot <- map_plots[["mar"]]
-print(mar_plot)
-
-apr_plot <- map_plots[["apr"]]
-print(apr_plot)
-
-may_plot <- map_plots[["may"]]
-print(may_plot)
-
-jun_plot <- map_plots[["jun"]]
-print(jun_plot)
-
-jul_plot <- map_plots[["jul"]]
-print(jul_plot)
-
-aug_plot <- map_plots[["aug"]]
-print(aug_plot)
-
-sep_plot <- map_plots[["sep"]]
-print(sep_plot)
-
-oct_plot <- map_plots[["oct"]]
-print(oct_plot)
-
-nov_plot <- map_plots[["nov"]]
-print(nov_plot)
-
-dec_plot <- map_plots[["dec"]]
-print(dec_plot)
-
+# Apply function for each month
+purrr::walk2(whales_by_month, krill_by_month, month_names, create_and_save_map)
 
 
 ```
-
 
 
 Creating the base outline:
 
-
-January example: 
+January example:
 
 ```{r}
 jan_label <- tibble(x = c(250,
@@ -274,7 +323,6 @@ jan_label <- tibble(x = c(250,
                              "plain",
                              "plain"))
 ```
-
 
 ```{r}
 #JAN
@@ -330,8 +378,7 @@ jan_base
 
 Now repeat for all other months using purrr:
 
-
-Let's make the base for every month in one chunk now: ********
+Let's make the base for every month in one chunk now: \*\*\*\*\*\*\*\*
 
 ```{r}
 library(ggplot2)
@@ -413,8 +460,7 @@ walk2(month_base_plots, month_names, ~ ggsave(here("projects", "whale-migration"
 
 ```
 
-
-An example of merging the base/background with one map (January): 
+An example of merging the base/background with one map (January):
 
 ```{r}
 # Step 1: Save base image
@@ -424,7 +470,7 @@ ggsave("Jan_base.png", jan_base, width = 1524, height = 1524, units = "px", dpi 
 jan_png <- image_read("jan_base.png")
 
 # Step 3: Save the jan_map ggplot as a PNG with transparent background
-ggsave("jan_map.png", jan_plot, width = 1524, height = 1024, units = "px", dpi = 320, bg = "transparent")
+ggsave("jan_map.png", jan_map, width = 1524, height = 1024, units = "px", dpi = 320, bg = "transparent")
 
 # Step 4: Read the saved jan_map PNG as a magick image object
 jan_map_image <- image_read("jan_map.png")
@@ -450,7 +496,7 @@ plot(jan)
 image_write(jan, path = "jan.png", format = "png")
 ```
 
-Loop/repeat combining bases and maps with purrr for all other months: 
+Loop/repeat combining bases and maps with purrr for all other months:
 
 ```{r}
 library(magick)
@@ -493,8 +539,7 @@ purrr::walk(month_names, combine_images)
 # Now, `combined_images_list` holds all the combined images in your environment, and you can use them for creating the GIF.
 ```
 
-
-Now we animate it and save as a gif: 
+Now we animate it and save as a gif:
 
 ```{r}
 
@@ -516,15 +561,5 @@ gif <- image_animate(combined_images,
 image_write(gif, here("projects", "whale-migration", "whale-migration.gif"))
 
 ```
-
-
-
-
-
-
-
-
-
-
 
 
