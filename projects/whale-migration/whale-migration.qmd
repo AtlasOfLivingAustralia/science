@@ -211,7 +211,7 @@ jan_map
 
 ```{r}
 create_and_save_map <- function(whales_data, krill_data, month_name) {
- 
+ browser()
 whales_data <- purrr::map(whales_data, ~ as.data.frame(.x) %>% mutate(type = "Whale"))
 krill_data <- purrr::map(krill_data, ~ as.data.frame(.x) %>% mutate(type = "Krill"))
 
