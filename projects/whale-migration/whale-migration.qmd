@@ -25,7 +25,6 @@ library(magick)
 galah_config(email = "olivia.torresan@csiro.au")
 ```
 
-
 #Download whale occurrence data from ALA
 
 -   Humpback whale: "Megaptera novaeangliae"
@@ -109,6 +108,7 @@ whales_11 <- purrr::pluck(whales_by_month, "11")
 # Extract December (month 12)
 whales_12 <- purrr::pluck(whales_by_month, "12")
 ```
+
 ##Krill:
 
 ```{r}
@@ -147,7 +147,6 @@ krill_11 <- purrr::pluck(krill_by_month, "11")
 krill_12 <- purrr::pluck(krill_by_month, "12")
 ```
 
-
 #Create map
 
 ```{r}
@@ -163,7 +162,6 @@ krill_data <- list(krill_1, krill_2, krill_3, krill_4, krill_5, krill_6, krill_7
                    krill_8, krill_9, krill_10, krill_11, krill_12)
 ```
 
-
 ```{r}
 # List of month names
 month_names <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
@@ -173,8 +171,7 @@ month_names <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
 map_plots <- list()
 ```
 
-
-Jan only map example 
+Jan only map example
 
 ```{r}
 jan_map <- ggplot(data = world) +
@@ -266,7 +263,6 @@ purrr::walk2(whales_by_month, krill_by_month, month_names, create_and_save_map)
 
 
 ```
-
 
 Creating the base outline:
 
@@ -561,5 +557,3 @@ gif <- image_animate(combined_images,
 image_write(gif, here("projects", "whale-migration", "whale-migration.gif"))
 
 ```
-
-
