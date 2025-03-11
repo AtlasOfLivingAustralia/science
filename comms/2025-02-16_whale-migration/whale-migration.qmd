@@ -32,14 +32,12 @@ galah_config(email = "olivia.torresan@csiro.au")
 
 -   Humpback whale: "Megaptera novaeangliae"
 
--   Southern right whale: "Eubalaena australis**"**
+-   Southern right whale: "Eubalaena australis"
 
 -   Blue whale: "Balaenoptera musculus"
 
--   Sperm whale "Physeter macrocephalus" **\
-    **
-    
-    
+-   Sperm whale "Physeter macrocephalus"
+
 ```{r}
 # whales <-
 # galah_call() |>
@@ -54,7 +52,6 @@ galah_config(email = "olivia.torresan@csiro.au")
 # attributes(whales)$doi
 ```
 
-
 ```{r}
 whales <- galah_call() |>
   filter(doi == "https://doi.org/10.26197/ala.3097b86e-ff58-4cf8-9c81-544b1675bfdc") |>
@@ -64,7 +61,6 @@ whales
 ```
 
 #Download krill data
-
 
 ```{r}
 #krill <-
@@ -85,9 +81,6 @@ krill <- galah_call() |>
   atlas_occurrences() 
 krill
 ```
-
-
-
 
 #Split data into months
 
@@ -254,8 +247,7 @@ combined_data <- bind_rows(whales_data, krill_data)
 
 ```
 
-
-# first draft map 
+# first draft map
 
 ```{r}
 # create_and_save_map <- function(split_data, month_name) {
@@ -285,7 +277,7 @@ combined_data <- bind_rows(whales_data, krill_data)
 #     )
 # 
 #   # Construct the file path using here()
-#   file_path <- here("projects", "whale-migration", "maps", paste0({month_name}, "_map.png"))
+#   file_path <- here("comms", "2025-02_16_whale-migration", "maps", paste0({month_name}, "_map.png"))
 # 
 #   # Save the plot
 #   ggsave(jan_map, filename = file_path, width = 1524, height = 1524, units = "px", dpi = 320, device = "png")
@@ -347,7 +339,6 @@ ggplot() +
            expand = FALSE) 
 ```
 
-
 ```{r}
 # Combine both datasets
 combined_data <- bind_rows(whales_data, krill_data)
@@ -356,8 +347,6 @@ whales_data2 <- purrr::map(whales_data, ~ as.data.frame(.x) %>% mutate(type = "W
 krill_data2 <- purrr::map(krill_data, ~ as.data.frame(.x) %>% mutate(type = "Krill"))
 
 ```
-
-
 
 ```{r}
 #convert to sf for plotting and filter whales only 
@@ -368,7 +357,6 @@ whale_points_sf <- combined_data |>
   st_as_sf(coords = c("decimal_longitude", "decimal_latitude"), crs = 4326)
 whale_points_sf
 ```
-
 
 ```{r}
 #intersect the sf whale_points into the hex 
@@ -383,7 +371,6 @@ counts <- as_tibble(intersect, .name_repair = "unique") %>%
   mutate(hex_id = as.integer(hex_id))
 
 ```
-
 
 ```{r}
 #take the intersect df, convert to tibble, rename column names and convert to integer for plotting
@@ -441,8 +428,7 @@ monthly_dfs <- map(1:12, ~ {
 
 ```
 
-
-#static example 
+#static example
 
 ```{r}
 #now plot them - note that this is krill data from all time and whale data from all time 
@@ -506,7 +492,6 @@ whalekrill
 
 ```
 
-
 ```{r}
 #loop each month data for whales 
 create_and_save_map <- function(monthly_dfs, month_name) {
@@ -551,7 +536,7 @@ whalekrill <-
 whalekrill
 
   # Construct the file path using here()
-  file_path <- here("projects", "whale-migration", "maps", paste0({month_name}, "_map.png"))
+  file_path <- here("comms", "2025-02-16_whale-migration", "maps", paste0({month_name}, "_map.png"))
 
   # Save the plot
   ggsave(whalekrill, filename = file_path, width = 1524, height = 1524, units = "px", dpi = 320, device = "png")
@@ -563,8 +548,6 @@ whalekrill
 # Apply function for each month
 purrr::walk2(monthly_dfs, month_names, create_and_save_map)
 ```
-
-
 
 ##MONTH BASES
 
@@ -740,7 +723,7 @@ month_base_plots <- map(month_names, ~ create_base_plot(.x)) |>
   set_names(month_names)  # Set the names of list elements to be the month names to match map_plots list
 
 # Save each plot as an image using walk2 to save with the correct names
-walk2(month_base_plots, month_names, ~ ggsave(here("projects", "whale-migration", "bases", paste0(.y, "_base.png")), .x, width = 1524, height = 1524, units = "px", dpi = 320, bg = "transparent"))
+walk2(month_base_plots, month_names, ~ ggsave(here("comms", "2025-02-16_whale-migration", "bases", paste0(.y, "_base.png")), .x, width = 1524, height = 1524, units = "px", dpi = 320, bg = "transparent"))
 
 
 ```
@@ -783,9 +766,10 @@ image_write(jan, path = "jan.png", format = "png")
 
 Loop/repeat combining bases and maps with purrr for all other months:
 
-##* something happens in this loop re centering and adjusting the combination of the base and map and i cannot figure it out 
+##\* something happens in this loop re centering and adjusting the combination of the base and map and i cannot figure it out
 
-w. title and caption 
+w.  title and caption
+
 ```{r}
 # # List of month names for iteration
 # month_names <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
@@ -857,11 +841,12 @@ w. title and caption
 # 
 # 
 # # Save each plot as an image using walk2 to save with the correct names
-# walk2(month_base_plots, month_names, ~ ggsave(here("projects", "whale-migration", "bases", paste0(.y, "_base.png")), .x, width = 1524, height = 1524, units = "px", dpi = 320, bg = "transparent"))
+# walk2(month_base_plots, month_names, ~ ggsave(here("comms", "2025-02-16_whale-migration", "bases", paste0(.y, "_base.png")), .x, width = 1524, height = 1524, units = "px", dpi = 320, bg = "transparent"))
 
 ```
 
-w/out title and caption 
+w/out title and caption
+
 ```{r}
 library(magick)
 library(purrr)
@@ -877,8 +862,8 @@ combined_images_list <- list()
 # Define function to combine map and base image for each month
 combine_images <- function(month_name) {
   # Define file paths for the map and base images
-  map_path <- here("projects", "whale-migration", "maps", paste0(month_name, "_map.png"))
-  base_path <- here("projects", "whale-migration", "bases", paste0(month_name, "_base.png"))
+  map_path <- here("comms", "2025-02-16_whale-migration", "maps", paste0(month_name, "_map.png"))
+  base_path <- here("comms", "2025-02-16_whale-migration", "bases", paste0(month_name, "_base.png"))
   
   # Read the map and base images
   map_image <- image_read(map_path)
@@ -888,7 +873,7 @@ combine_images <- function(month_name) {
   combined_image <- image_composite(base_image, map_image, operator = "over")
   
   # Define save path for the combined image
-  save_path <- here("projects", "whale-migration", "combined", paste0(month_name, "_combined.png"))
+  save_path <- here("comms", "2025-02-16_whale-migration", "combined", paste0(month_name, "_combined.png"))
   
   # Save the combined image
   image_write(combined_image, save_path)
@@ -903,7 +888,6 @@ purrr::walk(month_names, combine_images)
 # Now, combined_images_list holds all the combined images in your environment, and you can use them for creating the GIF.
 
 ```
-
 
 Now we animate it and save as a gif:
 
@@ -924,10 +908,6 @@ gif <- image_animate(combined_images,
                      fps = 0.5, optimize = TRUE)
 
 # Save the GIF
-image_write(gif, here("projects", "whale-migration", "whale-migration.gif"))
+image_write(gif, here("comms", "2025-02-16_whale-migration", "whale-migration.gif"))
 
 ```
-
-
-
-
