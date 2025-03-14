@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.6.40">
+<meta name="generator" content="quarto-1.5.56">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -29,10 +29,10 @@ ul.task-list li input[type="checkbox"] {
 <script src="littrackerdashboard_files/libs/quarto-html/tippy.umd.min.js"></script>
 <script src="littrackerdashboard_files/libs/quarto-html/anchor.min.js"></script>
 <link href="littrackerdashboard_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="littrackerdashboard_files/libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="littrackerdashboard_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="littrackerdashboard_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="littrackerdashboard_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="littrackerdashboard_files/libs/bootstrap/bootstrap-58756ebce16e160b277bb1003e00f5ce.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="littrackerdashboard_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script src="littrackerdashboard_files/libs/quarto-dashboard/quarto-dashboard.js"></script>
 <script src="littrackerdashboard_files/libs/quarto-dashboard/stickythead.js"></script>
 <script src="littrackerdashboard_files/libs/quarto-dashboard/datatables.min.js" kdttablesentinel="true"></script>
@@ -83,7 +83,7 @@ grid-auto-rows: minmax(0, 1fr);">
 Total citations
 </p>
 <p class="value-box-value">
-4,826
+4,828
 </p>
 </div>
 </div>
@@ -146,9 +146,7 @@ Reports (Used/Cited ALA)
 grid-auto-rows: minmax(0, 1fr);">
 <div class="bslib-grid" style="display: grid; grid-template-rows: minmax(3em, 1fr) minmax(3em, 1fr); grid-auto-columns: minmax(0, 1fr);">
 <div class="card cell bslib-card html-fill-container" data-title="Journal articles by year (Used or Cited only)" data-bslib-card-init="" data-require-bs-caller="card()" data-full-screen="false">
-<div class="card-header"><div class="card-title"><span style="display: inline">
-Journal articles by year (Used or Cited only)
-</span></div></div>
+<div class="card-header"><div class="card-title">Journal articles by year (Used or Cited only)</div></div>
 <div class="card-body html-fill-item html-fill-container">
 <div class="cell-output-display html-fill-item html-fill-container">
 <img src="littrackerdashboard_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid quarto-dashboard-img-contain">
@@ -161,9 +159,7 @@ Journal articles by year (Used or Cited only)
     </span>
 </bslib-tooltip><script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div>
 <div class="card cell bslib-card html-fill-container" data-title="Journal article topics 2024" data-bslib-card-init="" data-require-bs-caller="card()" data-full-screen="false">
-<div class="card-header"><div class="card-title"><span style="display: inline">
-Journal article topics 2024
-</span></div></div>
+<div class="card-header"><div class="card-title">Journal article topics 2024</div></div>
 <div class="card-body html-fill-item html-fill-container">
 <div class="cell-output-display html-fill-item html-fill-container">
 <img src="littrackerdashboard_files/figure-html/unnamed-chunk-26-1.png" class="img-fluid quarto-dashboard-img-contain">
@@ -176,14 +172,11 @@ Journal article topics 2024
     </span>
 </bslib-tooltip><script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div>
 </div><div class="bslib-grid" style="display: grid; grid-template-rows: minmax(3em, 1fr); grid-auto-columns: minmax(0, 1fr);">
-<!-- Dax: What is this theme? I don't see it anywhere. If it's not being used, delete it-->
 <div class="card cell bslib-card html-fill-container" data-title="ALA tool use in published journal articles" data-bslib-card-init="" data-require-bs-caller="card()" data-full-screen="false">
-<div class="card-header"><div class="card-title"><span style="display: inline">
-ALA tool use in published journal articles
-</span></div></div>
+<div class="card-header"><div class="card-title">ALA tool use in published journal articles</div></div>
 <div class="card-body html-fill-item html-fill-container">
 <div class="cell-output-display html-fill-item html-fill-container">
-<img src="littrackerdashboard_files/figure-html/unnamed-chunk-34-1.png" class="img-fluid quarto-dashboard-img-contain">
+<img src="littrackerdashboard_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid quarto-dashboard-img-contain">
 </div>
 </div>
 <bslib-tooltip placement="auto" bsoptions="[]" data-require-bs-version="5" data-require-bs-caller="tooltip()">
@@ -282,6 +275,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   });
   clipboard.on('success', onCopySuccess);
   if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
     const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
       text: getTextToCopy,
       container: window.document.getElementById('quarto-embedded-source-code-modal')
@@ -392,6 +387,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (window.Quarto?.typesetMath) {
         window.Quarto.typesetMath(note);
       }
+      // TODO in 1.5, we should make sure this works without a callout special case
       if (note.classList.contains("callout")) {
         return note.outerHTML;
       } else {

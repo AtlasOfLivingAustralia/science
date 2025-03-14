@@ -16,6 +16,14 @@ library(here)
 library(tidyverse)
 library(janitor)
 library(lubridate)
+library(pilot)
+library(ggfittext)
+library(showtext)
+
+## add font for plots 
+font_add_google("Roboto")
+## automatically use showtext to render text
+showtext_auto()
 ```
 
 <!-- Data lives here: https://csiroau.sharepoint.com/:x:/r/sites/AtlasofLivingAustraliaTeams/Shared%20Documents/Teams/Science%20and%20Decision%20Support/Projects/publication-tracker/zoterocsv_publication-tracker/2025/2025-03-05_publications.csv?d=w6116f4bd2af841b1ab3bc08631b1a234&csf=1&web=1&e=5jID3a -->
@@ -24,7 +32,7 @@ library(lubridate)
 #| message: false
 #| warning: false
 #| echo: false
-data <- read_csv(here("projects", "literature-tracking", "data", "2025-03-05_publications.csv"))
+data <- read_csv(here("projects", "literature-tracking", "data", "2025-03-14_publications.csv"))
 ```
 
 ```{r cleaning}
@@ -35,7 +43,7 @@ data <- read_csv(here("projects", "literature-tracking", "data", "2025-03-05_pub
 remove <- c("1 - ", "2 - ", "3 - ", "4 - ", "5 - ", "6 - ") # list numbers you want removed
 
 dataclean <- data |>
-  janitor ::clean_names() |>
+ clean_names() |>
   mutate(
     date_added_clean = as_date(date_added),
     date_added_month = month(date_added_clean),
@@ -50,16 +58,15 @@ dataclean <- dataclean |>
                           paste(remove, collapse = "|"))
   )
 
-
-### For tag filtering ###
+### for tag filtering ###
 
 # separate manual tags into separate rows (multiple entries for one paper if inc. many tags)
-ALA_tags <- dataclean %>%
-  mutate(tags = strsplit(as.character(tags), ";")) %>% # split names where there is a semicolon
+ALA_tags <- dataclean |>
+  mutate(tags = strsplit(as.character(tags), ";")) |> # split names where there is a semicolon
   unnest(tags) # make them occupy multiple rows
 
 # trim whitespace from tags
-ALA_tags <- ALA_tags %>% # remove numbers
+ALA_tags <- ALA_tags |> # remove numbers
   mutate(
     tags = str_trim(tags) # trim whitespace around string 
   )
@@ -69,7 +76,7 @@ ALA_tags <- ALA_tags %>% # remove numbers
 #| message: false
 #| warning: false
 #| echo: false
-# Total number of publications that cite the ALA (all time)
+# total number of publications that cite the ALA (all time)
 totalpublications <- nrow(dataclean)
 ```
 
@@ -78,7 +85,7 @@ totalpublications <- nrow(dataclean)
 #| message: false
 #| warning: false
 #| echo: false
-#number of journal articles that cite the ALA (all time)
+# number of papers that cite the ALA (all time)
 cited_papers <- ALA_tags |>
   filter(tags == "ALA cited",
          item_type == "journalArticle")
@@ -102,13 +109,10 @@ used_papers <- ALA_tags |>
 cited_used_papers <- ALA_tags |>
   filter(tags == "ALA used" | tags == "ALA cited", 
          item_type == "journalArticle") |>
-  filter(!duplicated(title))
+  filter(!duplicated(title)) 
 
 nrow(cited_used_papers)
-# number of papers that either cite or use the ALA (all time)
-# cited_used_papers <- nrow(cited_papers) + nrow(used_papers)
 ```
-
 
 
 ```{r}
@@ -150,8 +154,6 @@ cited_used_reports <- nrow(cited_reports) + nrow(used_reports)
 ```
 
 
-
-
 ```{r}
 #| message: false
 #| warning: false
@@ -166,7 +168,7 @@ tag_counts <- ALA_tags |>
   group_by(tags) |>
   summarise(count = n()) 
 
-filtered_tags <- tag_counts %>%
+filtered_tags <- tag_counts |>
   filter(tags %in% topic_tags)
 
 total_tags <- sum(filtered_tags$count)
@@ -174,15 +176,13 @@ total_tags <- sum(filtered_tags$count)
 
 ```{r}
 #| echo: false
-percents <- filtered_tags %>%
+percents <- filtered_tags |>
   mutate(
     perc = (count / total_tags) * 100,
     perc_label = paste0(round(perc, 2), "%")
     )
 
-# numeric_percentages <- as.numeric(sub("%", "", percents$perc))
-
-# Sum the numeric percentages
+# sum the numeric percentages
 total_sum <- sum(percents$perc)
 ```
 
@@ -190,7 +190,7 @@ total_sum <- sum(percents$perc)
 #| message: false
 #| warning: false
 #| echo: false
-percents <- percents %>%
+percents <- percents |>
   mutate(tags = reorder(tags, count))
 ```
 
@@ -198,13 +198,13 @@ percents <- percents %>%
 #| message: false
 #| warning: false
 #| echo: false
-top_10 <- percents %>%
+top_10 <- percents |>
   top_n(10, wt = count)
 ```
 
 
 ```{r}
-# Repeat steps above but for last year only 
+# repeat steps above but for last year only 
 dataclean_2024 <- dataclean |> 
   filter(date_added_clean >= ymd("2024-01-01")) |>
   filter(date_added_clean <= ymd("2024-12-31")) |>
@@ -215,15 +215,15 @@ dataclean_2024 <- dataclean |>
 #| message: false
 #| warning: false
 #| echo: false
-## Filtering Tags
+## filtering Tags
 
 # separate manual tags into separate rows (multiple entries for one paper if inc. many tags)
-ALA_tags_2024 <- dataclean_2024 %>%
-  mutate(tags = strsplit(as.character(tags), ";")) %>% # split names where there is a semicolon
+ALA_tags_2024 <- dataclean_2024 |>
+  mutate(tags = strsplit(as.character(tags), ";")) |> # split names where there is a semicolon
   unnest(tags) # make them occupy multiple rows
 
 # trim whitespace from tags
-ALA_tags_2024 <- ALA_tags_2024 %>% # remove numbers
+ALA_tags_2024 <- ALA_tags_2024 |> # remove numbers
   mutate(
     tags = str_trim(tags) # trim whitespace around string 
   )
@@ -243,7 +243,7 @@ used_papers_year <- ALA_tags |>
   filter(tags == "ALA used") |>
   filter(item_type == "journalArticle") 
 
-# *papers or journal articles* cited and used in last year
+# *papers* cited and used in last year
 used_cited_papers <- ALA_tags |>
   filter(tags == "ALA used" | tags == "ALA cited",
          item_type == "journalArticle") |>
@@ -256,7 +256,6 @@ used_cited_papers_year <- ALA_tags_2024 |>
   filter(!duplicated(title)) |>
   nrow()
 
-# used_cited_papers_year <- nrow(used_papers_year) + nrow(cited_papers_year)
 ```
 
 ```{r}
@@ -286,7 +285,6 @@ used_cited_reports_year <- ALA_tags_2024 |>
   filter(!duplicated(title)) |>
   nrow()
 
-# used_cited_reports_year <- nrow(cited_reports_year) + nrow(used_reports_year)
 ```
 
 ## Row {height=10%}
@@ -317,8 +315,6 @@ list(
 )
 ```
 
-
-
 ```{r}
 #| content: valuebox
 #| title: "2024 Journal articles (Used/Cited ALA)"
@@ -331,7 +327,6 @@ list(
 )
 ```
 
-
 ```{r}
 #| content: valuebox
 #| title: "Reports (Used/Cited ALA)"
@@ -343,7 +338,6 @@ list(
   value = totalreports
 )
 ```
-
 
 ```{r}
 #| content: valuebox
@@ -362,6 +356,7 @@ list(
 
 ```{r}
 #| title: "Journal articles by year (Used or Cited only)"
+#| warning: FALSE
 
 publication_counts <- ALA_tags |>
   filter(tags == "ALA used" | tags == "ALA cited",
@@ -406,25 +401,9 @@ custom_palette <- c("#003A70", "#6CDE4B", "#DE4BC3", "#F26649", "#E0AA51", "#895
 #| warning: false
 #| echo: false
 
-library(pilot)
-library(ggfittext)
-litsum <- extrafont::loadfonts(device = "win", quiet = TRUE)
-theme_set(theme_minimal(base_family = "Roboto"))
-showtext::showtext_auto()
-showtext::showtext_opts(dpi = 200)
-
 litsum <- ggplot(top_10, aes(x = count, y = tags)) +
   geom_col(fill = custom_palette) +
-  # geom_text(
-  #   aes(label = paste(tags)),
-  #   position = position_nudge(x = -0.5),
-  #   hjust = 1,
-  #   vjust = 0.5,  # Center the label vertically
-  #   color = "white", size = 5, fontface = "bold") +  # Adjust text color, size, and fontface for bold
   geom_bar_text(aes(label = paste(tags)),
-                # position = position_nudge(x = -0.5),
-                # hjust = 1,
-                # vjust = 0.5,  # Center the label vertically
                 min.size = 3, 
                 outside = FALSE,
                 family = "Roboto", 
@@ -434,12 +413,12 @@ litsum <- ggplot(top_10, aes(x = count, y = tags)) +
     aes(label = paste(perc_label)),
     position = position_nudge(x = 0.5),
     hjust = -0.2,
-    vjust = 0.5,  # Center the label vertically
-    color = "grey30", size = 5, fontface = "bold") +  # Adjust text color, size, and fontface for bold
+    vjust = 0.5,  # center the label vertically
+    color = "grey30", size = 5, fontface = "bold") +  # adjust text color, size, and fontface for bold
   xlim(c(0, max(top_10$perc) + 80)) +
   theme_pilot(axes = "",
               grid = "",
-              legend_position = "none") + # Set font family, text color, and bold
+              legend_position = "none") + 
   scale_fill_manual(values = custom_palette) + 
   labs(caption = "*TOPICS OF PUBLISHED ARTICLES (2024)") +
   theme(axis.text.x = element_blank(),  
@@ -452,46 +431,11 @@ litsum <- ggplot(top_10, aes(x = count, y = tags)) +
 ```{r}
 #| title: Journal article topics 2024
 #| echo: false
+#| warning: false
 plot(litsum)
 ```
 
-
-
-
-
-
 ### Column (width=50%)
-
-```{r}
-#| include: false
-#| message: false
-#| warning: false
-#| echo: false
-# change the date range of the tag code so it can be used again but this time across all years and for ALA tools 
-dataclean_all <- dataclean |> 
-  filter(date_added_clean >= ymd("2007-01-01")) |>
-  filter(date_added_clean <= ymd("2025-12-31"))
-```
-
-```{r}
-#| include: false
-#| message: false
-#| warning: false
-#| echo: false
-## Filtering Tags
-
-# separate manual tags into separate rows (multiple entries for one paper if inc. many tags)
-ALA_tags <- dataclean_all %>%
-  mutate(tags = strsplit(as.character(tags), ";")) %>% # split names where there is a semicolon
-  unnest(tags) # make them occupy multiple rows
-
-# trim whitespace from tags
-ALA_tags <- ALA_tags %>% # remove numbers
-  mutate(
-    tags = str_trim(tags) # trim whitespace around string 
-  )
-```
-
 
 
 ```{r}
@@ -502,8 +446,6 @@ ALA_tags <- ALA_tags %>% # remove numbers
 
 selected_tool_tags <- c("Species occurrence records", "galah", "Spatial Portal", "Species lists", "Profiles", "Climate Data", "Images", "Survey Planning", "AusTraits", "APPD", "AVH", "BioCollect", "Digivol", "Sensitive Data Service SDS", "Modelling", "Phylolink", "Habitat Condition Assessment Tool", "delta")
 
-# ALA_tags |>
-#   filter(tags %in% "Habitat Condition Assessment Tool")
 
 pubs_by_year <- dataclean |>
   filter(publication_year > 2006,
@@ -521,91 +463,13 @@ tool_tag_counts <- ALA_tags |>
 tags_by_year <- tool_tag_counts |>
   left_join(pubs_by_year) |>
   rename(total_publications = n) |>
-  group_by(publication_year) |>
-  mutate(nil_tags = total_publications - sum(tag_count)) # add nil tags
-```
-
-
-```{r}
-#| title: Tools cited in the publication tracker (bar plot)
-#| echo: false
-
-tagsplot <- ggplot(tags_by_year, aes(x = publication_year, y = tag_count, fill = tags)) + 
-  geom_bar(stat = "identity", position = "stack", linewidth = 0.5, width = 0.98) + 
-  labs(x = "", 
-       y = "Total papers tagged") +
-  pilot::theme_pilot(grid = "h") +
-  scale_y_continuous(expand = c(0, 0)) +
-  scale_x_discrete(breaks = c(2007, 2009, 2011, 2013, 2015, 2017, 2019, 2021, 2023, 2025)) +
-  scale_fill_pilot(palette = "seven", discrete = TRUE, reverse = FALSE) + 
-  #labs(caption = "*NO. OF JOURNAL ARTICLES BY YEAR") +
-  theme(
-    panel.grid = element_blank(),
-    axis.line.y = element_blank(),
-    axis.ticks = element_blank(),
-    legend.position = "bottom",
-    legend.title = element_blank(),
-    legend.text = element_text(size = 8),
-    legend.key.width = unit(1, 'mm')) 
-
-```
-
-
-```{r}
-#| eval: false
-ggsave(tagsplot, file = here::here("stacked-tags-bar-plot.png"),
-       height = 7, width = 10)
-```
-
-```{r}
-piccia_palette <- c(
-  purple = "#5c1c8d",
-  lilac = "#be77bf",
-  dark_pink = "#cd0d72",
-  light_pink = "#f76bcc",
-  orange = "#b4612b",
-  emerald = "#3ca465",
-  forest_green = "#1c4d3b",
-  blue_grey = "#55517e",
-  soft_coral = "#FF6F61",
-  seafoam_green = "#A8E6CF",
-  dusty_lavender = "#B49CC2",
-  muted_gold = "#D4AF37",
-  slate_blue = "#6A7F9B",
-  burnt_sienna = "#E97451",
-  soft_peach = "#FAD02E",
-  charcoal_grey = "#333333",
-  periwinkle_blue = "#8E9BFF",
-  mint_green = "#98FF98"
-)
-```
-
-<!-- Dax: What is this theme? I don't see it anywhere. If it's not being used, delete it-->
-
-```{r}
-theme_piccia <- function() {
-  
-  theme_minimal(base_size = 12) +
-    # Align the font with the rest of the page
-    theme(text = element_text(family = "Roboto", colour = "#12051C"),
-          # Make the title the main thing, and make it wrap to the width of the plot
-          # by putting it inside a textbox
-          plot.title = ggtext::element_textbox_simple(face = "bold", size = rel(1.5),
-                                                      margin = margin(12, 0, 12, 0, "pt")),
-          axis.text = element_text(family = "Roboto", colour = "#372D40"),
-          panel.grid = element_line(colour = "#FFFFFF"),
-          panel.grid.major.x = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.title = element_blank(),
-          plot.background = element_rect(colour = "#F7F4F6", fill = "#F7F4F6"),
-          # Give everything a bit more space
-          plot.margin = margin(rep(12, 4)))
-}
+  group_by(publication_year) 
 ```
 
 
 ```{r, fig.width=20, fig.height=20}
 #| title: "ALA tool use in published journal articles"
+#| warning: false
 
 tags_by_year <- tags_by_year |>
   filter(publication_year != 2025) 
@@ -620,16 +484,14 @@ tagslineplot <-
   geom_line(linewidth = 4,
             alpha = 0.85) +
   scale_y_log10(expand = c(0, 0)) +  
-  # scale_x_discrete(breaks = c(2006, 2008, 2010, 2012, 2014, 2016, 2018, 2020, 2022, 2024)) + 
   gghighlight::gghighlight(
     unhighlighted_params = list(alpha = 0.3,
                                 linewidth = 0.5,
-                                colour = piccia_palette[["blue_grey"]]),
+                                colour = "#55517e"),
     label_params = list(size = 10)
   ) +     
   facet_wrap(vars(tags), nrow = 6, ncol = 3) +
   pilot::theme_pilot(grid = "h") +
-  # coord_fixed(ratio = 6) +  
   labs(y = expression("Number of Journal Articles (log"[10]*")"),
        x = "Publication year") +
   theme(strip.text = element_blank(),
@@ -643,22 +505,10 @@ tagslineplot
 
 ```
 
-
-```{r}
-#| include: false
-tags_by_year |>
-  filter(tags %in% c("delta", "Sensitive data service", "Habitat Condition Assessment Tool", "AusTraits"))
-```
-
-
 ```{r}
 # save
 ggsave("tags_lineplot.png", plot = tagslineplot, width = 16, height = 10)
 ```
-
-
-
-
 
 
 
