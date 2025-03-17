@@ -5,7 +5,19 @@ format:
     logo: ALA_Logo_Inline_REV-RGB.png
     orientation: rows
     theme: theme.scss
+    embed-resources: true
 ---
+
+<!-- 
+
+To run this document, you must first download the relevant publications csv file and save it in: /projects/literature-tracking/data/
+(the necessary file name can be seen in the second code chunk)
+
+The file is saved in the Science and Decision Support Teams folder. Copy/paste the link into your browser. Those with access will be able to view the folder. Please request access from Olivia Torresan or Dax Kellie
+
+https://csiroau.sharepoint.com/:x:/r/sites/AtlasofLivingAustraliaTeams/Shared%20Documents/Teams/Science%20and%20Decision%20Support/Projects/publication-tracker/zoterocsv_publication-tracker/2025/2025-03-05_publications.csv?d=w6116f4bd2af841b1ab3bc08631b1a234&csf=1&web=1&e=5jID3a
+
+-->
 
 
 ```{r}
@@ -24,9 +36,9 @@ library(showtext)
 font_add_google("Roboto")
 ## automatically use showtext to render text
 showtext_auto()
+showtext_opts(dpi = 200)
 ```
 
-<!-- Data lives here: https://csiroau.sharepoint.com/:x:/r/sites/AtlasofLivingAustraliaTeams/Shared%20Documents/Teams/Science%20and%20Decision%20Support/Projects/publication-tracker/zoterocsv_publication-tracker/2025/2025-03-05_publications.csv?d=w6116f4bd2af841b1ab3bc08631b1a234&csf=1&web=1&e=5jID3a -->
 
 ```{r}
 #| message: false
