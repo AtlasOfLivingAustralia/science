@@ -1,0 +1,766 @@
+---
+title: "under-represented-areas"
+format: html
+editor: visual
+---
+
+#Under-represented ALA regions 
+
+```{r}
+#| message: false
+#load required packages
+library(galah)
+library(here)
+library(sf)
+library(rmapshaper)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(ggnewscale)
+library(mapview)
+library(purrr)
+```
+
+##Download data
+
+```{r}
+#configure user email for galah 
+galah_config(email = "olivia.torresan@csiro.au")
+```
+
+
+
+##Shapefiles
+
+```{r}
+# read in IMCRA shapefile
+imcra_shp <- st_read(here("projects", 
+                          "underrepresented-areas",
+                          "data",
+                          "imcra4_mesoscale_bioregions",
+                          "imcra4_meso.shp"),
+                     quiet = TRUE) |>
+  ms_simplify(keep = 0.1) 
+
+
+# read in IBRA shapefile
+ibra_shp <- st_read(here("projects",
+                         "underrepresented-areas",
+                         "data",
+                         "IBRA7_regions",
+                         "ibra7_regions.shp"),
+                    quiet = TRUE) |> 
+  ms_simplify(keep = 0.1)
+```
+
+
+### Data processing (map 1)
+<!-- 
+Liv: Not sure on when we want to retrieve data from - all time? better to do this just for the last 20-30 years?
+-->
+
+
+```{r}
+# counts in IBRA regions
+ibra_counts <- galah_call() |>
+  galah_filter(profile = "ALA") |> 
+  galah_filter(year > 1999) |> 
+  galah_group_by("cl1048") |> # IBRA regions
+  atlas_counts()  # number of records in each bioregion 
+
+head(ibra_counts)
+```
+
+```{r}
+# species numbers in IBRA regions
+IBRA_names <- search_all(fields, "cl1048") |>
+  show_values() |>
+  pull(cl1048)
+
+# we need to do a loop for this - retrieve species count by protected area and bind rows
+get_counts <- function(IBRA_names){
+  
+  # get species counts
+  result <- galah_call() |>
+    filter(year > 1999,
+           cl1048 == {IBRA_names}) |>
+    apply_profile(ALA) |>
+    atlas_species() |>
+    count()
+  
+  # light formatting to catch errors
+  tibble(name = {IBRA_names}, n_species = result |> pull("n"))
+}
+
+ibra_n_species <- map(IBRA_names, get_counts) |>
+  bind_rows()
+
+ibra_counts_species <- ibra_counts |>
+  left_join(ibra_n_species, join_by(cl1048 == name)) |>
+  mutate(countdivspecies = count / n_species) 
+
+```
+
+
+```{r}
+# counts in IMCRA regions
+imcra_counts <- galah_call() |>
+  galah_filter(profile = "ALA") |> 
+  galah_group_by("cl966") |> # IMCRA bioregions  
+  atlas_counts()  # number of records in each bioregion 
+
+head(imcra_counts)
+```
+
+```{r}
+# species numbers in IMCRA regions
+IMCRA_names <- search_all(fields, "cl966") |>
+  show_values() |>
+  pull(cl966)
+
+# we need to do a loop for this - retrieve species count by protected area and bind rows
+get_counts <- function(IMCRA_names){
+  
+  # get species counts
+  result <- galah_call() |>
+    filter(year > 1999,
+           cl966 == {IMCRA_names}) |>
+    apply_profile(ALA) |>
+    atlas_species() |>
+    count()
+  
+  # light formatting to catch errors
+  tibble(name = {IMCRA_names}, n_species = result |> pull("n"))
+}
+
+imcra_n_species <- map(IMCRA_names, get_counts) |>
+  bind_rows()
+
+imcra_counts_species <- imcra_counts |>
+  left_join(imcra_n_species, join_by(cl966 == name)) |>
+  mutate(countdivspecies = count / n_species)
+
+```
+
+
+
+```{r}
+# check region names match
+setdiff(ibra_counts$cl1048, ibra_shp$REG_NAME_7)
+```
+
+```{r}
+setdiff(imcra_counts$cl966, imcra_shp$MESO_NAME)
+```
+
+```{r}
+# check the reverse for IMCRA names
+setdiff(imcra_shp$MESO_NAME, imcra_counts$cl966)
+```
+
+```{r}
+hist(imcra_counts$count)
+hist(ibra_counts$count)
+```
+
+<!-- 
+Liv: I noticed you inspect the distribution of the natural log transformation of the data (log) and not log10 which you end up using below, should we change this on labs? 
+-->
+
+
+
+```{r}
+hist(log(imcra_counts$count))
+hist(log(ibra_counts$count))
+```
+
+```{r}
+#prepare the data to plot 
+
+imcra_join <- imcra_counts_species |> 
+  full_join(y = imcra_shp, by = c("cl966" = "MESO_NAME")) |> 
+  rename("imcra" = "cl966") |> 
+  select(imcra, count, n_species, countdivspecies, AREA_KM2, geometry) |> 
+  mutate(density_log10 = log10(countdivspecies / AREA_KM2)) |> #is this okay?
+  st_as_sf()
+
+ibra_join <- ibra_counts_species |> 
+  full_join(y = ibra_shp, by = c("cl1048" = "REG_NAME_7")) |> 
+  rename("ibra" = "cl1048") |> 
+  select(ibra, count, n_species, countdivspecies, SQ_KM, geometry) |> 
+  mutate(density_log10 = log10(countdivspecies / SQ_KM)) |> #is this okay?
+  st_as_sf()
+
+```
+
+
+```{r}
+#checking if any NA data 
+sum(is.na(imcra_join$density_log10))  # Check for NA values in IMCRA
+sum(is.na(ibra_join$density_log10))   # Check for NA values in IBRA
+```
+
+#Map 1 (all species)
+
+```{r}
+## option 1: no. species records divided by species numbers of each ibra + imcra region (all species)
+
+allspeciesmap <- ggplot() + 
+  geom_sf(data = imcra_join,
+          aes(fill = density_log10),
+          colour = NA) +
+  scale_fill_distiller(name = "IMCRA",
+                       type = "seq",
+                       palette = "BuPu",
+                       direction = 1,
+                       labels = c("0.001", "0.01", "0.1", "1"),
+                       guide = guide_colorsteps(direction = "horizontal",
+                                                label.position = "bottom",
+                                                title.position = "left"),
+                       na.value = "transparent") + # added this line compared to the labs code for this plot, as it was producing a grey bar on each scale (checked for na's)
+  # adds new colour scale
+  ggnewscale::new_scale_fill() +
+  geom_sf(data = ibra_join,
+          aes(fill = density_log10),
+          colour = NA) +
+  scale_fill_distiller(name = "IBRA",
+                       type = "seq",
+                       palette = "YlOrBr",
+                       direction = 1,
+                       labels = c("0.1", "1", "10", "100", "1000"),
+                       guide = guide_colorsteps(direction = "horizontal",
+                                                label.position = "bottom",
+                                                title.position = "left"),
+                       na.value = "transparent") + # added this line compared to the labs code for this plot, as it was producing a grey bar on each scale 
+  # adds a title for both legends
+  annotate("text", 
+           x = 133, 
+           y = -45.5, 
+           label = expression("Records per species per km² (all species)"),
+           size = 4) +
+  coord_sf(xlim = c(110, 155), ylim = c(-45, -10)) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.key.width = unit(12, 'mm'))
+allspeciesmap
+
+```
+
+```{r}
+# Save the plot
+ggsave(here::here("projects", "underrepresented-areas", "allspecies-data-map.svg"), bg = "transparent",  height = 10, width = 10, unit = "in", dpi = 320)
+```
+
+
+###Data processing (map 2)
+
+<!-- 
+Liv: Not sure on when we want to retrieve data from - all time? better to do this just for the last 20-30 years?
+-->
+
+** removing birds, viruses and protozoa or chromista ** 
+
+```{r}
+# counts in IBRA regions
+ibra_counts_no_bvp <- galah_call() |>
+  galah_filter(profile = "ALA") |> 
+  galah_filter(year > 1999) |> 
+  galah_filter(class != "Aves" & kingdom !=  "Virus" & kingdom != "Protista" & kingdom != "Chromista") |>
+  galah_group_by("cl1048") |> # IBRA regions
+  atlas_counts()  # number of records in each bioregion 
+
+head(ibra_counts_no_bvp)
+```
+
+```{r}
+# species numbers in IBRA regions
+IBRA_names <- search_all(fields, "cl1048") |>
+  show_values() |>
+  pull(cl1048)
+
+# we need to do a loop for this - retrieve species count by protected area and bind rows
+get_counts <- function(IBRA_names){
+  
+  # get species counts
+  result <- galah_call() |>
+    filter(year > 1999,
+           cl1048 == {IBRA_names}) |>
+    apply_profile(ALA) |>
+    atlas_species() |>
+    count()
+  
+  # light formatting to catch errors
+  tibble(name = {IBRA_names}, n_species = result |> pull("n"))
+}
+
+ibra_n_species <- map(IBRA_names, get_counts) |>
+  bind_rows()
+
+ibra_counts_species <- ibra_counts_no_bvp |>
+  left_join(ibra_n_species, join_by(cl1048 == name)) |>
+  mutate(countdivspecies = count / n_species)
+
+```
+
+
+```{r}
+# counts in IMCRA regions
+imcra_counts_no_bvp <- galah_call() |>
+  galah_filter(profile = "ALA") |> 
+  galah_filter(year > 1999) |> 
+  galah_filter(class != "Aves" & kingdom !=  "Virus" & kingdom != "Protista" & kingdom != "Chromista") |>
+  galah_group_by("cl966") |> # imcra regions
+  atlas_counts()
+
+head(imcra_counts_no_bvp)
+```
+
+
+
+```{r}
+# species numbers in IMCRA regions
+IMCRA_names <- search_all(fields, "cl966") |>
+  show_values() |>
+  pull(cl966)
+
+# we need to do a loop for this - retrieve species count by protected area and bind rows
+get_counts <- function(IMCRA_names){
+  
+  # get species counts
+  result <- galah_call() |>
+    filter(year > 1999,
+           cl966 == {IMCRA_names}) |>
+    apply_profile(ALA) |>
+    atlas_species() |>
+    count()
+  
+  # light formatting to catch errors
+  tibble(name = {IMCRA_names}, n_species = result |> pull("n"))
+}
+
+imcra_n_species <- map(IMCRA_names, get_counts) |>
+  bind_rows()
+
+imcra_counts_species <- imcra_counts_no_bvp |>
+  left_join(imcra_n_species, join_by(cl966 == name)) |>
+  mutate(countdivspecies = count / n_species)
+
+```
+
+```{r}
+#prepare the data to plot 
+
+imcra_join <- imcra_counts_species |> 
+  full_join(y = imcra_shp, by = c("cl966" = "MESO_NAME")) |> 
+  rename("imcra" = "cl966") |> 
+  select(imcra, count, n_species, countdivspecies, AREA_KM2, geometry) |> 
+  mutate(density_log10 = log10(countdivspecies)) |> #is this okay?
+  st_as_sf()
+
+ibra_join <- ibra_counts_species |> 
+  full_join(y = ibra_shp, by = c("cl1048" = "REG_NAME_7")) |> 
+  rename("ibra" = "cl1048") |> 
+  select(ibra, count, n_species, countdivspecies, SQ_KM, geometry) |> 
+  mutate(density_log10 = log10(countdivspecies)) |> #is this okay?
+  st_as_sf()
+
+```
+
+
+# Map 2 (remove birds, viruses and protozoa)
+
+
+```{r}
+## option 2: no. species records divided by species numbers of each ibra + imcra region, with **birds, viruses and protozoa removed**
+
+removspeciesmap <- ggplot() + 
+  geom_sf(data = imcra_join,
+          aes(fill = density_log10),
+          colour = NA) +
+  scale_fill_distiller(name = "IMCRA",
+                       type = "seq",
+                       palette = "BuPu",
+                       direction = 1,
+                       guide = guide_colorsteps(direction = "horizontal",
+                                                label.position = "bottom",
+                                                title.position = "left"),
+                       na.value = "transparent") +  
+  ggnewscale::new_scale_fill() +
+  geom_sf(data = ibra_join,
+          aes(fill = density_log10),
+          colour = NA) +
+  scale_fill_distiller(name = "IBRA",
+                       type = "seq",
+                       palette = "YlOrBr",
+                       direction = 1,
+                       guide = guide_colorsteps(direction = "horizontal",
+                                                label.position = "bottom",
+                                                title.position = "left"),
+                       na.value = "transparent") +  
+  # Title annotation
+  annotate("text", 
+           x = 133, 
+           y = -45.5, 
+           label = expression("Biodiversity occurrence data by region"),
+           size = 4) +
+  # Reduced-size additional annotation
+  annotate("text", 
+           x = 133, 
+           y = -46.2,  # Position below the title
+           label = expression(italic("Aves (birds), Viruses, Protista and Chromista removed to reduce bias. Number of observations, scaled by number of species (log"^10*").")),
+           size = 2) +  # Reduced size
+  coord_sf(xlim = c(110, 155), ylim = c(-45, -10)) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        legend.key.width = unit(12, 'mm')) 
+
+removspeciesmap
+
+
+```
+```{r}
+ggsave(here::here("projects", "underrepresented-areas", "nobvpspecies-data-map.svg"), bg = "transparent",  height = 10, width = 10, unit = "in", dpi = 320)
+```
+
+
+
+
+#Maps by group:
+
+### inverts
+
+##### data processing
+
+```{r}
+# # counts in IBRA regions
+# ibra_counts_inverts <- galah_call() |>
+#   galah_filter(profile = "ALA") |> 
+#   galah_filter(year > 1999) |> 
+#   galah_filter(class != "Aves" | kingdom !=  "virus" | kingdom != "protista" ) |>
+#   galah_group_by("cl1048") |> # IBRA regions
+#   atlas_counts()  # number of records in each bioregion 
+# 
+# head(ibra_counts_inverts)
+```
+
+```{r}
+# # species numbers in IBRA regions
+# IBRA_names <- search_all(fields, "cl1048") |>
+#   show_values() |>
+#   pull(cl1048)
+# 
+# # we need to do a loop for this - retrieve species count by protected area and bind rows
+# get_counts <- function(IBRA_names){
+#   
+#   # get species counts
+#   result <- galah_call() |>
+#     filter(year > 1999,
+#            cl1048 == {IBRA_names}) |>
+#     apply_profile(ALA) |>
+#     atlas_species() |>
+#     count()
+#   
+#   # light formatting to catch errors
+#   tibble(name = {IBRA_names}, n_species = result |> pull("n"))
+# }
+# 
+# ibra_n_species <- map(IBRA_names, get_counts) |>
+#   bind_rows()
+# 
+# ibra_counts_species <- ibra_counts_inverts |>
+#   left_join(ibra_n_species, join_by(cl1048 == name)) |>
+#   mutate(countdivspecies = count / n_species)
+
+```
+
+
+```{r}
+# counts in IMCRA regions
+
+# imcra_counts_inverts <- galah_call() |>
+#   galah_filter(profile = "ALA") |> 
+#   galah_filter(year > 1999) |> 
+#   galah_filter(class != "Aves" | kingdom !=  "virus" | kingdom != "protista" ) |>
+#   galah_group_by("cl966") |> # IBRA regions
+#   atlas_counts()  # number of records in each bioregion 
+# 
+# head(imcra_inverts)
+```
+
+
+```{r}
+# # species numbers in IMCRA regions
+# IMCRA_names <- search_all(fields, "cl966") |>
+#   show_values() |>
+#   pull(cl966)
+# 
+# # we need to do a loop for this - retrieve species count by protected area and bind rows
+# get_counts <- function(IMCRA_names){
+#   
+#   # get species counts
+#   result <- galah_call() |>
+#     filter(year > 1999,
+#            cl966 == {IMCRA_names}) |>
+#     apply_profile(ALA) |>
+#     atlas_species() |>
+#     count()
+#   
+#   # light formatting to catch errors
+#   tibble(name = {IMCRA_names}, n_species = result |> pull("n"))
+# }
+# 
+# imcra_n_species <- map(IMCRA_names, get_counts) |>
+#   bind_rows()
+# 
+# imcra_counts_species <- imcra_inverts |>
+#   left_join(imcra_n_species, join_by(cl966 == name)) |>
+#   mutate(countdivspecies = count / n_species)
+
+```
+
+
+```{r}
+#prepare the data to plot 
+
+# imcra_join <- imcra_counts_species |> 
+#   full_join(y = imcra_shp, by = c("cl966" = "MESO_NAME")) |> 
+#   rename("imcra" = "cl966") |> 
+#   select(imcra, count, n_species, countdivspecies, AREA_KM2, geometry) |> 
+#   mutate(density_log10 = log10(countdivspecies / AREA_KM2)) |> #is this okay?
+#   st_as_sf()
+# 
+# ibra_join <- ibra_counts_species |> 
+#   full_join(y = ibra_shp, by = c("cl1048" = "REG_NAME_7")) |> 
+#   rename("ibra" = "cl1048") |> 
+#   select(ibra, count, n_species, countdivspecies, SQ_KM, geometry) |> 
+#   mutate(density_log10 = log10(countdivspecies / SQ_KM)) |> #is this okay?
+#   st_as_sf()
+
+```
+
+
+
+```{r}
+# option 3: segregated maps (1/5) no. species records divided by species numbers of each ibra + imcra region (inverts)
+
+# invertsmap <- ggplot() + 
+#   geom_sf(data = imcra_join,
+#           aes(fill = density_log10),
+#           colour = NA) +
+#   scale_fill_distiller(name = "IMCRA",
+#                        type = "seq",
+#                        palette = "BuPu",
+#                        direction = 1,
+#                        # labels = c("0.001", "0.01", "0.1", "1", "10"),
+#                        guide = guide_colorsteps(direction = "horizontal",
+#                                                 label.position = "bottom",
+#                                                 title.position = "left"),
+#                        na.value = "transparent") + ## added this line compared to the labs code for this plot, as it was producing a grey bar on each scale 
+#   # adds new colour scale
+#   ggnewscale::new_scale_fill() +
+#   geom_sf(data = ibra_join,
+#           aes(fill = density_log10),
+#           colour = NA) +
+#   scale_fill_distiller(name = "IBRA",
+#                        type = "seq",
+#                        palette = "YlOrBr",
+#                        direction = 1,
+#                        # labels = c("0.1", "1", "10", "100", "1000"),
+#                        guide = guide_colorsteps(direction = "horizontal",
+#                                                 label.position = "bottom",
+#                                                 title.position = "left"),
+#                        na.value = "transparent") + # added this line compared to the labs code for this plot, as it was producing a grey bar on each scale 
+#   # adds a title for both legends
+#   annotate("text", 
+#            x = 133, 
+#            y = -45.5, 
+#            label = expression("Records per species per km² (log scale applied for analysis)"),
+#            size = 4) +
+#   coord_sf(xlim = c(110, 155), ylim = c(-45, -10)) +
+#   theme_void() +
+#   theme(legend.position = "bottom",
+#         legend.key.width = unit(12, 'mm'))
+# invertsmap
+```
+
+
+###birds
+
+```{r}
+# option 3: segregated maps (2/5) no. species records divided by species numbers of each ibra + imcra region (birds)
+
+# birdsmap <- ggplot() + 
+#   geom_sf(data = imcra_join,
+#           aes(fill = density_log10),
+#           colour = NA) +
+#   scale_fill_distiller(name = "IMCRA",
+#                        type = "seq",
+#                        palette = "BuPu",
+#                        direction = 1,
+#                        # labels = c("0.001", "0.01", "0.1", "1", "10"),
+#                        guide = guide_colorsteps(direction = "horizontal",
+#                                                 label.position = "bottom",
+#                                                 title.position = "left"),
+#                        na.value = "transparent") + ## added this line compared to the labs code for this plot, as it was producing a grey bar on each scale 
+#   # adds new colour scale
+#   ggnewscale::new_scale_fill() +
+#   geom_sf(data = ibra_join,
+#           aes(fill = density_log10),
+#           colour = NA) +
+#   scale_fill_distiller(name = "IBRA",
+#                        type = "seq",
+#                        palette = "YlOrBr",
+#                        direction = 1,
+#                        # labels = c("0.1", "1", "10", "100", "1000"),
+#                        guide = guide_colorsteps(direction = "horizontal",
+#                                                 label.position = "bottom",
+#                                                 title.position = "left"),
+#                        na.value = "transparent") + # added this line compared to the labs code for this plot, as it was producing a grey bar on each scale 
+#   # adds a title for both legends
+#   annotate("text", 
+#            x = 133, 
+#            y = -45.5, 
+#            label = expression("Records per species per km² (log scale applied for analysis)"),
+#            size = 4) +
+#   coord_sf(xlim = c(110, 155), ylim = c(-45, -10)) +
+#   theme_void() +
+#   theme(legend.position = "bottom",
+#         legend.key.width = unit(12, 'mm'))
+# birdsmap
+```
+
+
+###mammals
+
+```{r}
+# ## option 3: segregated maps (3/5) no. species records divided by species numbers of each ibra + imcra region (mammals)
+# 
+# mammalsmap <- ggplot() + 
+#   geom_sf(data = imcra_join,
+#           aes(fill = density_log10),
+#           colour = NA) +
+#   scale_fill_distiller(name = "IMCRA",
+#                        type = "seq",
+#                        palette = "BuPu",
+#                        direction = 1,
+#                        # labels = c("0.001", "0.01", "0.1", "1", "10"),
+#                        guide = guide_colorsteps(direction = "horizontal",
+#                                                 label.position = "bottom",
+#                                                 title.position = "left"),
+#                        na.value = "transparent") + ## added this line compared to the labs code for this plot, as it was producing a grey bar on each scale 
+#   # adds new colour scale
+#   ggnewscale::new_scale_fill() +
+#   geom_sf(data = ibra_join,
+#           aes(fill = density_log10),
+#           colour = NA) +
+#   scale_fill_distiller(name = "IBRA",
+#                        type = "seq",
+#                        palette = "YlOrBr",
+#                        direction = 1,
+#                        # labels = c("0.1", "1", "10", "100", "1000"),
+#                        guide = guide_colorsteps(direction = "horizontal",
+#                                                 label.position = "bottom",
+#                                                 title.position = "left"),
+#                        na.value = "transparent") + # added this line compared to the labs code for this plot, as it was producing a grey bar on each scale 
+#   # adds a title for both legends
+#   annotate("text", 
+#            x = 133, 
+#            y = -45.5, 
+#            label = expression("Records per species per km² (log scale applied for analysis)"),
+#            size = 4) +
+#   coord_sf(xlim = c(110, 155), ylim = c(-45, -10)) +
+#   theme_void() +
+#   theme(legend.position = "bottom",
+#         legend.key.width = unit(12, 'mm'))
+# mammalsmap
+```
+
+###plants 
+
+```{r}
+# ## option 4: segregated maps (4/5) no. species records divided by species numbers of each ibra + imcra region (plants)
+# 
+# plantsmap <- ggplot() + 
+#   geom_sf(data = imcra_join,
+#           aes(fill = density_log10),
+#           colour = NA) +
+#   scale_fill_distiller(name = "IMCRA",
+#                        type = "seq",
+#                        palette = "BuPu",
+#                        direction = 1,
+#                        # labels = c("0.001", "0.01", "0.1", "1", "10"),
+#                        guide = guide_colorsteps(direction = "horizontal",
+#                                                 label.position = "bottom",
+#                                                 title.position = "left"),
+#                        na.value = "transparent") + ## added this line compared to the labs code for this plot, as it was producing a grey bar on each scale 
+#   # adds new colour scale
+#   ggnewscale::new_scale_fill() +
+#   geom_sf(data = ibra_join,
+#           aes(fill = density_log10),
+#           colour = NA) +
+#   scale_fill_distiller(name = "IBRA",
+#                        type = "seq",
+#                        palette = "YlOrBr",
+#                        direction = 1,
+#                        # labels = c("0.1", "1", "10", "100", "1000"),
+#                        guide = guide_colorsteps(direction = "horizontal",
+#                                                 label.position = "bottom",
+#                                                 title.position = "left"),
+#                        na.value = "transparent") + # added this line compared to the labs code for this plot, as it was producing a grey bar on each scale 
+#   # adds a title for both legends
+#   annotate("text", 
+#            x = 133, 
+#            y = -45.5, 
+#            label = expression("Records per species per km² (log scale applied for analysis)"),
+#            size = 4) +
+#   coord_sf(xlim = c(110, 155), ylim = c(-45, -10)) +
+#   theme_void() +
+#   theme(legend.position = "bottom",
+#         legend.key.width = unit(12, 'mm'))
+# plantsmap
+```
+
+###fungi 
+```{r}
+## option 4: segregated maps (5/5) no. species records divided by species numbers of each ibra + imcra region (fungi)
+
+# fungimap <- ggplot() + 
+#   geom_sf(data = imcra_join,
+#           aes(fill = density_log10),
+#           colour = NA) +
+#   scale_fill_distiller(name = "IMCRA",
+#                        type = "seq",
+#                        palette = "BuPu",
+#                        direction = 1,
+#                        # labels = c("0.001", "0.01", "0.1", "1", "10"),
+#                        guide = guide_colorsteps(direction = "horizontal",
+#                                                 label.position = "bottom",
+#                                                 title.position = "left"),
+#                        na.value = "transparent") + ## added this line compared to the labs code for this plot, as it was producing a grey bar on each scale 
+#   # adds new colour scale
+#   ggnewscale::new_scale_fill() +
+#   geom_sf(data = ibra_join,
+#           aes(fill = density_log10),
+#           colour = NA) +
+#   scale_fill_distiller(name = "IBRA",
+#                        type = "seq",
+#                        palette = "YlOrBr",
+#                        direction = 1,
+#                        # labels = c("0.1", "1", "10", "100", "1000"),
+#                        guide = guide_colorsteps(direction = "horizontal",
+#                                                 label.position = "bottom",
+#                                                 title.position = "left"),
+#                        na.value = "transparent") + # added this line compared to the labs code for this plot, as it was producing a grey bar on each scale 
+#   # adds a title for both legends
+#   annotate("text", 
+#            x = 133, 
+#            y = -45.5, 
+#            label = expression("Records per species per km² (log scale applied for analysis)"),
+#            size = 4) +
+#   coord_sf(xlim = c(110, 155), ylim = c(-45, -10)) +
+#   theme_void() +
+#   theme(legend.position = "bottom",
+#         legend.key.width = unit(12, 'mm'))
+# fungimap
+# ```
+
