@@ -27,7 +27,11 @@ insects <- all_animals |>
                              stringr::fixed("insecta", ignore_case=TRUE))
   ) |>
   mutate(
-    order = stringr::str_to_sentence(order)
+    order = stringr::str_to_sentence(order),
+    order = case_when(
+      order == "Lepioptera" ~ "Lepidoptera",
+      .default = order
+    )
   )
 
 # categorise orders of insects by how many records they have (10+, 1-10, 0)

@@ -25,7 +25,11 @@ insects <- all_animals |>
                              stringr::fixed("insecta", ignore_case=TRUE))
          ) |>
   mutate(
-    order = stringr::str_to_sentence(order)
+    order = stringr::str_to_sentence(order),
+    order = case_when(
+      order == "Lepioptera" ~ "Lepidoptera",
+      .default = order
+    )
   )
 
 total_records <- insects |>
@@ -43,7 +47,7 @@ total_records <- insects |>
     lab.ypos = cumsum(percent) - 0.5 * percent
   )
 
-gr_palette <- c('#003a00', '#24430c', '#3c4c17', '#535521', '#685f2b', '#7d6836', '#907240', '#a37c4a', '#b58854', '#c4945e', '#d2a168', '#dcb172', '#e2c27b', '#f7dbde', '#eeced5', '#e6c2cd', '#ddb6c5', '#d5aabd', '#cc9eb5', '#c492ad', '#bb86a5', '#b37a9d', '#ab6f95', '#a2638e', '#9a5886', '#914c7e')
+gr_palette <- c('#003a00', '#254607', '#3f5210', '#575e1a', '#6e6b26', '#857833', '#9a8543', '#ae9455', '#c0a36a', '#d0b381', '#dcc49d', '#e3d7be', '#e1ece5', '#e0f5f6', '#d1ebed', '#c2e1e4', '#b3d7db', '#a4cdd2', '#95c4ca', '#86bac1', '#76b1b9', '#67a7b0', '#569ea8', '#44949f', '#2f8b97')
 
 p1 <- total_records |>
   ggplot(aes(x = 1, y = percent, fill = reorder(order, -percent))) +

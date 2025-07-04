@@ -105,10 +105,10 @@ my_theme <- function() {
   theme(
     legend.position = "none",
     text = element_text(family = "roboto"),
-    plot.title = ggtext::element_markdown(size = 20, margin = margin(b = 10)),
+    plot.title = ggtext::element_markdown(size = 22, margin = margin(b = 10)),
     plot.subtitle = ggtext::element_markdown(size = 15),
-    axis.title = element_text(size = 15),
-    axis.text = element_text(size = 13)
+    axis.title = element_text(size = 19),
+    axis.text = element_text(size = 18)
   )
 }
 
