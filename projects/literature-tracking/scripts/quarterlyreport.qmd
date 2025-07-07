@@ -36,7 +36,7 @@ library(lubridate)
 data <- read_csv(here("projects", 
                       "literature-tracking", 
                       "data", 
-                      "2024-06-20_publications.csv"
+                      "2025-06-19_publications.csv"
                       ))
 
 # Wrangle
@@ -53,15 +53,20 @@ dataclean <- data |>
          date_added_month, date_added_year)
 
 dataclean
+
+
+dataclean_filtered <- dataclean |>
+  filter(if_any(everything(), ~ str_detect(., regex("department", ignore_case = TRUE))))
+
 ```
 
 Specify date range:
 
 ```{r}
 publications_in_date_range <- dataclean |>
-  filter(date_added_clean >= ymd("2024-03-08")) |>
-  filter(date_added_clean <= ymd("2024-06-20")) |>
-  filter(publication_year == c("2024"))
+  filter(date_added_clean >= ymd("2025-02-01")) |>
+  filter(date_added_clean <= ymd("2025-06-19")) |>
+  filter(publication_year == c("2025"))
 ```
 
 ## Summaries:
@@ -113,7 +118,7 @@ ALA_tags <- tags_clean %>%
   )
 ```
 
-##### Publications citing/using ALA
+##### Publications citing/using ALA \*\*
 
 a)  All publications citing the ALA:
 
@@ -154,7 +159,7 @@ citedjournals
 d)  Using the ALA
 
 ```{r}
-citedjournals <- ALA_tags |>
+usedjournals <- ALA_tags |>
   filter(tags == "ALA used") |>
   filter(item_type == "journalArticle") 
 
