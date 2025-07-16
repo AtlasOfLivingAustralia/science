@@ -25,7 +25,7 @@ library(lubridate)
 #Account configuration
 
 ```{r}
-galah_config(email = "olivia.torresan@csiro.au")
+galah_config(email = "your-email-here")
 ```
 
 #Download whale occurrence data from ALA
