@@ -37,7 +37,7 @@ library(png)
 font_add_google("Roboto")
 showtext_auto(enable = TRUE)
 
-galah_config(email = "sch609@csiro.au")
+galah_config(email = "your-email-here")
 ```
 
 ## Download Data
