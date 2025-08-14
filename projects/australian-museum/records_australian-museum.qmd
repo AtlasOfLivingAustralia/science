@@ -1,0 +1,133 @@
+---
+title: "Australian Museum records in the Atlas of Living Australia"
+author: "Atlas of Living Australia"
+date: "13 August, 2025"
+title-block-banner: "#B8573E"
+brand: _brand.yml
+logo: medium
+execute:
+  echo: true
+  warning: false
+  message: false
+format: 
+  typst:
+    fontfamily: Roboto
+    mainfont: Roboto
+    sansfont: Roboto
+    monofont: Fira Code
+    linkcolor: "#E06E53"
+    highlight-style: arrow
+    logo: 
+      location: right-top 
+---
+
+This document provides an R workflow to find species with data from the Australian Museum in the Atlas of Living Australia.
+
+***
+
+```{r}
+#| eval: false
+#| echo: true
+# packages
+library(galah)
+library(dplyr)
+galah_config(email = "your-email-here") # ALA-registered email
+```
+
+```{r}
+#| eval: true
+#| echo: false
+#| warning: false
+#| message: false
+# packages
+library(galah)
+library(dplyr)
+galah_config(email = "dax.kellie@csiro.au")
+```
+
+
+:::{.callout-note collapse="true"}
+##### Find name of resource
+
+Search for the data resource name for records provided by the Australian Museum in the ALA.
+```{r}
+# Get name of australian museum resource data
+search_all(fields, "dataResourceName") |>
+  search_values("museum")
+```
+
+:::
+
+Let's return the number of records for every species with at least some data contributed by the Australian Museum.
+
+```{r}
+# Number of observations identified to the rank of 'species'
+# (note that some organisms may not be identified to species level)
+aus_museum <- galah_call() |>
+  filter(dataResourceName == "Australian Museum provider for OZCAM") |>
+  group_by(species) |>
+  atlas_counts(limit = 1e7)
+
+aus_museum
+```
+
+The Australian Museum contributes data for >42,500 species in the ALA.
+
+```{r}
+aus_museum |> nrow()
+```
+
+Next we'll figure out how many species have records exclusively from the Australian Museum. To do so, we'll return all the species in the ALA with any data provided by a source other than the Australian Museum. This ultimately returns all species with any data in the ALA *except for the species with data exclusively from the Australian Museum*. That means we can filter `aus_museum` to return only species names that don't appear in `not_aus_museum`. The result is a list of species where their only data is provided by the AM.
+
+```{r}
+not_aus_museum <- galah_call() |>
+  filter(dataResourceName != "Australian Museum provider for OZCAM") |>
+  group_by(species) |>
+  atlas_counts(limit = 1e7)
+
+# Return species unique to Australian Museum data
+aus_museum_only <- aus_museum |>
+  filter(!species %in% not_aus_museum$species)
+
+aus_museum_only
+```
+
+:::{.callout-note collapse="true"}
+##### Test our result
+
+We can test whether these species only have Australian Museum data by using them in a smaller query where we return record counts for several `aus_museum_only` species. Grouping by `dataResourceName` shows that, as expected, records for the first 10 species are only from the Australian Museum.
+
+```{r}
+# test
+galah_call() |>
+  identify(aus_museum_only$species[1:10]) |> # first 10 species names
+  group_by(dataResourceName) |>
+  atlas_counts()
+```
+
+:::
+
+### Number of species that consist only of AM records
+
+This is the full list of species returned in `aus_museum_only`
+
+```{r}
+aus_museum_only |> nrow()
+```
+
+
+### Species where the sole record in the ALA is from AM data
+
+This is any species with only one record in `aus_museum_only`
+
+```{r}
+aus_museum_only |>
+  filter(count < 2)
+```
+
+
+```{r}
+aus_museum_only |>
+  filter(count < 2) |>
+  nrow()
+```

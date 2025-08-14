@@ -1,0 +1,15 @@
+color:
+  palette:
+    dark-grey: "#222322"
+    orange: "#B8573E"
+  primary: orange
+
+logo: 
+  medium: ALA_Logo_Inline_RGB.png
+
+typography:
+  fonts:
+    - family: Roboto
+      source: google
+  base: Roboto
+  headings: Roboto
