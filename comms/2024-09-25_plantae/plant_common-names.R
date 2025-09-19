@@ -199,5 +199,12 @@ family_common_names <- tribble(
   "Lomariopsidaceae", "Lomariopsid ferns",
   "Eupomatiaceae", "Eupomatia plants",
   "Ripogonaceae", "Ripogonums",
-  "Corallinaceae", "Corallines"
+  "Corallinaceae", "Corallines",
+  
+  # additional names 2025
+  "Magnoliaceae",       "Magnolias",
+  "Garryaceae",         "Silk-tassels",
+  "Trapaceae",          "Water chestnuts",
+  "Equisetaceae",       "Horsetails",
+  "Glaucocystaceae",    "Glaucocystophytes"
 )
