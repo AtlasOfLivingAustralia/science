@@ -86,9 +86,9 @@ total_descending <- insects_joined |>
   distinct(order) |>
   pull(order)
 
-# legend_order <- c(">= 10 records",
-#                   ">= 1 record",
-#                   "No records")
+legend_order <- c(">= 10 records",
+                  ">= 1 record",
+                  "No records")
 
 custom_palette <- c(
   ">= 10 records" = '#305027', 
@@ -132,6 +132,7 @@ ggplot() +
   geom_marquee(insects_label,
                mapping = aes(x = 5.5, y = y_pos, label = percent_label),
                size = 5,
+               fill = "transparent",
                style = classic_style(body_font = "roboto")) +
   theme(
     axis.text.x = element_blank(),
@@ -144,7 +145,10 @@ ggplot() +
     text = element_text(family = "roboto"),
     plot.title = element_marquee(size = 30),
     plot.subtitle = element_marquee(size = 27),
-    strip.text.x = element_text(family = "roboto", size = 18)
+    strip.text.x = element_text(family = "roboto", size = 18),
+    strip.background.x = element_rect(fill="transparent"), # facet_wrap scientific name label background
+    plot.background = element_rect(fill = NA, colour = NA), # transparent background
+    panel.background = element_rect(fill = NA, colour = NA) # transparent background
   )
 
 
@@ -153,7 +157,7 @@ showtext_opts(dpi = 350)
 ggsave(here::here("projects",
                   "insects-for-cam",
                   "plots", 
-                  "waffle_spec-vs-rec_percent.png"),
+                  "waffle_spec-vs-rec_percent_transparent.png"),
        dpi = 350,
        height = 12,
        width = 28)
