@@ -3,7 +3,6 @@ This is a working repository for R code produced by the ALA Science & Decision S
 
 - Martin Westgate (Team Lead)
 - Dax Kellie
-- Olivia Torresan
 - Shandiya Balasubramaniam
 - Amanda Buyan
 - Juliet Seers
@@ -21,7 +20,6 @@ Our default packages are:
 - {galah} | Interface with ALA data
 - {sf} | Spatial analysis
 - {terra} | Raster analysis
-- {parallel} | Parallel computing
 - {devtools} | Package development
 - {ggplot2} + extensions | Plotting
 - {shiny} + {bslib} | Apps
