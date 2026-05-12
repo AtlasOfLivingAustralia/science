@@ -1,11 +1,15 @@
 ---
 title: "parrots"
 author: Olivia Torresan & Dax Kellie 
+editor_options: 
+  chunk_output_type: console
 ---
 
-This data visualisation presents parrot genera (*Psittaciformes*) by dominant plumage colours in Australia. The points in this graph are plotted entirely randomly, and as a result, the colored effect doesn't necessarily reflect regions with more or less of that genera and is purely for aesthetic value. There might be a trend, but it isn't able to be measured this way. 
+This data visualisation presents parrot genera (*Psittaciformes*) by dominant plumage colours in Australia. 
 
-When our data is ordered alphabetically, though, you can see each genera as "clumps" because each point is plotted after the other from start to finish. We found that some filtering methods automatically attribute your data alphabetically, so to maintain randomness (and aesthetic value) but to filter the data effectively, we had to do a few extra steps.
+The trick to this dataviz is the randomness by which points are plotted. Without randomness, each species' points are plotted at once creating a 'clump' effect. However, plotting randomly creates a 'paint-like' effect as patterns of points are created through the mixtures of colours.
+
+Data downloaded from galah is not random. We've provided an additional dataset to preserve the original random order of the points
 
 ```{r}
 library(arrow)
@@ -19,37 +23,32 @@ galah_config(email = "your-email-here")
 ```
 
 ```{r}
-#parquet pre-downloaded below - this is original download code, but will take some time to download
-parrotpoints <- galah_call() |>
-  galah_identify("Psittaciformes") |>
-  galah_apply_profile(ALA) |>
-  galah_select(genus, recordID, group = "basic") |>
-  atlas_occurrences()
-```
+#| eval: false
 
+## ORIGINAL DOWNLOAD
 
-```{r}
+# parquet pre-downloaded below - this is original download code, but will take some time to download
+# parrotpoints <- galah_call() |>
+#   galah_identify("Psittaciformes") |>
+#   galah_apply_profile(ALA) |>
+#   galah_select(genus, recordID, group = "basic") |>
+#   atlas_occurrences()
+
 # when filtering like this, data is organised alphabetically which doesn't give our map the desired effect
-filteredparrotpoints <- parrotpoints |>
-  filter(!is.na(genus)) |>
-  filter(!is.na(cl1048)) |> # only include terrestrial data 
-  filter(!(basisOfRecord == "PRESERVED_SPECIMEN"))
+# filteredparrotpoints <- parrotpoints |>
+#   filter(!is.na(genus)) |>
+#   filter(!is.na(cl1048)) |> # only include terrestrial data 
+#   filter(!(basisOfRecord == "PRESERVED_SPECIMEN"))
 ```
 
-Save as parquet:
-
-```{r}
-write_parquet(parrotpoints, "parrots2") #not alphabetically ordered, random data 
-write_parquet(filteredparrotpoints, "parrots") #alphabetically ordered, filtered data 
-```
 
 START HERE TO AVOID LONG DOWNLOAD
 
-These parquets are too large to upload to GitHub repo. They can be located in Teams [here](https://csiroau.sharepoint.com/:f:/r/sites/AtlasofLivingAustraliaTeams/Shared%20Documents/Teams/Science%20and%20Decision%20Support/Projects/data_visualisations/scripts/2023_parrot-plumage-vis/data?csf=1&web=1&e=G95Lan) and placed in the appropriate local directory as below for the code to run. 
+These parquets are too large to upload to GitHub repo. They are in Teams [here](https://csiroau.sharepoint.com/:f:/r/sites/AtlasofLivingAustraliaTeams/Shared%20Documents/Teams/Science%20and%20Decision%20Support/Data/science/comms/2023-05-31_parrot-plumage-map/data?csf=1&web=1&e=JHfjgk).
 
 ```{r}
-parquet_parrots <- here("comms", "2023-05-31_parrot-plumage-map", "data", "parrots")
-parquet2_parrots <- here("comms", "2023-05-31_parrot-plumage-map", "data", "parrots2")
+parquet_parrots <- here("comms", "2023-05-31_parrot-plumage-map", "data", "parrots-data") |> read_parquet()
+parquet2_parrots <- here("comms", "2023-05-31_parrot-plumage-map", "data", "parrots-randomly-ordered") |> read_parquet()
 ```
 
 Match filtered data (alphabetically ordered) to the random ordered non-filtered data that plotted pretty. We'll filter anything with a keep_me = 1 in the final ggplot step:
