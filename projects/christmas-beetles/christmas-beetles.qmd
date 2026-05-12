@@ -30,14 +30,13 @@ library(sf)
 library(ozmaps)
 library(showtext)
 library(ggtext)
-
-galah_config(email = "dax.kellie@csiro.au")
-
 font_add_google("Roboto", "Roboto")
 showtext_auto(enable = TRUE)
 
+galah_config(email = "dax.kellie@csiro.au")
+
 # create a list of all years
-all_years <- tibble(year = c(1900:2024))
+all_years <- tibble(year = c(1900:2025))
 
 # Map of australia
 aus <- ozmap_states |>
@@ -170,7 +169,7 @@ ggplot(data = c_beetles) +
            linewidth = 0.1) +
   labs(
     title = title_text,
-    subtitle = subtitle_text,
+    # subtitle = subtitle_text,
     y = "Observations",
     x = "Year"
   ) +
@@ -201,19 +200,20 @@ ggplot(data = c_beetles) +
                                     ),
     strip.text = element_text(family = "Roboto", size = 12),
     strip.background = element_blank(),
-    plot.background = element_rect(fill = "#fcefd0", colour = NA)
+    plot.background = element_rect(fill = "white", colour = NA)
   )
 ```
 
 ```{r}
 #| eval: false
-library(showtext)
-# turn on showtext
-showtext_auto()
 showtext_opts(dpi = 320)
 
-ggsave(here::here("projects", "christmas-beetles", "plots", "counts_christmas-beetles_updated.png"),
-       dpi = 320)
+ggsave(here::here("projects", "christmas-beetles", "plots", "counts_christmas-beetles_2026.png"),
+       dpi = 320
+       # width = 9,
+       # height = 8,
+       # unit = "cm"
+       )
 ```
 
 
@@ -440,7 +440,7 @@ ggplot(data = mis_id_joined) +
   )) +
   labs(
     title = title_text,
-    subtitle = subtitle_text,
+    # subtitle = subtitle_text,
     y = "Observations",
     x = "Year"
   ) +
@@ -449,17 +449,17 @@ ggplot(data = mis_id_joined) +
   scale_y_continuous(expand = c(0,0), labels = scales::label_comma()) +
   facet_grid(~ name)  + 
   geom_vline(xintercept = 2021, linetype ='longdash', col = 'grey55', linewidth = 1) +
-  annotate("text", x = 2007, y = 1800, 
-           label = "Christmas beetle\n count starts",
-           hjust = 0.1,
-           fontface = 'bold', size = 4.5, col = 'grey30', lineheight = 0.9) +
-  annotate("curve", x = 2021, xend = 2012,
-           y = 1400, yend = 1600,
-           curvature = -.3,
-           color = "grey55",
-           size = 1,
-           alpha = 0.8,
-           arrow = arrow(length = unit(0.08, "inches"), type = "closed")) +
+  # annotate("text", x = 2007, y = 1800, 
+  #          label = "Christmas beetle\n count starts",
+  #          hjust = 0.1,
+  #          fontface = 'bold', size = 4.5, col = 'grey30', lineheight = 0.9) +
+  # annotate("curve", x = 2021, xend = 2012,
+  #          y = 1400, yend = 1600,
+  #          curvature = -.3,
+  #          color = "grey55",
+  #          size = 1,
+  #          alpha = 0.8,
+  #          arrow = arrow(length = unit(0.08, "inches"), type = "closed")) +
   theme(
     axis.text = element_text(size = 12),  
     axis.title = element_text(size = 14),
@@ -472,7 +472,10 @@ ggplot(data = mis_id_joined) +
                                     ),
     strip.text = element_text(family = "Roboto", size = 12),
     strip.background = element_blank(),
-    plot.background = element_rect(fill = "#fcefd0", colour = NA)
+    plot.background = element_rect(
+      # fill = "#fcefd0", 
+      fill = "white", 
+      colour = NA)
   )
 
 ```
@@ -480,12 +483,9 @@ ggplot(data = mis_id_joined) +
 
 
 ```{r}
-library(showtext)
-# turn on showtext
-showtext_auto()
 showtext_opts(dpi = 320)
 
-ggsave(here::here("projects", "christmas-beetles", "plots", "counts_misID_updated.png"),
+ggsave(here::here("projects", "christmas-beetles", "plots", "counts_misID_updated_2026.png"),
        dpi = 320)
 ```
 
