@@ -3,6 +3,7 @@ library(galah)
 library(ggplot2)
 library(dplyr)
 library(glue)
+library(geomtextpath)
 library(marquee)
 library(showtext)
 font_add_google("Roboto Condensed", "roboto")
@@ -24,6 +25,36 @@ counts <- counts |>
 # Color palette pulled from original image
 bcgrnd = "#E1D8C1"
 
+
+##| Experimenting with a functional test to determine whether to use 
+##| light or dark text for readability:
+
+# Uses the WCAG relative luminance formula to measure how bright a colour appears.
+text_colour_for_bg <- function(hex_colours, threshold = 0.25) {
+  
+  # Screen colours are gamma-compressed (sRGB): stored values aren't proportional
+  # to actual light intensity. This step undoes that compression so that, e.g.,
+  # RGB(128, 128, 128) is treated as ~22% brightness, not 50%.
+  to_linear <- function(c) {
+    ifelse(c <= 0.03928, c / 12.92, ((c + 0.055) / 1.055) ^ 2.4)
+  }
+  
+  # convert hex to R, G, B channels (0-1 scale)
+  converted_colours <- (col2rgb(hex_colours) / 255)
+  
+  converted_colours |>         
+    t() |> # transpose so each row is one colour
+    as_tibble(.name_repair = "minimal") |>
+    set_names(c("r", "g", "b")) |>
+    mutate(across(c(r, g, b), to_linear)) |> # undo gamma compression
+    # Relative luminance: human eyes are most sensitive to green, least to blue,
+    # so each channel is weighted accordingly
+    mutate(luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b,
+           text_colour = if_else(luminance > threshold, "black", "#E1D8C1")
+           ) |>
+    pull(text_colour)
+}
+
 shell_palette <- c(
   "Cerithium" = "#834019",
   "Conus" = "#ba3421",
@@ -43,6 +74,8 @@ max_x = 78000 / 2
 slope = (12 - -1) / (0 - 30000)
 
 
+
+
 snails_spiral <- counts |>
   mutate(genus = as.factor(genus),
          y = seq(10, by = -1.5, length.out = 10),
@@ -57,11 +90,14 @@ snails_spiral <- counts |>
 
 
 snails_label = snails_spiral |>
-  select(genus, count, y, x) |>
+  select(genus, count, y, x, xend, yend) |>
   mutate(
     record_count = scales::comma(count),
-    label = marquee::marquee_glue("*{genus}* | *N* = {record_count}")
-      )
+    label = glue("*{genus}* | *N* = {record_count}"),
+    # place all labels at the same x position along their bar
+    hjust_label = 7000 / xend,
+    text_colour = text_colour_for_bg(shell_palette[as.character(genus)])
+  )
 
 ggplot(data = snails_spiral) +
   # first part of spiral
@@ -74,14 +110,18 @@ ggplot(data = snails_spiral) +
                    y = y_2, yend = yend_2,
                    color = genus),
                size = 3.1) +
-  marquee::geom_marquee(data = snails_label,
-            aes(x = x, y = y,
-                label = label),
+  geomtextpath::geom_textsegment(
+            data = snails_label,
+            aes(x = x, xend = xend,
+                y = y, yend = yend,
+                label = label,
+                hjust = hjust_label,
+                textcolour = text_colour),
             family = "roboto",
-            size = 2.5,
-            hjust = 1.1,
+            size = 2.25,
             vjust = 0.5,
-            angle = 90) +
+            linecolour = NA,
+            rich = TRUE) +
   labs(
     # title = "Most recorded gastropods in the Atlas of Living Australia",
        caption = "Source: Atlas of Living Australia  
