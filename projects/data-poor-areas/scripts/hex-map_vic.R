@@ -19,27 +19,28 @@ galah_config(email = "dax.kellie@csiro.au")
 ## create grid
 
 # get a map and project to WGS84
-oz_wgs84 <- ozmap_data(data = "country") |>
+vic_wgs84 <- ozmaps::ozmap_states |>
+  filter(NAME == "Victoria") |>
   st_transform(crs = st_crs("WGS84"))
 
 ## check map
-ggplot(oz_wgs84) + geom_sf()
+ggplot(vic_wgs84) + geom_sf()
 
 # create grid
-oz_grid <- st_make_grid(oz_wgs84,
+oz_grid <- st_make_grid(vic_wgs84,
                         what = "polygons",
-                        cellsize = .7,
+                        cellsize = .2,
                         square = FALSE,
                         flat_topped = TRUE)
 
 # subset to grid cells that are within land
-keep_hexes <- st_intersects(oz_grid, oz_wgs84)
+keep_hexes <- st_intersects(oz_grid, vic_wgs84)
 keep_hexes <- as.data.frame(keep_hexes)$row.id
 oz_grid <- oz_grid[keep_hexes]
 
 ## check
 ggplot() +
-  geom_sf(data = oz_wgs84) +
+  geom_sf(data = vic_wgs84) +
   geom_sf(data = oz_grid, fill = NA, color = "red")
 
 
@@ -52,9 +53,26 @@ ibra <- st_read(here::here("data", "IBRA7_regions", "ibra7_regions.shp")) |>
 
 ## Get complete species list for every ibra region
 
-ibra_region_names <- search_all(fields, "cl1048") |>
+ibra_region_names_complete <- search_all(fields, "cl1048") |>
   show_values() |>
   pull(cl1048)
+
+vic_ibra_bioregions <- tibble::tribble(
+  ~ibra_code, ~bioregion_name,
+  "AA",  "Australian Alps",
+  "FUR", "Furneaux",
+  "MDD", "Murray Darling Depression",
+  "NCP", "Naracoorte Coastal Plain",
+  "NSS", "NSW South Western Slopes",
+  "RIV", "Riverina",
+  "SCP", "South East Coastal Plain",
+  "SEC", "South East Corner",
+  "SEH", "South Eastern Highlands",
+  "SVP", "Southern Volcanic Plain",
+  "VM",  "Victorian Midlands"
+)
+
+ibra_region_names <- ibra_region_names_complete[ibra_region_names_complete %in% vic_ibra_bioregions$bioregion_name]
 
 
 ## Load imcra regions
@@ -64,9 +82,21 @@ imcra <- st_read(here::here("data", "imcra_mesoscale_bioregions", "imcra4_meso.s
 
 ## Get complete species list for every imcra region
 
-imcra_region_names <- search_all(fields, "cl966") |>
+imcra_region_names_complete <- search_all(fields, "cl966") |>
   show_values() |>
   pull(cl966)
+
+vic_imcra_bioregions <- tibble::tribble(
+  ~meso_code, ~bioregion_name,          ~provincial_bioregion,             ~touches_vic_coast,
+  "OTW",      "Otway",                  "Western Bass Strait Shelf Transition", TRUE,
+  "CV",       "Central Victoria",       "Bass Strait Shelf Province",           TRUE,
+  "VE",       "Victorian Embayments",   "Bass Strait Shelf Province",           TRUE,
+  "FLI",      "Flinders",               "Southeast Shelf Transition",           TRUE,
+  "TWO",      "Twofold Shelf",          "Southeast Shelf Transition",           TRUE,
+  "CBS",      "Central Bass Strait",    "Bass Strait Shelf Province",           FALSE
+)
+
+imcra_region_names <- imcra_region_names_complete[imcra_region_names_complete %in% vic_imcra_bioregions$bioregion_name]
 
 # -- set taxa ---------------------------------------------------------------- #
 taxa_name <- "Anura"
@@ -91,6 +121,14 @@ get_species_list <- function(ibra_region_name) {
 
 big_list <- purrr::map(ibra_region_names, get_species_list) |>
   bind_rows()
+
+small_list <- galah_call() |>
+  # identify(search_result) |>
+  filter(cl1048 =="Furneaux") |>
+  atlas_species()
+
+small_list |>
+  filter(order == "Anura")
 
 big_list |>
   filter(ibra_region == "South Eastern Highlands")
@@ -141,7 +179,7 @@ get_species_counts <- function(hexagon, ibra_name, taxa) {
   # get counts
   result <- galah_call() |>
     geolocate(hexagon) |>
-    identify(taxa) |>
+    identify(search_result) |>
     filter(cl1048 == ibra_name) |>
     apply_profile(ALA) |>
     atlas_counts(type = "species", # get species counts
@@ -160,6 +198,14 @@ get_species_counts <- function(hexagon, ibra_name, taxa) {
   return(result)
   
 }
+
+# species list checker
+galah_call() |>
+  geolocate(hex_name |> filter(hex_id == 2)) |>
+  identify(search_result) |>
+  filter(cl1048 == "Furneaux") |>
+  apply_profile(ALA) |>
+  atlas_species()
 
 # get count of species in each hexagon
 grid_and_species <- hex_name |>
@@ -182,20 +228,15 @@ hex_prop_species <- grid_and_species |>
     prop_total_species = count/n
   )
 
+hex_prop_species |>
+  arrange(desc(prop_total_species))
 
+# get filtered ibra/imcra regions for plotting
+ibra_filtered <- ibra |> filter(REG_NAME_7 %in% ibra_region_names)
+imcra_filtered <- imcra |> filter(MESO_NAME %in% imcra_region_names)
 
-
-# investigator plot
-# ggplot() +
-#   geom_sf(
-#     data = hex_prop_species,
-#     mapping = aes(fill = ifelse(prop_total_species > 1, "blue", "grey60")),
-#     alpha = 1,
-#     color = "grey60") +
-#   scale_fill_identity()
-
-
-
+ibra_cropped <- st_crop(ibra_filtered, st_bbox(hex_prop_species))
+imcra_cropped <- st_crop(imcra_filtered, st_bbox(hex_prop_species))
 
 ## PLOT
 library(showtext)
@@ -211,7 +252,17 @@ ggplot() +
     data = hex_prop_species,
     mapping = aes(fill = prop_total_species),
     alpha = 1,
-    color = "grey60") + 
+    color = "grey60") +
+  # geom_sf(
+  #   data = ibra_cropped,
+  #   fill = "transparent",
+  #   colour = "grey20"
+  # ) +
+  # geom_sf(
+  #   data = imcra_cropped,
+  #   fill = "transparent",
+  #   colour = "grey20"
+  # ) +
   scale_fill_gradientn(name = "Proportion of \nIBRA region's\n\"complete\" species list",
                        colors = my_palette,
                        na.value = "grey70",
@@ -223,9 +274,9 @@ ggplot() +
                                                 title.hjust = 0.5,
                                                 show.limits = TRUE
                                                 )) +
-  coord_sf(xlim = c(110, 155),
-           ylim = c(-45, -8)) +
-  labs(title = title, caption = "Atlas of Living Australia, May 2026") +
+  # coord_sf(xlim = c(110, 155),
+  #          ylim = c(-45, -8)) +
+  labs(title = title, caption = "Atlas of Living Australia, July 2026") +
   theme_void() +
   theme(
     plot.title = ggtext::element_markdown(family = "roboto"),
@@ -241,7 +292,7 @@ ggplot() +
 # save
 showtext_opts(dpi = 300)
 ggsave(
-  file = here::here("projects", "data-poor-areas", "plots", "2026-05_charophyta.png"),
+  file = here::here("projects", "data-poor-areas", "plots", "vic", "2026-07_strigiformes_vic.png"),
   dpi = 300,
   height = 7.5,
   width = 8.5
