@@ -1,3 +1,7 @@
+# -------------------------------------------------------------------- #
+# Title: Gastropod records by species - waffle plot
+# Author: Dax Kellie
+# -------------------------------------------------------------------- #
 
 library(galah)
 library(dplyr)
@@ -14,35 +18,20 @@ font_add_google("Roboto", "roboto")
 showtext_auto()
 galah_config(email = "dax.kellie@csiro.au")
 
-species_all <- read_excel(
-  here::here("comms", "2026-03-20_gastropods", "data", "AllalaSpeciesChecklist25-2025-12-11.xlsx"),
-  sheet = 6,
-  ) |>
-  janitor::clean_names() |>
-  select(-simon_records)
+# load data
+# Note: See ./scripts/filter-larger-dataset.R for code used to wrangle complete 
+#       taxonomic dataset to gastropoda.parquet
+gastropods <- nanoparquet::read_parquet(
+  here::here("comms", "2026-03-20_gastropods", "data-processed", "gastropoda.parquet")
+  )
 
-species_with_counts <- read_excel(
-  here::here("comms", "2026-03-20_gastropods", "data", "AllalaSpeciesChecklist25-2025-12-11.xlsx"),
-  sheet = 5,
-) |>
-  janitor::clean_names()
+# Check whether order is a usable taxonomic level for summarising
+gastropods |>
+  select(species_name, number_of_records, class, order, family) |>
+  filter(is.na(order)) |>
+  distinct(order)
 
-species_joined <- species_with_counts |>
-  select(species_name, vernacular_name, number_of_records) |>
-  right_join(species_all, 
-            join_by(species_name == scientific_name)
-            )
-
-gastropods <- species_joined |>
-  filter(stringr::str_detect(class, 
-                             stringr::fixed("gastropoda", ignore_case=TRUE))
-  ) |>
-  replace_na(list(number_of_records = 0)) # replace NAs with 0s
-
-# gastropods |>
-#   select(species_name, number_of_records, class, order, family) |>
-#   filter(is.na(order)) |>
-#   distinct(order)
+#### Wrangling ####
 
 # ---
 # There are lots of gastropods that don't have an order
@@ -128,7 +117,7 @@ unassigned_ids <- genera |>
   filter(rank == "genus") |>
   pull(taxon_concept_id)
 
-# function that pings BIE API for classification
+# function that pings ALA's BIE API for classification information
 get_status <- function(taxon_concept_id) {
   
   base_url <- "https://api.ala.org.au/species/species/"
@@ -171,7 +160,7 @@ gastropods_filled_more <- gastropods_filled |>
 
 
 
-#### Counts
+#### Counts ####
 
 # get them order counts
 # total_records <- gastropods_filled_more |>
@@ -258,12 +247,14 @@ custom_palette <- c(
 )
 
 
+
+#### PLOT ####
+
 title_text <- marquee_glue("Taxonomic completeness of *Gastropoda* records")
 subtitle_text <- marquee_glue("Number of species with {#bb66b8 **100+ records**}, {#845b98 **10+ records**}, {#624776 **1+ records**} or {#483251 **no records**}  
                                in the Atlas of Living Australia
                            
                            \u25A0 = 10 species (rounded up)")
-
 
 ggplot() +
   waffle::geom_waffle(
@@ -326,13 +317,4 @@ ggsave(here::here("comms",
        height = 11,
        width = 15)
 
-
-
-
-# unrelated bats query
-# galah_call() |>
-#   identify("Chiroptera") |>
-#   distinct(scientificName) |>
-#   count() |>
-#   collect()
 
