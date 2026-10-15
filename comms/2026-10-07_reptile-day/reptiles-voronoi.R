@@ -174,7 +174,7 @@ main_title <- marquee::marquee_grob(
     subtitle = marquee::marquee_glue("Grouped by taxonomic family"),
     caption = marquee_glue("Left: Proportion of *Reptilia* occurrence records 
                            Right: Number of *Reptilia* occurrence records   
-                           1 Jan 2025 - 13 Oct 2026"),
+                           1 Jan 2025 - 15 Oct 2026"),
     theme = theme(
       plot.background = element_rect(fill = "#DDD3A0", colour = "transparent"),
       panel.background = element_rect(fill = "#DDD3A0", colour = "transparent"),
